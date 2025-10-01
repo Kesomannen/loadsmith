@@ -1,17 +1,15 @@
 use std::{
     borrow::Cow,
     collections::HashMap,
-    io::{Read, Seek},
     path::{Path, PathBuf},
 };
 
-use itertools::Itertools;
 use walkdir::WalkDir;
-use zip::ZipArchive;
 
 use crate::{
-    PackageInstaller, Result,
-    state::{ProfileState, ProfileStateHandle},
+    AnyZipArchive, PackageInstaller, Result,
+    state::ProfileStateHandle,
+    util::{InstallOpt, InstallOptions},
 };
 
 type StaticCow<T> = Cow<'static, T>;
@@ -20,6 +18,7 @@ type StaticCow<T> = Cow<'static, T>;
 pub struct RuleInstaller {
     rules: Vec<Rule>,
     default_rule: Option<usize>,
+    state_file_path: PathBuf,
 }
 
 #[derive(Debug, Clone)]
@@ -88,13 +87,16 @@ impl Rule {
     }
 }
 
-enum RulePackageFiles {
+enum RulePackageFiles<'a> {
     None,
-    Track(<HashMap<PathBuf, String> as IntoIter>::IntoIter),
+    Track {
+        iter: <HashMap<PathBuf, String> as IntoIterator>::IntoIter,
+        package_name: &'a str,
+    },
     WalkDir(walkdir::IntoIter),
 }
 
-impl<'a> Iterator for RulePackageFiles {
+impl<'a> Iterator for RulePackageFiles<'a> {
     type Item = PathBuf;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -103,7 +105,9 @@ impl<'a> Iterator for RulePackageFiles {
                 Ok(entry) if entry.file_type().is_file() => Some(entry.into_path()),
                 _ => None,
             }),
-            RulePackageFiles::Track => None,
+            RulePackageFiles::Track { iter, package_name } => {
+                iter.find_map(|(path, package)| (package == *package_name).then_some(path))
+            }
             RulePackageFiles::None => None,
         }
     }
@@ -113,18 +117,19 @@ impl Rule {
     fn package_files<'a>(
         &'a self,
         profile_root: &Path,
-        package_name: &str,
-    ) -> Result<RulePackageFiles> {
+        package_name: &'a str,
+        state_file_path: &Path,
+    ) -> Result<RulePackageFiles<'a>> {
         let iter = match self.mode {
             RuleMode::Separate | RuleMode::SeparateFlatten => {
                 let directory = profile_root.join(&*self.target).join(package_name);
                 RulePackageFiles::WalkDir(WalkDir::new(directory).into_iter())
             }
             RuleMode::Track => {
-                let file_map = ProfileStateHandle::new(profile_root);
+                let file_map = ProfileStateHandle::new(profile_root.join(state_file_path));
                 let iter = file_map.state.file_map.into_iter();
 
-                RulePackageFiles::Track(iter)
+                RulePackageFiles::Track { iter, package_name }
             }
             RuleMode::None => RulePackageFiles::None,
         };
@@ -138,11 +143,17 @@ impl RuleInstaller {
         Self {
             rules,
             default_rule: None,
+            state_file_path: ["_state", "profile.json"].iter().collect(),
         }
     }
 
     pub fn with_default(mut self, index: usize) -> Self {
         self.default_rule = Some(index);
+        self
+    }
+
+    pub fn with_state_file_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.state_file_path = path.into();
         self
     }
 
@@ -160,11 +171,10 @@ impl RuleInstaller {
         })
     }
 
-    pub fn rule_from_installed_file(&'_ self, relative_path: impl AsRef<Path>) -> &'_ Rule {
+    pub fn rule_from_relative_path(&'_ self, relative_path: impl AsRef<Path>) -> Option<&'_ Rule> {
         self.rules
             .iter()
             .find(|rule| relative_path.as_ref().starts_with(&*rule.target))
-            .expect("file should be in a rule")
     }
 
     /// Map a file in the mod archive (at relative_path) to the target path relative to the profile's root.
@@ -259,9 +269,9 @@ impl RuleInstaller {
 }
 
 impl PackageInstaller for RuleInstaller {
-    fn extract<R: Read + Seek>(
+    fn extract(
         &self,
-        archive: ZipArchive<R>,
+        archive: AnyZipArchive,
         package_name: &str,
         output_path: &Path,
     ) -> Result<()> {
@@ -274,21 +284,68 @@ impl PackageInstaller for RuleInstaller {
         &'a self,
         install_root: &'a Path,
         package_name: &'a str,
-    ) -> Result<impl Iterator<Item = Result<PathBuf>> + 'a> {
-        let iter = self
-            .rules
-            .iter()
-            .map(|rule| rule.package_files(install_root, package_name))
-            .flatten_ok();
+    ) -> Result<Vec<PathBuf>> {
+        let mut result = Vec::new();
 
-        Ok(iter)
+        for rule in &self.rules {
+            let files = rule.package_files(install_root, package_name, &self.state_file_path)?;
+
+            result.extend(files);
+        }
+
+        Ok(result)
     }
 
-    fn is_mutable(&self, relative_path: impl AsRef<Path>) -> bool {
-        self.rule_from_installed_file(relative_path).mutable
-    }
+    fn install(
+        &self,
+        profile_root: &Path,
+        source_root: &Path,
+        package_name: &str,
+        use_links: bool,
+    ) -> Result<()> {
+        let mut profile_state: Option<ProfileStateHandle> = None;
 
-    fn should_overwrite(&self, relative_path: impl AsRef<Path>) -> bool {
-        self.rule_from_installed_file(relative_path).mode == RuleMode::Track
+        crate::util::install(
+            profile_root,
+            source_root,
+            InstallOptions::default()
+                .should_overwrite(InstallOpt::Const(false))
+                .should_link(InstallOpt::Fn(&mut |path| {
+                    if !use_links {
+                        return false;
+                    }
+
+                    let Some(rule) = self.rule_from_relative_path(path) else {
+                        // TODO: warning?
+                        return false;
+                    };
+
+                    !rule.mutable
+                }))
+                .on_write(&mut |path| {
+                    let Some(rule) = self.rule_from_relative_path(path) else {
+                        return;
+                    };
+
+                    if rule.mode != RuleMode::Track {
+                        return;
+                    }
+
+                    let handle = profile_state.get_or_insert_with(|| {
+                        ProfileStateHandle::new(profile_root.join(&self.state_file_path))
+                    });
+
+                    handle
+                        .state
+                        .file_map
+                        .insert(path.to_path_buf(), package_name.to_string());
+                }),
+        )?;
+
+        if let Some(handle) = profile_state {
+            handle.commit()?;
+        }
+
+        Ok(())
     }
 }

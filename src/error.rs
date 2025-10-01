@@ -9,6 +9,9 @@ pub enum Error {
     IoWithPath(io::Error, PathBuf),
 
     #[error(transparent)]
+    Walkdir(#[from] walkdir::Error),
+
+    #[error(transparent)]
     Zip(#[from] zip::result::ZipError),
 
     #[error(transparent)]
@@ -26,6 +29,8 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-pub(crate) fn wrap_io_err(err: io::Error, path: impl Into<PathBuf>) -> Error {
-    Error::IoWithPath(err, path.into())
+impl Error {
+    pub(crate) fn wrap_io(err: io::Error, path: impl Into<PathBuf>) -> Self {
+        Self::IoWithPath(err, path.into())
+    }
 }

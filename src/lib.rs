@@ -1,8 +1,7 @@
 use std::{
     ffi::OsString,
     fs::{self, File},
-    io::{self, BufReader, Read, Seek},
-    iter,
+    io::{BufReader, Read, Seek},
     path::{Path, PathBuf},
 };
 
@@ -11,7 +10,7 @@ use zip::ZipArchive;
 
 mod error;
 mod loaders;
-mod rule;
+pub mod rule;
 mod state;
 #[cfg(test)]
 mod tests;
@@ -19,6 +18,13 @@ mod util;
 
 pub use error::*;
 pub use loaders::*;
+
+use crate::util::InstallOptions;
+
+pub trait AnyZipReader: Read + Seek {}
+impl<T> AnyZipReader for T where T: Read + Seek {}
+
+pub type AnyZipArchive = ZipArchive<Box<dyn AnyZipReader>>;
 
 pub trait ModLoader {
     fn to_str(&self) -> &'static str;
@@ -28,14 +34,14 @@ pub trait ModLoader {
     }
     fn get_launch_args(&self, profile_root: &Path) -> Result<Vec<OsString>>;
 
-    fn default_installer<'a>(&'a self) -> &'a impl PackageInstaller;
-    fn loader_installer<'a>(&'a self) -> &'a impl PackageInstaller;
+    fn default_installer<'a>(&'a self) -> &'a dyn PackageInstaller;
+    fn loader_installer<'a>(&'a self) -> &'a dyn PackageInstaller;
 
     fn log_path(&self, _profile_root: &Path) -> Option<PathBuf> {
         None
     }
-    fn mod_config_dirs(&self, _profile_root: &Path) -> impl Iterator<Item = PathBuf> {
-        iter::empty()
+    fn mod_config_dirs(&self, _profile_root: &Path) -> Vec<PathBuf> {
+        Vec::new()
     }
 }
 
@@ -43,9 +49,9 @@ impl<T> PackageInstaller for T
 where
     T: ModLoader,
 {
-    fn extract<R: Read + Seek>(
+    fn extract(
         &self,
-        archive: ZipArchive<R>,
+        archive: AnyZipArchive,
         package_name: &str,
         output_path: &Path,
     ) -> Result<()> {
@@ -57,17 +63,9 @@ where
         &'a self,
         install_root: &'a Path,
         package_name: &'a str,
-    ) -> Result<impl Iterator<Item = Result<PathBuf>> + 'a> {
+    ) -> Result<Vec<PathBuf>> {
         self.default_installer()
             .package_files(install_root, package_name)
-    }
-
-    fn is_mutable(&self, relative_path: impl AsRef<Path>) -> bool {
-        self.default_installer().is_mutable(relative_path)
-    }
-
-    fn should_overwrite(&self, relative_path: impl AsRef<Path>) -> bool {
-        self.default_installer().should_overwrite(relative_path)
     }
 
     fn install(
@@ -86,9 +84,9 @@ where
             .uninstall(profile_root, package_name)
     }
 
-    fn extract_and_install<R: Read + Seek>(
+    fn extract_and_install(
         &self,
-        archive: ZipArchive<R>,
+        archive: AnyZipArchive,
         package_name: &str,
         profile_root: &Path,
     ) -> Result<()> {
@@ -98,72 +96,40 @@ where
 }
 
 pub trait PackageInstaller {
-    fn extract<R: Read + Seek>(
-        &self,
-        archive: ZipArchive<R>,
-        package_name: &str,
-        output_path: &Path,
-    ) -> Result<()>;
+    fn extract(&self, archive: AnyZipArchive, package_name: &str, output_path: &Path)
+    -> Result<()>;
 
     fn package_files<'a>(
         &'a self,
         install_root: &'a Path,
         package_name: &'a str,
-    ) -> Result<impl Iterator<Item = Result<PathBuf>> + 'a>;
-
-    #[allow(unused_variables)]
-    fn is_mutable(&self, relative_path: impl AsRef<Path>) -> bool {
-        true
-    }
-
-    #[allow(unused_variables)]
-    fn should_overwrite(&self, relative_path: impl AsRef<Path>) -> bool {
-        false
-    }
+    ) -> Result<Vec<PathBuf>>;
 
     fn install(
         &self,
         profile_root: &Path,
         source_root: &Path,
-        package_name: &str,
-        use_links: bool,
+        _package_name: &str,
+        _use_links: bool,
     ) -> Result<()> {
-        for file in self.package_files(source_root, package_name)? {
-            let file = file?;
-
-            let relative_path = file
-                .strip_prefix(source_root)
-                .expect("source file should be child of the source root");
-            let use_link = use_links && !self.is_mutable(relative_path);
-            let overwite = self.should_overwrite(relative_path);
-
-            util::install_package_file(
-                profile_root,
-                source_root,
-                &relative_path,
-                overwite,
-                use_link,
-            )?;
-        }
-
-        Ok(())
+        util::install(profile_root, source_root, InstallOptions::default()).map_err(Error::Io)
     }
 
     fn uninstall(&self, profile_root: &Path, package_name: &str) -> Result<()> {
         for file in self.package_files(profile_root, package_name)? {
-            let file = file?;
             if !file.exists() {
                 continue;
             }
+
             fs::remove_file(file)?;
         }
 
         Ok(())
     }
 
-    fn extract_and_install<R: Read + Seek>(
+    fn extract_and_install(
         &self,
-        archive: ZipArchive<R>,
+        archive: AnyZipArchive,
         package_name: &str,
         profile_root: &Path,
     ) -> Result<()> {
@@ -191,8 +157,13 @@ pub trait PackageInstaller {
 //     KNOWN_GENERATED_FILES.contains(&file_name)
 // }
 
-pub fn open_zip(path: impl AsRef<Path>) -> io::Result<ZipArchive<BufReader<File>>> {
-    let reader = File::open(path).map(BufReader::new)?;
+pub fn open_zip(path: impl AsRef<Path>) -> Result<AnyZipArchive> {
+    let reader: Box<dyn AnyZipReader> = File::open(&path)
+        .map_err(|err| Error::wrap_io(err, path.as_ref()))
+        .map(BufReader::new)
+        .map(Box::new)?;
+
     let zip = ZipArchive::new(reader)?;
+
     Ok(zip)
 }

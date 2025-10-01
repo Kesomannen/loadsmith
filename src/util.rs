@@ -7,9 +7,10 @@ use std::{
 };
 
 use itertools::Itertools;
+use walkdir::WalkDir;
 use zip::ZipArchive;
 
-use crate::{Result, wrap_io_err};
+use crate::{Error, Result};
 
 pub fn cmp_ignore_case(a: impl AsRef<str>, b: impl AsRef<str>) -> Ordering {
     a.as_ref()
@@ -32,13 +33,13 @@ pub fn cmp_ignore_case(a: impl AsRef<str>, b: impl AsRef<str>) -> Ordering {
 /// skips the file entirely.
 ///
 /// Directories are created as needed.
-pub(super) fn extract<S, F>(
-    mut archive: ZipArchive<S>,
+pub(super) fn extract<R, F>(
+    mut archive: ZipArchive<R>,
     output_path: impl AsRef<Path>,
     mut map_file: F,
 ) -> Result<()>
 where
-    S: Read + Seek,
+    R: Read + Seek,
     F: FnMut(&Path) -> Option<Cow<Path>>,
 {
     for i in 0..archive.len() {
@@ -63,13 +64,13 @@ where
         let target_path = output_path.as_ref().join(relative_target);
         let parent = target_path.parent().unwrap();
 
-        fs::create_dir_all(parent).map_err(|err| wrap_io_err(err, &target_path))?;
+        fs::create_dir_all(parent).map_err(|err| Error::wrap_io(err, &target_path))?;
 
         let mut target_file =
-            File::create(&target_path).map_err(|err| wrap_io_err(err, &target_path))?;
+            File::create(&target_path).map_err(|err| Error::wrap_io(err, &target_path))?;
 
         io::copy(&mut source_file, &mut target_file)
-            .map_err(|err| wrap_io_err(err, &target_path))?;
+            .map_err(|err| Error::wrap_io(err, &target_path))?;
 
         #[cfg(unix)]
         set_unix_mode(&source_file, &target_path)?;
@@ -97,17 +98,86 @@ fn set_unix_mode(file: &zip::read::ZipFile, target_path: &Path) -> io::Result<()
     Ok(())
 }
 
-pub fn install_package_file(
+pub enum InstallOpt<'a> {
+    Const(bool),
+    Fn(&'a mut dyn FnMut(&Path) -> bool),
+}
+
+impl InstallOpt<'_> {
+    fn eval(&mut self, path: &Path) -> bool {
+        match self {
+            InstallOpt::Const(value) => *value,
+            InstallOpt::Fn(f) => f(path),
+        }
+    }
+}
+
+pub struct InstallOptions<'a> {
+    link: InstallOpt<'a>,
+    overwrite: InstallOpt<'a>,
+    on_write: Option<&'a mut dyn FnMut(&Path)>,
+}
+
+impl Default for InstallOptions<'_> {
+    fn default() -> Self {
+        Self {
+            link: InstallOpt::Const(false),
+            overwrite: InstallOpt::Const(true),
+            on_write: None,
+        }
+    }
+}
+
+impl<'a> InstallOptions<'a> {
+    pub fn should_link(mut self, f: InstallOpt<'a>) -> Self {
+        self.link = f;
+        self
+    }
+
+    pub fn should_overwrite(mut self, g: InstallOpt<'a>) -> Self {
+        self.overwrite = g;
+        self
+    }
+
+    pub fn on_write(mut self, f: &'a mut dyn FnMut(&Path)) -> Self {
+        self.on_write = Some(f);
+        self
+    }
+}
+
+pub fn install<'a>(
     profile_root: &Path,
     source_root: &Path,
-    file_relative: &Path,
-    overwrite: bool,
-    use_links: bool,
+    mut options: InstallOptions<'a>,
 ) -> io::Result<()> {
-    let source_path = source_root.join(file_relative);
-    let target_path = profile_root.join(file_relative);
+    let entries = WalkDir::new(source_root)
+        .into_iter()
+        .filter_ok(|entry| entry.file_type().is_file());
 
-    if !overwrite && target_path.exists() {
+    for entry in entries {
+        let entry = entry?;
+
+        let relative_path = entry
+            .path()
+            .strip_prefix(source_root)
+            .expect("source file should be child of the source root");
+
+        install_package_file(profile_root, source_root, &relative_path, &mut options)?;
+    }
+
+    Ok(())
+}
+
+pub fn install_package_file<'a>(
+    profile_root: &Path,
+    source_root: &Path,
+    relative_path: &Path,
+    options: &mut InstallOptions<'a>,
+) -> io::Result<()> {
+    let source_path = source_root.join(relative_path);
+    let target_path = profile_root.join(relative_path);
+
+    if target_path.exists() && !options.overwrite.eval(relative_path) {
         return Ok(());
     }
 
@@ -117,10 +187,14 @@ pub fn install_package_file(
             .expect("new_path should have parent directory"),
     )?;
 
-    if use_links {
+    if options.link.eval(relative_path) {
         fs::hard_link(source_path, target_path)?;
     } else {
         fs::copy(source_path, target_path)?;
+    }
+
+    if let Some(on_write) = options.on_write.as_mut() {
+        on_write(relative_path);
     }
 
     Ok(())

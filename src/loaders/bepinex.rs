@@ -1,20 +1,20 @@
 use std::{
     ffi::OsString,
     fs,
-    io::{Read, Seek},
     path::{Path, PathBuf},
 };
 
 use itertools::Itertools;
 
 use crate::{
-    Error, ModLoader, PackageInstaller, Result,
+    AnyZipArchive, Error, ModLoader, PackageInstaller, Result,
     rule::{Rule, RuleInstaller},
 };
 
 #[derive(Debug, Default)]
 pub struct BepInExBuilder {
-    extra_installer_rules: Option<Vec<Rule>>,
+    extra_installer_rules: Vec<Rule>,
+    custom_state_file_path: Option<PathBuf>,
 }
 
 impl BepInExBuilder {
@@ -23,7 +23,12 @@ impl BepInExBuilder {
     }
 
     pub fn with_extra_rules(mut self, extra_rules: Vec<Rule>) -> Self {
-        self.extra_installer_rules = Some(extra_rules);
+        self.extra_installer_rules = extra_rules;
+        self
+    }
+
+    pub fn with_state_file_name(mut self, state_file_path: impl Into<PathBuf>) -> Self {
+        self.custom_state_file_path = Some(state_file_path.into());
         self
     }
 
@@ -37,10 +42,14 @@ impl BepInExBuilder {
             Rule::untracked("config", Path::new("BepInEx/config")).mutable(),
         ]
         .into_iter()
-        .chain(self.extra_installer_rules.into_iter().flat_map(|vec| vec))
+        .chain(self.extra_installer_rules.into_iter())
         .collect();
 
-        let plugin_installer = RuleInstaller::new(rules).with_default(0);
+        let mut plugin_installer = RuleInstaller::new(rules).with_default(0);
+
+        if let Some(path) = self.custom_state_file_path {
+            plugin_installer = plugin_installer.with_state_file_path(path);
+        }
 
         BepInEx {
             plugin_installer,
@@ -84,11 +93,11 @@ impl ModLoader for BepInEx {
         get_doorstop_args(doorstop_version, true, preloader_path)
     }
 
-    fn default_installer<'a>(&'a self) -> &'a impl PackageInstaller {
+    fn default_installer<'a>(&'a self) -> &'a dyn PackageInstaller {
         &self.plugin_installer
     }
 
-    fn loader_installer<'a>(&'a self) -> &'a impl PackageInstaller {
+    fn loader_installer<'a>(&'a self) -> &'a dyn PackageInstaller {
         &self.loader_installer
     }
 
@@ -96,8 +105,8 @@ impl ModLoader for BepInEx {
         Some(profile_root.join("BepInEx").join("LogOutput.log"))
     }
 
-    fn mod_config_dirs(&self, profile_root: &Path) -> impl Iterator<Item = PathBuf> {
-        [profile_root.join("BepInEx").join("config")].into_iter()
+    fn mod_config_dirs(&self, profile_root: &Path) -> Vec<PathBuf> {
+        vec![profile_root.join("BepInEx").join("config")]
     }
 }
 
@@ -105,9 +114,9 @@ impl ModLoader for BepInEx {
 struct BepInExLoaderInstaller;
 
 impl PackageInstaller for BepInExLoaderInstaller {
-    fn extract<R: Read + Seek>(
+    fn extract(
         &self,
-        archive: zip::ZipArchive<R>,
+        archive: AnyZipArchive,
         _package_name: &str,
         output_path: &Path,
     ) -> Result<()> {
@@ -126,8 +135,8 @@ impl PackageInstaller for BepInExLoaderInstaller {
         &'a self,
         install_root: &'a Path,
         _package_name: &'a str,
-    ) -> Result<impl Iterator<Item = Result<PathBuf>> + 'a> {
-        let files = install_root
+    ) -> Result<Vec<PathBuf>> {
+        install_root
             .join("BepInEx")
             .join("core")
             .read_dir()?
@@ -135,13 +144,8 @@ impl PackageInstaller for BepInExLoaderInstaller {
             .map(|result| match result {
                 Ok(entry) => Ok(entry.path()),
                 Err(err) => Err(Error::Io(err)),
-            });
-
-        Ok(files)
-    }
-
-    fn should_overwrite(&self, _relative_path: impl AsRef<Path>) -> bool {
-        true
+            })
+            .collect()
     }
 }
 
@@ -150,7 +154,8 @@ fn read_doorstop_version(profile_root: &Path) -> Result<Option<u32>> {
 
     path.exists()
         .then(|| {
-            let version = fs::read_to_string(&path)?
+            let version = fs::read_to_string(&path)
+                .map_err(|err| Error::wrap_io(err, path))?
                 .split('.') // read only the major version number
                 .next()
                 .and_then(|str| str.parse().ok())

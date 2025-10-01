@@ -1,12 +1,8 @@
-use std::{
-    collections::HashMap,
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashMap, fs, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Error, Result, wrap_io_err};
+use crate::{Error, Result};
 
 pub struct ProfileStateHandle {
     pub path: PathBuf,
@@ -20,15 +16,9 @@ pub struct ProfileState {
 }
 
 impl ProfileStateHandle {
-    pub fn new(profile_root: &Path) -> Self {
-        let mut path = profile_root.to_path_buf();
-
-        path.push("_state");
-        path.push("profile");
-        path.set_extension("json");
-
+    pub fn new(path: PathBuf) -> Self {
         let state = fs::read_to_string(&path)
-            .map_err(|err| wrap_io_err(err, &path))
+            .map_err(|err| Error::wrap_io(err, &path))
             .and_then(|str| serde_json::from_str(&str).map_err(Error::Json))
             .unwrap_or_default();
 
