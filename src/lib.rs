@@ -9,6 +9,7 @@ use tempfile::TempDir;
 use zip::ZipArchive;
 
 mod error;
+pub mod extract;
 mod loaders;
 pub mod rule;
 mod state;
@@ -118,7 +119,13 @@ pub trait PackageInstaller {
             fs::remove_file(&file).map_err(|err| Error::wrap_io(err, file))?;
         }
 
+        util::delete_empty_folders(profile_root)?;
+
         Ok(())
+    }
+
+    fn package_dir(&self, _install_root: &Path, _package_name: &str) -> Result<Option<PathBuf>> {
+        Ok(None)
     }
 
     fn extract_and_install(
@@ -136,20 +143,6 @@ pub trait PackageInstaller {
         Ok(())
     }
 }
-
-// const KNOWN_GENERATED_FILES: &[&str] = &[
-//     "profile.yml",
-//     "_state",
-//     "profile.json",
-//     "snapshots",
-//     "tempest.toml",
-//     "tempest.lock",
-//     ".tempest",
-// ];
-
-// fn is_known_generated(file_name: &str) -> bool {
-//     KNOWN_GENERATED_FILES.contains(&file_name)
-// }
 
 pub fn open_zip(path: impl AsRef<Path>) -> Result<AnyZipArchive> {
     let reader: Box<dyn AnyZipReader> = File::open(&path)

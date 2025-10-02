@@ -45,7 +45,7 @@ impl BepInExBuilder {
             Rule::flat_separated("monomod", Path::new("BepInEx/monomod"))
                 .with_extensions(["mm.dll"]),
             Rule::flat_separated("core", Path::new("BepInEx/core")),
-            Rule::untracked("config", Path::new("BepInEx/config")).mutable(),
+            Rule::untracked("config", Path::new("BepInEx/config")),
         ]
         .into_iter()
         .chain(self.extra_installer_rules.into_iter())
@@ -118,10 +118,15 @@ impl ModLoader for BepInEx {
     fn mod_config_dirs(&self, profile_root: &Path) -> Vec<PathBuf> {
         vec![profile_root.join("BepInEx").join("config")]
     }
+
+    fn prepare_launch(&self, _profile_root: &Path, _game_root: &Path) -> Result<()> {
+        todo!()
+    }
 }
 
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy)]
-struct BepInExLoaderInstaller;
+pub struct BepInExLoaderInstaller;
 
 impl PackageInstaller for BepInExLoaderInstaller {
     fn extract(

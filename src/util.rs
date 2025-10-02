@@ -184,7 +184,7 @@ pub fn install_package_file<'a>(
     fs::create_dir_all(
         target_path
             .parent()
-            .expect("new_path should have parent directory"),
+            .expect("target_path should have parent directory"),
     )?;
 
     if options.link.eval(relative_path) {
@@ -195,6 +195,25 @@ pub fn install_package_file<'a>(
 
     if let Some(on_write) = options.on_write.as_mut() {
         on_write(relative_path);
+    }
+
+    Ok(())
+}
+
+pub fn delete_empty_folders(root: &Path) -> Result<()> {
+    let dirs = WalkDir::new(root)
+        .contents_first(true)
+        .into_iter()
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.depth() > 0 && entry.file_type().is_dir())
+        .map(|entry| entry.into_path());
+
+    for dir in dirs {
+        match fs::remove_dir(&dir) {
+            Ok(_) => (),
+            Err(err) if err.kind() == io::ErrorKind::DirectoryNotEmpty => (),
+            Err(err) => return Err(Error::wrap_io(err, dir)),
+        }
     }
 
     Ok(())

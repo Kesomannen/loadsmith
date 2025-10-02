@@ -27,7 +27,6 @@ pub struct Rule {
     pub name: StaticCow<str>,
     pub target: StaticCow<Path>,
     pub mode: RuleMode,
-    pub mutable: bool,
     pub extensions: Vec<StaticCow<str>>,
 }
 
@@ -50,7 +49,6 @@ impl Rule {
             name: name.into(),
             target: target.into(),
             mode,
-            mutable: false,
             extensions: Vec::new(),
         }
     }
@@ -80,11 +78,6 @@ impl Rule {
 
     pub fn untracked(name: impl Into<StaticCow<str>>, target: impl Into<StaticCow<Path>>) -> Self {
         Self::new(name, target, RuleMode::None)
-    }
-
-    pub fn mutable(mut self) -> Self {
-        self.mutable = true;
-        self
     }
 }
 
@@ -158,6 +151,10 @@ impl RuleInstaller {
     }
 
     pub fn with_default(mut self, index: usize) -> Self {
+        if index >= self.rules.len() {
+            panic!("default rule index is out of bounds");
+        }
+
         self.default_rule = Some(index);
         self
     }
@@ -306,6 +303,16 @@ impl PackageInstaller for RuleInstaller {
         Ok(result)
     }
 
+    fn package_dir(&self, install_root: &Path, package_name: &str) -> Result<Option<PathBuf>> {
+        let path = self.default_rule.map(|index| {
+            install_root
+                .join(&self.rules[index].target)
+                .join(package_name)
+        });
+
+        Ok(path)
+    }
+
     fn install(
         &self,
         profile_root: &Path,
@@ -330,7 +337,7 @@ impl PackageInstaller for RuleInstaller {
                         return false;
                     };
 
-                    !rule.mutable
+                    matches!(rule.mode, RuleMode::Track | RuleMode::None)
                 }))
                 .on_write(&mut |path| {
                     let Some(rule) = self.rule_from_relative_path(path) else {
@@ -363,6 +370,8 @@ impl PackageInstaller for RuleInstaller {
         for file in self.package_files(profile_root, package_name)? {
             fs::remove_file(&file).map_err(|err| Error::wrap_io(err, file))?;
         }
+
+        crate::util::delete_empty_folders(profile_root)?;
 
         if self.rules.iter().any(|rule| rule.mode == RuleMode::Track) {
             let mut state = ProfileStateHandle::new(profile_root.join(&self.state_file_path));

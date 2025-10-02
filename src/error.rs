@@ -25,6 +25,15 @@ pub enum Error {
 
     #[error("could not find BepInEx preloader")]
     BepInExPreloaderNotFound,
+
+    #[error("multiple GDWeave mod roots found")]
+    MultipleGDWeaveModRoots,
+
+    #[error("no GDWeave mod roots found")]
+    NoGDWeaveModRoots,
+
+    #[error("path must be UTF-8: {}", _0.display())]
+    NonUTF8Path(PathBuf),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
