@@ -15,6 +15,7 @@ use crate::{
 pub struct BepInExBuilder {
     extra_installer_rules: Vec<Rule>,
     custom_state_file_path: Option<PathBuf>,
+    doorstop_version_override: Option<u32>,
 }
 
 impl BepInExBuilder {
@@ -24,6 +25,11 @@ impl BepInExBuilder {
 
     pub fn with_extra_rules(mut self, extra_rules: Vec<Rule>) -> Self {
         self.extra_installer_rules = extra_rules;
+        self
+    }
+
+    pub fn override_doorstop_version(mut self, version: u32) -> Self {
+        self.doorstop_version_override = Some(version);
         self
     }
 
@@ -52,6 +58,7 @@ impl BepInExBuilder {
         }
 
         BepInEx {
+            doorstop_version_override: None,
             plugin_installer,
             loader_installer: BepInExLoaderInstaller,
         }
@@ -60,6 +67,7 @@ impl BepInExBuilder {
 
 #[derive(Debug, Clone)]
 pub struct BepInEx {
+    doorstop_version_override: Option<u32>,
     loader_installer: BepInExLoaderInstaller,
     plugin_installer: RuleInstaller,
 }
@@ -87,8 +95,10 @@ impl ModLoader for BepInEx {
         let preloader_path =
             find_preloader(profile_root)?.ok_or(Error::BepInExPreloaderNotFound)?;
 
-        let doorstop_version =
-            read_doorstop_version(profile_root)?.unwrap_or(DEFAULT_DOORSTOP_VERSION);
+        let doorstop_version = match self.doorstop_version_override {
+            Some(version) => version,
+            None => read_doorstop_version(profile_root)?.unwrap_or(DEFAULT_DOORSTOP_VERSION),
+        };
 
         get_doorstop_args(doorstop_version, true, preloader_path)
     }
@@ -209,6 +219,8 @@ fn find_preloader(profile_root: &Path) -> Result<Option<PathBuf>> {
 
 #[cfg(test)]
 mod test {
+    use tempdir::TempDir;
+
     use super::*;
     use std::borrow::Cow;
 
@@ -317,5 +329,84 @@ mod test {
             "mod",
             "BepInEx/config/file.txt",
         );
+    }
+
+    #[test]
+    fn it_reads_doorstop_version() {
+        let tempdir = TempDir::new("loadsmith").unwrap();
+
+        let version_file = tempdir.path().join(".doorstop_version");
+
+        fs::write(&version_file, "3.0.1").unwrap();
+        assert_eq!(read_doorstop_version(tempdir.path()).unwrap(), Some(3));
+
+        fs::write(version_file, "4.2.0").unwrap();
+        assert_eq!(read_doorstop_version(tempdir.path()).unwrap(), Some(4));
+    }
+
+    #[test]
+    fn it_doesnt_make_up_doorstop_version() {
+        let tempdir = TempDir::new("loadsmith").unwrap();
+
+        assert_eq!(read_doorstop_version(tempdir.path()).unwrap(), None);
+    }
+
+    #[test]
+    fn it_makes_doorstop_args() {
+        let target_assembly = PathBuf::from("path/to/preloader.dll");
+
+        let args = get_doorstop_args(3, true, target_assembly.clone()).unwrap();
+        assert_eq!(
+            args,
+            vec![
+                OsString::from("--doorstop-enable"),
+                OsString::from("true"),
+                OsString::from("--doorstop-target"),
+                target_assembly.clone().into_os_string()
+            ]
+        );
+
+        let args = get_doorstop_args(4, false, target_assembly.clone()).unwrap();
+        assert_eq!(
+            args,
+            vec![
+                OsString::from("--doorstop-enabled"),
+                OsString::from("false"),
+                OsString::from("--doorstop-target-assembly"),
+                target_assembly.into_os_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn it_returns_error_for_unsupported_doorstop_version() {
+        let target_assembly = PathBuf::from("path/to/preloader.dll");
+
+        let tempdir = TempDir::new("loadsmith").unwrap();
+
+        let version_file = tempdir.path().join(".doorstop_version");
+
+        fs::write(&version_file, "5.0.0").unwrap();
+
+        let err = get_doorstop_args(5, true, target_assembly).unwrap_err();
+        match err {
+            Error::UnsupportedDoorstopVersion(5) => {}
+            _ => panic!("Expected UnsupportedDoorstopVersion error"),
+        }
+    }
+
+    #[test]
+    fn it_returns_error_for_invalid_doorstop_version_file() {
+        let tempdir = TempDir::new("loadsmith").unwrap();
+
+        let version_file = tempdir.path().join(".doorstop_version");
+
+        fs::write(&version_file, "notanumber").unwrap();
+
+        let err = read_doorstop_version(tempdir.path()).unwrap_err();
+        match err {
+            Error::InvalidDoorstopVersionFormat => {}
+            _ => panic!("Expected InvalidDoorstopVersionFormat error"),
+        }
     }
 }

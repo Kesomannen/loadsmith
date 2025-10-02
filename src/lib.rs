@@ -12,8 +12,6 @@ mod error;
 mod loaders;
 pub mod rule;
 mod state;
-#[cfg(test)]
-mod tests;
 mod util;
 
 pub use error::*;

@@ -92,6 +92,7 @@ enum RulePackageFiles<'a> {
     Track {
         iter: <HashMap<PathBuf, String> as IntoIterator>::IntoIter,
         package_name: &'a str,
+        profile_root: &'a Path,
     },
     WalkDir(walkdir::IntoIter),
 }
@@ -105,9 +106,13 @@ impl<'a> Iterator for RulePackageFiles<'a> {
                 Ok(entry) if entry.file_type().is_file() => Some(entry.into_path()),
                 _ => None,
             }),
-            RulePackageFiles::Track { iter, package_name } => {
-                iter.find_map(|(path, package)| (package == *package_name).then_some(path))
-            }
+            RulePackageFiles::Track {
+                iter,
+                package_name,
+                profile_root,
+            } => iter
+                .find_map(|(path, package)| (package == *package_name).then_some(path))
+                .map(|path| profile_root.join(path)),
             RulePackageFiles::None => None,
         }
     }
@@ -116,7 +121,7 @@ impl<'a> Iterator for RulePackageFiles<'a> {
 impl Rule {
     fn package_files<'a>(
         &'a self,
-        profile_root: &Path,
+        profile_root: &'a Path,
         package_name: &'a str,
         state_file_path: &Path,
     ) -> Result<RulePackageFiles<'a>> {
@@ -129,7 +134,11 @@ impl Rule {
                 let file_map = ProfileStateHandle::new(profile_root.join(state_file_path));
                 let iter = file_map.state.file_map.into_iter();
 
-                RulePackageFiles::Track { iter, package_name }
+                RulePackageFiles::Track {
+                    iter,
+                    package_name,
+                    profile_root,
+                }
             }
             RuleMode::None => RulePackageFiles::None,
         };
