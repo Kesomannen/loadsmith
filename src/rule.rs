@@ -1,13 +1,14 @@
 use std::{
     borrow::Cow,
     collections::HashMap,
+    fs,
     path::{Path, PathBuf},
 };
 
 use walkdir::WalkDir;
 
 use crate::{
-    AnyZipArchive, PackageInstaller, Result,
+    AnyZipArchive, Error, PackageInstaller, Result,
     state::ProfileStateHandle,
     util::{InstallOpt, InstallOptions},
 };
@@ -353,6 +354,25 @@ impl PackageInstaller for RuleInstaller {
 
         if let Some(handle) = profile_state {
             handle.commit()?;
+        }
+
+        Ok(())
+    }
+
+    fn uninstall(&self, profile_root: &Path, package_name: &str) -> Result<()> {
+        for file in self.package_files(profile_root, package_name)? {
+            fs::remove_file(&file).map_err(|err| Error::wrap_io(err, file))?;
+        }
+
+        if self.rules.iter().any(|rule| rule.mode == RuleMode::Track) {
+            let mut state = ProfileStateHandle::new(profile_root.join(&self.state_file_path));
+
+            state
+                .state
+                .file_map
+                .retain(|_, package| package != package_name);
+
+            state.commit()?;
         }
 
         Ok(())

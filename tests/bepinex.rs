@@ -1,7 +1,7 @@
 use std::{collections::HashSet, path::PathBuf};
 
 use loadsmith::{BepInEx, BepInExBuilder, PackageInstaller, rule::Rule};
-use tempdir::TempDir;
+use tempfile::TempDir;
 
 mod common;
 
@@ -15,8 +15,8 @@ fn make_loader() -> BepInEx {
 }
 
 #[test]
-fn it_extracts_and_installs() -> anyhow::Result<()> {
-    let tempdir = TempDir::new("loadsmith")?;
+fn it_extracts_installs_and_uninstalls() -> anyhow::Result<()> {
+    let tempdir = TempDir::new()?;
     let bepinex = make_loader();
 
     bepinex.extract_and_install(common::open_zip("bepinex_1"), "modname", tempdir.path())?;
@@ -45,7 +45,7 @@ fn it_extracts_and_installs() -> anyhow::Result<()> {
     for file in &files {
         assert!(
             tempdir.path().join(file).exists(),
-            "file at {file} wasn't installed!",
+            "file at {file} wasn't present!",
         );
     }
 
@@ -61,6 +61,16 @@ fn it_extracts_and_installs() -> anyhow::Result<()> {
         .collect::<HashSet<_>>();
 
     assert_eq!(actual_installed_files, expected_listed_files);
+
+    bepinex.uninstall(tempdir.path(), "modname")?;
+
+    for file in &expected_listed_files {
+        assert!(
+            !file.exists(),
+            "file at {} wasn't removed!",
+            file.strip_prefix(tempdir.path()).unwrap().display()
+        );
+    }
 
     Ok(())
 }

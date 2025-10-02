@@ -219,7 +219,7 @@ fn find_preloader(profile_root: &Path) -> Result<Option<PathBuf>> {
 
 #[cfg(test)]
 mod test {
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     use super::*;
     use std::borrow::Cow;
@@ -333,7 +333,7 @@ mod test {
 
     #[test]
     fn it_reads_doorstop_version() {
-        let tempdir = TempDir::new("loadsmith").unwrap();
+        let tempdir = TempDir::new().unwrap();
 
         let version_file = tempdir.path().join(".doorstop_version");
 
@@ -346,7 +346,7 @@ mod test {
 
     #[test]
     fn it_doesnt_make_up_doorstop_version() {
-        let tempdir = TempDir::new("loadsmith").unwrap();
+        let tempdir = TempDir::new().unwrap();
 
         assert_eq!(read_doorstop_version(tempdir.path()).unwrap(), None);
     }
@@ -382,7 +382,7 @@ mod test {
     fn it_returns_error_for_unsupported_doorstop_version() {
         let target_assembly = PathBuf::from("path/to/preloader.dll");
 
-        let tempdir = TempDir::new("loadsmith").unwrap();
+        let tempdir = TempDir::new().unwrap();
 
         let version_file = tempdir.path().join(".doorstop_version");
 
@@ -397,7 +397,7 @@ mod test {
 
     #[test]
     fn it_returns_error_for_invalid_doorstop_version_file() {
-        let tempdir = TempDir::new("loadsmith").unwrap();
+        let tempdir = TempDir::new().unwrap();
 
         let version_file = tempdir.path().join(".doorstop_version");
 

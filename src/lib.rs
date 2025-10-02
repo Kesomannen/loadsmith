@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use tempdir::TempDir;
+use tempfile::TempDir;
 use zip::ZipArchive;
 
 mod error;
@@ -115,11 +115,7 @@ pub trait PackageInstaller {
 
     fn uninstall(&self, profile_root: &Path, package_name: &str) -> Result<()> {
         for file in self.package_files(profile_root, package_name)? {
-            if !file.exists() {
-                continue;
-            }
-
-            fs::remove_file(file)?;
+            fs::remove_file(&file).map_err(|err| Error::wrap_io(err, file))?;
         }
 
         Ok(())
@@ -131,7 +127,7 @@ pub trait PackageInstaller {
         package_name: &str,
         profile_root: &Path,
     ) -> Result<()> {
-        let tempdir = TempDir::new("loadsmith")?;
+        let tempdir = TempDir::new()?;
 
         self.extract(archive, package_name, tempdir.path())?;
         self.install(profile_root, tempdir.path(), package_name, true)?;
