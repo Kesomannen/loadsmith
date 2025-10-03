@@ -3,7 +3,7 @@ use std::{
     cmp::Ordering,
     fs::{self, File},
     io::{self, Read, Seek},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use itertools::Itertools;
@@ -200,7 +200,7 @@ pub fn install_package_file<'a>(
     Ok(())
 }
 
-pub fn delete_empty_folders(root: &Path) -> Result<()> {
+pub fn delete_empty_dirs(root: &Path) -> Result<()> {
     let dirs = WalkDir::new(root)
         .contents_first(true)
         .into_iter()
@@ -214,6 +214,49 @@ pub fn delete_empty_folders(root: &Path) -> Result<()> {
             Err(err) if err.kind() == io::ErrorKind::DirectoryNotEmpty => (),
             Err(err) => return Err(Error::wrap_io(err, dir)),
         }
+    }
+
+    Ok(())
+}
+
+pub fn match_files_in_dir(root: &Path, patterns: &[glob::Pattern]) -> Result<Vec<PathBuf>> {
+    let walkdir = WalkDir::new(root)
+        .into_iter()
+        .filter_map(|result| result.ok())
+        .filter(|entry| entry.file_type().is_file());
+
+    let matched = walkdir
+        .filter(|entry| {
+            patterns.into_iter().any(|pattern| {
+                pattern.matches_path(
+                    entry
+                        .path()
+                        .strip_prefix(root)
+                        .expect("walkdir should only return paths inside root"),
+                )
+            })
+        })
+        .map(|entry| entry.into_path())
+        .collect();
+
+    Ok(matched)
+}
+
+pub fn copy_matching_files(
+    source_root: &Path,
+    target_root: &Path,
+    patterns: &[glob::Pattern],
+) -> Result<()> {
+    let paths = match_files_in_dir(source_root, patterns)?;
+
+    for path in paths {
+        let relative = path
+            .strip_prefix(source_root)
+            .expect("match_files_in_dir should only return paths inside root");
+
+        let target = target_root.join(relative);
+        fs::create_dir_all(target.parent().expect("target path should have parent"))?;
+        fs::copy(path, &target).map_err(|err| Error::wrap_io(err, target))?;
     }
 
     Ok(())

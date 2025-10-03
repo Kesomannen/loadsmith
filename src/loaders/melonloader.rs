@@ -3,6 +3,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use glob::Pattern;
+
 use crate::{
     ModLoader, PackageInstaller, Result,
     extract::ExtractInstaller,
@@ -32,10 +34,10 @@ impl MelonLoaderBuilder {
 
     pub fn build(self) -> MelonLoader {
         let rules = [
-            Rule::tracked("UserLibs", Path::new("UserLibs")).with_extensions([".lib.dll"]),
+            Rule::tracked("UserLibs", Path::new("UserLibs")).with_extensions(["lib.dll"]),
             Rule::tracked("Managed", Path::new("MelonLoader/Managed"))
-                .with_extensions([".managed.dll"]),
-            Rule::tracked("Mods", Path::new("Mods")).with_extensions([".dll"]),
+                .with_extensions(["managed.dll"]),
+            Rule::tracked("Mods", Path::new("Mods")).with_extensions(["dll"]),
             Rule::separated("ModManager", Path::new("UserData/ModManager")),
             Rule::tracked("MelonLoader", Path::new("MelonLoader")),
             Rule::tracked("Libs", Path::new("MelonLoader/Libs")),
@@ -44,7 +46,7 @@ impl MelonLoaderBuilder {
         .chain(self.extra_installer_rules.into_iter())
         .collect();
 
-        let mut plugin_installer = RuleInstaller::new(rules).with_default(2);
+        let mut plugin_installer = RuleInstaller::new(rules);
 
         if let Some(path) = self.custom_state_file_path {
             plugin_installer = plugin_installer.with_state_file_path(path);
@@ -122,7 +124,9 @@ impl ModLoader for MelonLoader {
         vec![profile_root.join("BepInEx").join("config")]
     }
 
-    fn prepare_launch(&self, _profile_root: &Path, _game_root: &Path) -> Result<()> {
-        Ok(())
+    fn prepare_launch(&self, profile_root: &Path, game_root: &Path) -> Result<()> {
+        let patterns = [Pattern::new("*.dll").unwrap()];
+
+        crate::util::copy_matching_files(profile_root, game_root, &patterns)
     }
 }

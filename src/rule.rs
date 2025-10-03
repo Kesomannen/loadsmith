@@ -293,8 +293,19 @@ impl PackageInstaller for RuleInstaller {
         package_name: &'a str,
     ) -> Result<Vec<PathBuf>> {
         let mut result = Vec::new();
+        let mut read_tracked_files = false;
 
         for rule in &self.rules {
+            if rule.mode == RuleMode::Track {
+                // tracked files aren't distinguised by rule, which means
+                // scanning one tracked rule will scan all tracked rule files
+                if read_tracked_files {
+                    continue;
+                }
+
+                read_tracked_files = true;
+            }
+
             let files = rule.package_files(install_root, package_name, &self.state_file_path)?;
 
             result.extend(files);
@@ -371,7 +382,7 @@ impl PackageInstaller for RuleInstaller {
             fs::remove_file(&file).map_err(|err| Error::wrap_io(err, file))?;
         }
 
-        crate::util::delete_empty_folders(profile_root)?;
+        crate::util::delete_empty_dirs(profile_root)?;
 
         if self.rules.iter().any(|rule| rule.mode == RuleMode::Track) {
             let mut state = ProfileStateHandle::new(profile_root.join(&self.state_file_path));

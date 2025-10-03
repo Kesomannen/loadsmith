@@ -4,8 +4,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use walkdir::WalkDir;
-
 use super::PackageInstaller;
 
 use crate::Result;
@@ -61,25 +59,6 @@ impl PackageInstaller for ExtractInstaller {
         install_root: &'a Path,
         _package_name: &'a str,
     ) -> Result<Vec<PathBuf>> {
-        let walkdir = WalkDir::new(install_root)
-            .into_iter()
-            .filter_map(|result| result.ok())
-            .filter(|entry| entry.file_type().is_file());
-
-        let matched = walkdir
-            .filter(|entry| {
-                self.include_patterns.iter().any(|pattern| {
-                    pattern.matches_path(
-                        entry
-                            .path()
-                            .strip_prefix(install_root)
-                            .expect("walkdir should only return paths inside root"),
-                    )
-                })
-            })
-            .map(|entry| entry.into_path())
-            .collect();
-
-        Ok(matched)
+        crate::util::match_files_in_dir(install_root, &self.include_patterns)
     }
 }

@@ -119,7 +119,7 @@ pub trait PackageInstaller {
             fs::remove_file(&file).map_err(|err| Error::wrap_io(err, file))?;
         }
 
-        util::delete_empty_folders(profile_root)?;
+        util::delete_empty_dirs(profile_root)?;
 
         Ok(())
     }

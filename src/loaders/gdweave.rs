@@ -4,10 +4,12 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
+use itertools::Itertools;
 use walkdir::WalkDir;
 
 use crate::{AnyZipArchive, Error, ModLoader, PackageInstaller, Result, extract::ExtractInstaller};
 
+#[derive(Debug, Clone)]
 pub struct GDWeave {
     package_installer: GDWeavePackageIntaller,
     loader_installer: ExtractInstaller,
@@ -48,8 +50,12 @@ impl ModLoader for GDWeave {
         &self.loader_installer
     }
 
-    fn prepare_launch(&self, _profile_root: &Path, _game_root: &Path) -> Result<()> {
-        todo!()
+    fn prepare_launch(&self, profile_root: &Path, game_root: &Path) -> Result<()> {
+        crate::util::copy_matching_files(
+            profile_root,
+            game_root,
+            &[glob::Pattern::new("winmm.dll").unwrap()],
+        )
     }
 
     fn log_path(&self, _profile_root: &Path) -> Option<PathBuf> {
@@ -62,7 +68,14 @@ impl ModLoader for GDWeave {
 }
 
 #[non_exhaustive]
+#[derive(Debug, Clone, Default)]
 pub struct GDWeavePackageIntaller;
+
+impl GDWeavePackageIntaller {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
 
 fn mod_install_root(package_name: &str) -> PathBuf {
     ["GDWeave", "mods", package_name].iter().collect()
@@ -119,8 +132,13 @@ impl PackageInstaller for GDWeavePackageIntaller {
     ) -> Result<Vec<PathBuf>> {
         let mod_root = install_root.join(mod_install_root(package_name));
 
+        if !mod_root.exists() {
+            return Ok(Vec::new());
+        }
+
         WalkDir::new(mod_root)
             .into_iter()
+            .filter_ok(|entry| entry.file_type().is_file())
             .map(|entry| match entry {
                 Ok(entry) => Ok(entry.into_path()),
                 Err(err) => Err(Error::Walkdir(err)),

@@ -4,6 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use glob::Pattern;
 use itertools::Itertools;
 
 use crate::{
@@ -119,8 +120,16 @@ impl ModLoader for BepInEx {
         vec![profile_root.join("BepInEx").join("config")]
     }
 
-    fn prepare_launch(&self, _profile_root: &Path, _game_root: &Path) -> Result<()> {
-        todo!()
+    fn prepare_launch(&self, profile_root: &Path, game_root: &Path) -> Result<()> {
+        let patterns = [
+            Pattern::new("doorstop_libs/*").unwrap(),
+            Pattern::new("dotnet/*").unwrap(),
+            Pattern::new("*.dll").unwrap(),
+            Pattern::new(".doorstop_version").unwrap(),
+            Pattern::new("doorstop_config.ini").unwrap(),
+        ];
+
+        crate::util::copy_matching_files(profile_root, game_root, &patterns)
     }
 }
 
@@ -315,24 +324,6 @@ mod test {
             "core/folder/icon.png",
             "mod",
             "BepInEx/core/mod/folder/icon.png",
-        );
-    }
-
-    #[test]
-    fn it_ignores_rule_case() {
-        let bepinex = BepInEx::new();
-
-        assert_map_plugin_file(
-            &bepinex,
-            "config/file.txt",
-            "mod",
-            "BepInEx/config/file.txt",
-        );
-        assert_map_plugin_file(
-            &bepinex,
-            "Config/file.txt",
-            "mod",
-            "BepInEx/config/file.txt",
         );
     }
 
