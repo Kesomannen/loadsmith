@@ -28,7 +28,7 @@ A `ModLoader` holds methods related to one modding framework and sometimes piece
 
 A `PackageInstaller` is responsible for extracting, installing and bookkeeping the installed mods in a directory. Each `ModLoader` has a pair of installers: `package_installer()` and `loader_installer()`. The former used to install regular packages/mods, and the later for the mod loader itself. 
 
-> ![TIP]
+> [!TIP]
 > `ModLoader` implements `PackageInstaller` itself by forwarding calls to `package_installer()`.
 
 See more in the respective traits' docs.
