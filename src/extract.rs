@@ -43,9 +43,8 @@ impl ExtractInstaller {
 
     /// Whether to flatten top level directories and ignore top level files in mod archives.
     ///
-    ///
-    /// This is applied *before* checking if the file matches any patterns, so
-    /// these two are effectively equivalent:
+    /// This is applied *before* matching file patterns, so these two are equivalent
+    /// (unless other top level directories than `TopLevel` exist):
     ///
     /// ```rust
     /// let a = ExtractInstaller::new(["TopLevel/Other/*"]).flatten_top_level(false);

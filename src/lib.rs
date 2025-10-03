@@ -280,7 +280,7 @@ where
 ///
 /// Each method in this trait takes a `package_name`, which must be a unique name for each mod that
 /// distinguises it from others within the same profile. In Thunderstore contexts, this is commonly set
-/// to `AUTHOR-NAME` (omitting the version, since you normally dissallow multiple versions of the same mod being installed).
+/// to `AUTHOR-NAME` (omitting the version, since you normally disallow multiple versions of the same mod being installed).
 ///
 /// ## State
 ///
@@ -291,8 +291,8 @@ where
 ///
 /// See [`RuleMode::Track`](rule::RuleMode::Track) for more information.
 pub trait PackageInstaller {
-    /// Extracts a mod archive to the specified `output_path`, according to this implementors
-    /// specific unpacking rules.
+    /// Extracts a mod archive to the specified `output_path`, according to this implementor's
+    /// unpacking rules.
     ///
     /// The files will be placed exactly as they will once installed in a profile.
     ///
@@ -353,7 +353,7 @@ pub trait PackageInstaller {
         Ok(())
     }
 
-    /// Returns the directory most "assossicated" with an installed mod.
+    /// Returns the directory most "associated" with an installed mod.
     ///
     /// This may return a non-existent path.
     fn package_dir(&self, _install_root: &Path, _package_name: &str) -> Result<Option<PathBuf>> {
