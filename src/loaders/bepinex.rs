@@ -115,7 +115,7 @@ impl ModLoader for BepInEx {
         get_doorstop_args(doorstop_version, true, preloader_path)
     }
 
-    fn default_installer<'a>(&'a self) -> &'a dyn PackageInstaller {
+    fn package_installer<'a>(&'a self) -> &'a dyn PackageInstaller {
         &self.plugin_installer
     }
 

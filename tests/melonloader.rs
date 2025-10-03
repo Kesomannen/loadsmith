@@ -9,7 +9,7 @@ fn make_loader() -> MelonLoader {
 #[test]
 fn it_extracts_installs_and_uninstalls_package() -> anyhow::Result<()> {
     common::test_mod_operations(
-        make_loader(),
+        &make_loader(),
         "melonloader_1",
         "modname",
         vec![

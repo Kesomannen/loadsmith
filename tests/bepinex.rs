@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
-use loadsmith::{BepInEx, BepInExBuilder, ModLoader, PackageInstaller, rule::Rule};
-use tempfile::TempDir;
+use loadsmith::{BepInEx, BepInExBuilder, ModLoader, rule::Rule};
 
 mod common;
 
@@ -17,7 +16,7 @@ fn make_loader() -> BepInEx {
 #[test]
 fn it_extracts_installs_and_uninstalls_package() -> anyhow::Result<()> {
     common::test_mod_operations(
-        make_loader(),
+        &make_loader(),
         "bepinex_1",
         "modname",
         vec![
@@ -50,23 +49,41 @@ fn it_extracts_installs_and_uninstalls_package() -> anyhow::Result<()> {
 
 #[test]
 fn it_installs_loader() -> anyhow::Result<()> {
-    let tempdir = TempDir::new_in(format!("{}/temp", env!("CARGO_MANIFEST_DIR")))?;
-    let zip = common::open_zip("bepinex");
-
-    let loader = make_loader();
-
-    loader
-        .loader_installer()
-        .extract_and_install(zip, "BepInEx", tempdir.path())?;
-
-    let zip = common::open_zip("bepinex_1");
-    loader.extract_and_install(zip, "modname", tempdir.path())?;
-
-    loader
-        .loader_installer()
-        .uninstall(tempdir.path(), "BepInEx")?;
-
-    let _ = tempdir.keep();
-
-    Ok(())
+    common::test_mod_operations(
+        make_loader().loader_installer(),
+        "bepinex",
+        "BepInEx",
+        vec![
+            "doorstop_config.ini",
+            "start_game_bepinex.sh",
+            "version.dll",
+            "winhttp.dll",
+            "doorstop_libs/libdoorstop_x64.dylib",
+            "doorstop_libs/libdoorstop_x64.so",
+            "doorstop_libs/libdoorstop_x86.so",
+            "BepInEx/config/BepInEx.cfg",
+            "BepInEx/core/0Harmony.dll",
+            "BepInEx/core/0Harmony.xml",
+            "BepInEx/core/0Harmony20.dll",
+            "BepInEx/core/BepInEx.dll",
+            "BepInEx/core/BepInEx.xml",
+            "BepInEx/core/BepInEx.Harmony.dll",
+            "BepInEx/core/BepInEx.Harmony.xml",
+            "BepInEx/core/BepInEx.Preloader.dll",
+            "BepInEx/core/BepInEx.Preloader.xml",
+            "BepInEx/core/HarmonyXInterop.dll",
+            "BepInEx/core/Mono.Cecil.dll",
+            "BepInEx/core/Mono.Cecil.Mdb.dll",
+            "BepInEx/core/Mono.Cecil.Pdb.dll",
+            "BepInEx/core/Mono.Cecil.Rocks.dll",
+            "BepInEx/core/MonoMod.dll",
+            "BepInEx/core/MonoMod.RuntimeDetour.dll",
+            "BepInEx/core/MonoMod.RuntimeDetour.xml",
+            "BepInEx/core/MonoMod.Utils.dll",
+            "BepInEx/core/MonoMod.Utils.xml",
+            "BepInEx/patchers/BepInEx.MonoMod.Loader.dll",
+        ],
+        Vec::new(),
+        Vec::new(),
+    )
 }

@@ -10,7 +10,7 @@ pub fn open_zip(name: &str) -> AnyZipArchive {
 }
 
 pub fn test_mod_operations(
-    installer: impl PackageInstaller,
+    installer: &dyn PackageInstaller,
     zip_path: &'static str,
     mod_name: &'static str,
     expected_files: Vec<&'static str>,

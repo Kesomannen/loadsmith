@@ -34,7 +34,7 @@ pub trait ModLoader {
     }
     fn get_launch_args(&self, profile_root: &Path) -> Result<Vec<OsString>>;
 
-    fn default_installer<'a>(&'a self) -> &'a dyn PackageInstaller;
+    fn package_installer<'a>(&'a self) -> &'a dyn PackageInstaller;
     fn loader_installer<'a>(&'a self) -> &'a dyn PackageInstaller;
 
     fn log_path(&self, _profile_root: &Path) -> Option<PathBuf> {
@@ -55,7 +55,7 @@ where
         package_name: &str,
         output_path: &Path,
     ) -> Result<()> {
-        self.default_installer()
+        self.package_installer()
             .extract(archive, package_name, output_path)
     }
 
@@ -64,7 +64,7 @@ where
         install_root: &'a Path,
         package_name: &'a str,
     ) -> Result<Vec<PathBuf>> {
-        self.default_installer()
+        self.package_installer()
             .package_files(install_root, package_name)
     }
 
@@ -75,12 +75,12 @@ where
         package_name: &str,
         use_links: bool,
     ) -> Result<()> {
-        self.default_installer()
+        self.package_installer()
             .install(profile_root, source_root, package_name, use_links)
     }
 
     fn uninstall(&self, profile_root: &Path, package_name: &str) -> Result<()> {
-        self.default_installer()
+        self.package_installer()
             .uninstall(profile_root, package_name)
     }
 
@@ -90,7 +90,7 @@ where
         package_name: &str,
         profile_root: &Path,
     ) -> Result<()> {
-        self.default_installer()
+        self.package_installer()
             .extract_and_install(archive, package_name, profile_root)
     }
 }

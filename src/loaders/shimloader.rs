@@ -51,7 +51,7 @@ impl ModLoader for Shimloader {
         ])
     }
 
-    fn default_installer<'a>(&'a self) -> &'a dyn PackageInstaller {
+    fn package_installer<'a>(&'a self) -> &'a dyn PackageInstaller {
         &self.plugin_installer
     }
 
