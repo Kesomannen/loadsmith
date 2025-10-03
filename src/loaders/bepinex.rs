@@ -10,6 +10,7 @@ use crate::{
     rule::{Rule, RuleInstaller},
 };
 
+/// Builder for the [`BepInEx`] struct.
 #[derive(Debug, Default)]
 pub struct BepInExBuilder {
     extra_installer_rules: Vec<Rule>,
@@ -70,6 +71,9 @@ impl BepInExBuilder {
     }
 }
 
+/// [`ModLoader`] for the [BepInEx](https://github.com/BepInEx/BepInEx) Unity modding framework.
+///
+/// Supports both the Mono and IL2CPP editions of both BepInEx 5 and 6.
 #[derive(Debug, Clone)]
 pub struct BepInEx {
     loader_installer: ExtractInstaller,

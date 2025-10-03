@@ -3,9 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{
-    BepInEx, Error, ModLoader, PackageInstaller, Result, extract::ExtractInstaller, rule::Rule,
-};
+use crate::{Error, ModLoader, PackageInstaller, Result, extract::ExtractInstaller, rule::Rule};
 
 #[derive(Debug, Default)]
 pub struct BepisLoaderBuilder {
@@ -68,7 +66,7 @@ impl BepisLoaderBuilder {
 pub struct BepisLoader {
     doorstop_version_override: Option<u32>,
     loader_installer: ExtractInstaller,
-    inner: BepInEx,
+    inner: super::BepInEx,
 }
 
 impl BepisLoader {

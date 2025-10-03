@@ -1,4 +1,4 @@
-use loadsmith::{MelonLoader, MelonLoaderBuilder};
+use loadsmith::{loaders::MelonLoader, loaders::MelonLoaderBuilder};
 
 mod common;
 

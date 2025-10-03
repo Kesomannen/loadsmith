@@ -1,4 +1,4 @@
-use loadsmith::{GDWeave, ModLoader};
+use loadsmith::{ModLoader, loaders::GDWeave};
 
 mod common;
 

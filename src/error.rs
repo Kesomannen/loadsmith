@@ -3,12 +3,16 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/// Errors that may occur while interacting with loadsmith.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("io error at {} while {}: {}", path.display(), description, err)]
     Io {
+        /// The inner [`std::io::Error`] that occured.
         err: io::Error,
+        /// The path where the operation was attempted.
         path: PathBuf,
+        /// A description of the operation, meant to be diplayed as `error while ...`.
         description: &'static str,
     },
 
@@ -40,6 +44,7 @@ pub enum Error {
     NonUTF8Path(PathBuf),
 }
 
+/// An alias for [`std::result::Result`] with the error type set to [`crate::Error`].
 pub type Result<T> = std::result::Result<T, Error>;
 
 impl Error {

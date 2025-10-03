@@ -1,6 +1,10 @@
 use std::path::PathBuf;
 
-use loadsmith::{BepInEx, BepInExBuilder, ModLoader, rule::Rule};
+use loadsmith::{
+    ModLoader,
+    loaders::{BepInEx, BepInExBuilder},
+    rule::Rule,
+};
 
 mod common;
 
