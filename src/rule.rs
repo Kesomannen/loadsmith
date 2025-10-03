@@ -24,10 +24,11 @@ pub struct RuleInstaller {
 
 #[derive(Debug, Clone)]
 pub struct Rule {
-    pub name: StaticCow<str>,
-    pub target: StaticCow<Path>,
-    pub mode: RuleMode,
-    pub extensions: Vec<StaticCow<str>>,
+    name: StaticCow<str>,
+    target: StaticCow<Path>,
+    mode: RuleMode,
+    extensions: Vec<StaticCow<str>>,
+    override_mutability: Option<bool>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -50,6 +51,7 @@ impl Rule {
             target: target.into(),
             mode,
             extensions: Vec::new(),
+            override_mutability: None,
         }
     }
 
@@ -78,6 +80,11 @@ impl Rule {
 
     pub fn untracked(name: impl Into<StaticCow<str>>, target: impl Into<StaticCow<Path>>) -> Self {
         Self::new(name, target, RuleMode::None)
+    }
+
+    pub fn with_mutability(mut self, value: bool) -> Self {
+        self.override_mutability = Some(value);
+        self
     }
 }
 
@@ -337,16 +344,25 @@ impl PackageInstaller for RuleInstaller {
             profile_root,
             source_root,
             InstallOptions::default()
-                .should_overwrite(InstallOpt::Const(false))
+                .should_overwrite(InstallOpt::Fn(&mut |path| {
+                    let Some(rule) = self.rule_from_relative_path(path) else {
+                        return false;
+                    };
+
+                    rule.mode == RuleMode::Track
+                }))
                 .should_link(InstallOpt::Fn(&mut |path| {
                     if !use_links {
                         return false;
                     }
 
                     let Some(rule) = self.rule_from_relative_path(path) else {
-                        // TODO: warning?
                         return false;
                     };
+
+                    if let Some(mutable) = rule.override_mutability {
+                        return !mutable;
+                    }
 
                     matches!(rule.mode, RuleMode::Track | RuleMode::None)
                 }))

@@ -14,7 +14,6 @@ use crate::{
 pub struct BepInExBuilder {
     extra_installer_rules: Vec<Rule>,
     custom_state_file_path: Option<PathBuf>,
-    doorstop_version_override: Option<u32>,
 }
 
 impl BepInExBuilder {
@@ -24,11 +23,6 @@ impl BepInExBuilder {
 
     pub fn with_extra_rules(mut self, extra_rules: Vec<Rule>) -> Self {
         self.extra_installer_rules = extra_rules;
-        self
-    }
-
-    pub fn override_doorstop_version(mut self, version: u32) -> Self {
-        self.doorstop_version_override = Some(version);
         self
     }
 
@@ -61,8 +55,8 @@ impl BepInExBuilder {
             "*.sh",
             "doorstop_config.ini",
             ".doorstop_version",
-            "BepInEx/core/*.*",
-            "BepInEx/patchers/*.*",
+            "BepInEx/core/*",
+            "BepInEx/patchers/*",
             "BepInEx/config/BepInEx.cfg",
             "doorstop_libs/*",
             "dotnet/*",
@@ -70,7 +64,6 @@ impl BepInExBuilder {
         .flatten_top_level(true);
 
         BepInEx {
-            doorstop_version_override: self.doorstop_version_override,
             plugin_installer,
             loader_installer,
         }
@@ -79,7 +72,6 @@ impl BepInExBuilder {
 
 #[derive(Debug, Clone)]
 pub struct BepInEx {
-    doorstop_version_override: Option<u32>,
     loader_installer: ExtractInstaller,
     plugin_installer: RuleInstaller,
 }
@@ -107,12 +99,10 @@ impl ModLoader for BepInEx {
         let preloader_path =
             find_preloader(profile_root)?.ok_or(Error::BepInExPreloaderNotFound)?;
 
-        let doorstop_version = match self.doorstop_version_override {
-            Some(version) => version,
-            None => read_doorstop_version(profile_root)?.unwrap_or(DEFAULT_DOORSTOP_VERSION),
-        };
+        let doorstop_version =
+            read_doorstop_version(profile_root)?.unwrap_or(DEFAULT_DOORSTOP_VERSION);
 
-        get_doorstop_args(doorstop_version, true, preloader_path)
+        make_doorstop_args(doorstop_version, true, preloader_path)
     }
 
     fn package_installer<'a>(&'a self) -> &'a dyn PackageInstaller {
@@ -147,7 +137,7 @@ impl ModLoader for BepInEx {
     }
 }
 
-fn read_doorstop_version(profile_root: &Path) -> Result<Option<u32>> {
+pub(super) fn read_doorstop_version(profile_root: &Path) -> Result<Option<u32>> {
     let path = profile_root.join(".doorstop_version");
 
     path.exists()
@@ -164,7 +154,7 @@ fn read_doorstop_version(profile_root: &Path) -> Result<Option<u32>> {
         .transpose()
 }
 
-fn get_doorstop_args(
+pub(super) fn make_doorstop_args(
     doorstop_version: u32,
     enabled: bool,
     target_assembly: PathBuf,
@@ -183,7 +173,7 @@ fn get_doorstop_args(
     ])
 }
 
-fn find_preloader(profile_root: &Path) -> Result<Option<PathBuf>> {
+pub(super) fn find_preloader(profile_root: &Path) -> Result<Option<PathBuf>> {
     const PRELOADER_NAMES: &[&str] = &[
         "BepInEx.Unity.Mono.Preloader.dll",
         "BepInEx.Unity.IL2CPP.dll",
@@ -326,7 +316,7 @@ mod test {
     fn it_makes_doorstop_args() {
         let target_assembly = PathBuf::from("path/to/preloader.dll");
 
-        let args = get_doorstop_args(3, true, target_assembly.clone()).unwrap();
+        let args = make_doorstop_args(3, true, target_assembly.clone()).unwrap();
         assert_eq!(
             args,
             vec![
@@ -337,7 +327,7 @@ mod test {
             ]
         );
 
-        let args = get_doorstop_args(4, false, target_assembly.clone()).unwrap();
+        let args = make_doorstop_args(4, false, target_assembly.clone()).unwrap();
         assert_eq!(
             args,
             vec![
@@ -359,7 +349,7 @@ mod test {
 
         fs::write(&version_file, "5.0.0").unwrap();
 
-        let err = get_doorstop_args(5, true, target_assembly).unwrap_err();
+        let err = make_doorstop_args(5, true, target_assembly).unwrap_err();
         match err {
             Error::UnsupportedDoorstopVersion(5) => {}
             _ => panic!("Expected UnsupportedDoorstopVersion error"),
