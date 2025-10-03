@@ -42,20 +42,16 @@ impl ModLoader for GDWeave {
         Ok(vec![arg.into()])
     }
 
-    fn default_installer<'a>(&'a self) -> &'a dyn crate::PackageInstaller {
+    fn default_installer<'a>(&'a self) -> &'a dyn PackageInstaller {
         &self.package_installer
     }
 
-    fn loader_installer<'a>(&'a self) -> &'a dyn crate::PackageInstaller {
+    fn loader_installer<'a>(&'a self) -> &'a dyn PackageInstaller {
         &self.loader_installer
     }
 
     fn prepare_launch(&self, profile_root: &Path, game_root: &Path) -> Result<()> {
-        crate::util::copy_matching_files(
-            profile_root,
-            game_root,
-            &[glob::Pattern::new("winmm.dll").unwrap()],
-        )
+        crate::util::copy_matching_files(profile_root, game_root, &["winmm.dll"])
     }
 
     fn log_path(&self, _profile_root: &Path) -> Option<PathBuf> {

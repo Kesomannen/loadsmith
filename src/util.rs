@@ -6,11 +6,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use glob_match::glob_match;
 use itertools::Itertools;
 use walkdir::WalkDir;
 use zip::ZipArchive;
 
-use crate::{Error, Result};
+use crate::{Error, IoResultExt, Result};
 
 pub fn cmp_ignore_case(a: impl AsRef<str>, b: impl AsRef<str>) -> Ordering {
     a.as_ref()
@@ -64,13 +65,12 @@ where
         let target_path = output_path.as_ref().join(relative_target);
         let parent = target_path.parent().unwrap();
 
-        fs::create_dir_all(parent).map_err(|err| Error::wrap_io(err, &target_path))?;
+        fs::create_dir_all(&parent).wrap_err(parent, "creating parent directory")?;
 
         let mut target_file =
-            File::create(&target_path).map_err(|err| Error::wrap_io(err, &target_path))?;
+            File::create(&target_path).wrap_err(&target_path, "creating target extraction file")?;
 
-        io::copy(&mut source_file, &mut target_file)
-            .map_err(|err| Error::wrap_io(err, &target_path))?;
+        io::copy(&mut source_file, &mut target_file).wrap_err(&target_path, "extracting file")?;
 
         #[cfg(unix)]
         set_unix_mode(&source_file, &target_path)?;
@@ -149,7 +149,7 @@ pub fn install<'a>(
     profile_root: &Path,
     source_root: &Path,
     mut options: InstallOptions<'a>,
-) -> io::Result<()> {
+) -> Result<()> {
     let entries = WalkDir::new(source_root)
         .into_iter()
         .filter_ok(|entry| entry.file_type().is_file());
@@ -173,7 +173,7 @@ pub fn install_package_file<'a>(
     source_root: &Path,
     relative_path: &Path,
     options: &mut InstallOptions<'a>,
-) -> io::Result<()> {
+) -> Result<()> {
     let source_path = source_root.join(relative_path);
     let target_path = profile_root.join(relative_path);
 
@@ -181,16 +181,16 @@ pub fn install_package_file<'a>(
         return Ok(());
     }
 
-    fs::create_dir_all(
-        target_path
-            .parent()
-            .expect("target_path should have parent directory"),
-    )?;
+    let parent = target_path
+        .parent()
+        .expect("target_path should have parent directory");
+
+    fs::create_dir_all(&parent).wrap_err(parent, "creating parent directory")?;
 
     if options.link.eval(relative_path) {
-        fs::hard_link(source_path, target_path)?;
+        fs::hard_link(source_path, &target_path).wrap_err(target_path, "linking file")?;
     } else {
-        fs::copy(source_path, target_path)?;
+        fs::copy(source_path, &target_path).wrap_err(target_path, "copying file")?;
     }
 
     if let Some(on_write) = options.on_write.as_mut() {
@@ -212,14 +212,14 @@ pub fn delete_empty_dirs(root: &Path) -> Result<()> {
         match fs::remove_dir(&dir) {
             Ok(_) => (),
             Err(err) if err.kind() == io::ErrorKind::DirectoryNotEmpty => (),
-            Err(err) => return Err(Error::wrap_io(err, dir)),
+            Err(err) => return Err(Error::wrap_io(err, dir, "deleting empty directory")),
         }
     }
 
     Ok(())
 }
 
-pub fn match_files_in_dir(root: &Path, patterns: &[glob::Pattern]) -> Result<Vec<PathBuf>> {
+pub fn match_files_in_dir<'a>(root: &Path, patterns: &[&'a str]) -> Result<Vec<PathBuf>> {
     let walkdir = WalkDir::new(root)
         .into_iter()
         .filter_map(|result| result.ok())
@@ -227,14 +227,15 @@ pub fn match_files_in_dir(root: &Path, patterns: &[glob::Pattern]) -> Result<Vec
 
     let matched = walkdir
         .filter(|entry| {
-            patterns.into_iter().any(|pattern| {
-                pattern.matches_path(
-                    entry
-                        .path()
-                        .strip_prefix(root)
-                        .expect("walkdir should only return paths inside root"),
-                )
-            })
+            let path = entry
+                .path()
+                .strip_prefix(root)
+                .expect("walkdir should only return paths inside root")
+                .to_string_lossy();
+
+            patterns
+                .into_iter()
+                .any(|pattern| glob_match(pattern, &*path))
         })
         .map(|entry| entry.into_path())
         .collect();
@@ -242,10 +243,10 @@ pub fn match_files_in_dir(root: &Path, patterns: &[glob::Pattern]) -> Result<Vec
     Ok(matched)
 }
 
-pub fn copy_matching_files(
+pub fn copy_matching_files<'a>(
     source_root: &Path,
     target_root: &Path,
-    patterns: &[glob::Pattern],
+    patterns: &[&'a str],
 ) -> Result<()> {
     let paths = match_files_in_dir(source_root, patterns)?;
 
@@ -255,8 +256,10 @@ pub fn copy_matching_files(
             .expect("match_files_in_dir should only return paths inside root");
 
         let target = target_root.join(relative);
-        fs::create_dir_all(target.parent().expect("target path should have parent"))?;
-        fs::copy(path, &target).map_err(|err| Error::wrap_io(err, target))?;
+        let parent = target.parent().expect("target path should have parent");
+
+        fs::create_dir_all(&parent).wrap_err(&parent, "creating parent directory")?;
+        fs::copy(path, &target).wrap_err(target, "copying file")?;
     }
 
     Ok(())

@@ -2,7 +2,7 @@ use std::{collections::HashMap, fs, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Error, Result};
+use crate::{Error, IoResultExt, Result};
 
 pub struct ProfileStateHandle {
     pub path: PathBuf,
@@ -18,7 +18,7 @@ pub struct ProfileState {
 impl ProfileStateHandle {
     pub fn new(path: PathBuf) -> Self {
         let state = fs::read_to_string(&path)
-            .map_err(|err| Error::wrap_io(err, &path))
+            .wrap_err(&path, "reading profile state file")
             .and_then(|str| serde_json::from_str(&str).map_err(Error::Json))
             .unwrap_or_default();
 
@@ -26,9 +26,14 @@ impl ProfileStateHandle {
     }
 
     pub fn commit(&self) -> Result<()> {
-        fs::create_dir_all(self.path.parent().unwrap())?;
-        let str = serde_json::to_string(&self.state)?;
-        fs::write(&self.path, str)?;
+        let parent = self
+            .path
+            .parent()
+            .expect("state file must have parent directory");
+
+        fs::create_dir_all(&parent).wrap_err(parent, "creating parent directory")?;
+        let str = serde_json::to_string_pretty(&self.state)?;
+        fs::write(&self.path, str).wrap_err(&self.path, "writing state file")?;
 
         Ok(())
     }

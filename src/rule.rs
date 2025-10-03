@@ -8,7 +8,7 @@ use std::{
 use walkdir::WalkDir;
 
 use crate::{
-    AnyZipArchive, Error, PackageInstaller, Result,
+    AnyZipArchive, IoResultExt, PackageInstaller, Result,
     state::ProfileStateHandle,
     util::{InstallOpt, InstallOptions},
 };
@@ -379,7 +379,7 @@ impl PackageInstaller for RuleInstaller {
 
     fn uninstall(&self, profile_root: &Path, package_name: &str) -> Result<()> {
         for file in self.package_files(profile_root, package_name)? {
-            fs::remove_file(&file).map_err(|err| Error::wrap_io(err, file))?;
+            fs::remove_file(&file).wrap_err(file, "removing package file")?;
         }
 
         crate::util::delete_empty_dirs(profile_root)?;

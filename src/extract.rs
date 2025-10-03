@@ -10,17 +10,14 @@ use crate::Result;
 
 #[derive(Debug, Clone)]
 pub struct ExtractInstaller {
-    include_patterns: Vec<glob::Pattern>,
+    include_patterns: Vec<&'static str>,
     flatten_top_level: bool,
 }
 
 impl ExtractInstaller {
-    pub fn new<'a>(include_patterns: impl IntoIterator<Item = &'a str>) -> Self {
+    pub fn new(include_patterns: impl IntoIterator<Item = &'static str>) -> Self {
         Self {
-            include_patterns: include_patterns
-                .into_iter()
-                .map(|str| glob::Pattern::new(str).expect("invalid glob pattern"))
-                .collect(),
+            include_patterns: include_patterns.into_iter().collect(),
             flatten_top_level: false,
         }
     }
@@ -46,10 +43,11 @@ impl PackageInstaller for ExtractInstaller {
             }
 
             let path = components.as_path();
+            let str = path.to_string_lossy();
 
             self.include_patterns
                 .iter()
-                .any(|pattern| pattern.matches_path(path))
+                .any(|pattern| glob_match::glob_match(pattern, &*str))
                 .then_some(Cow::Borrowed(path))
         })
     }

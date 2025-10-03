@@ -4,11 +4,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use glob::Pattern;
-use itertools::Itertools;
-
 use crate::{
-    AnyZipArchive, Error, ModLoader, PackageInstaller, Result,
+    Error, IoResultExt, ModLoader, PackageInstaller, Result,
+    extract::ExtractInstaller,
     rule::{Rule, RuleInstaller},
 };
 
@@ -58,10 +56,23 @@ impl BepInExBuilder {
             plugin_installer = plugin_installer.with_state_file_path(path);
         }
 
+        let loader_installer = ExtractInstaller::new([
+            "*.dll",
+            "*.sh",
+            "doorstop_config.ini",
+            ".doorstop_version",
+            "BepInEx/core/*.*",
+            "BepInEx/patchers/*.*",
+            "BepInEx/config/BepInEx.cfg",
+            "doorstop_libs/*",
+            "dotnet/*",
+        ])
+        .flatten_top_level(true);
+
         BepInEx {
-            doorstop_version_override: None,
+            doorstop_version_override: self.doorstop_version_override,
             plugin_installer,
-            loader_installer: BepInExLoaderInstaller,
+            loader_installer,
         }
     }
 }
@@ -69,7 +80,7 @@ impl BepInExBuilder {
 #[derive(Debug, Clone)]
 pub struct BepInEx {
     doorstop_version_override: Option<u32>,
-    loader_installer: BepInExLoaderInstaller,
+    loader_installer: ExtractInstaller,
     plugin_installer: RuleInstaller,
 }
 
@@ -121,55 +132,18 @@ impl ModLoader for BepInEx {
     }
 
     fn prepare_launch(&self, profile_root: &Path, game_root: &Path) -> Result<()> {
-        let patterns = [
-            Pattern::new("doorstop_libs/*").unwrap(),
-            Pattern::new("dotnet/*").unwrap(),
-            Pattern::new("*.dll").unwrap(),
-            Pattern::new(".doorstop_version").unwrap(),
-            Pattern::new("doorstop_config.ini").unwrap(),
-        ];
-
-        crate::util::copy_matching_files(profile_root, game_root, &patterns)
-    }
-}
-
-#[non_exhaustive]
-#[derive(Debug, Clone, Copy)]
-pub struct BepInExLoaderInstaller;
-
-impl PackageInstaller for BepInExLoaderInstaller {
-    fn extract(
-        &self,
-        archive: AnyZipArchive,
-        _package_name: &str,
-        output_path: &Path,
-    ) -> Result<()> {
-        crate::util::extract(archive, output_path, |relative_path| {
-            let mut components = relative_path.components();
-
-            // remove the top-level dir
-            components.next();
-
-            // exclude top-level files, such as manifest.json and icon.png
-            components.next().map(|_| components.as_path().into())
-        })
-    }
-
-    fn package_files<'a>(
-        &'a self,
-        install_root: &'a Path,
-        _package_name: &'a str,
-    ) -> Result<Vec<PathBuf>> {
-        install_root
-            .join("BepInEx")
-            .join("core")
-            .read_dir()?
-            .filter_ok(|entry| entry.file_type().is_ok_and(|ty| ty.is_file()))
-            .map(|result| match result {
-                Ok(entry) => Ok(entry.path()),
-                Err(err) => Err(Error::Io(err)),
-            })
-            .collect()
+        crate::util::copy_matching_files(
+            profile_root,
+            game_root,
+            &[
+                "doorstop_libs/*",
+                "dotnet/*",
+                "*.dll",
+                "*.sh",
+                ".doorstop_version",
+                "doorstop_config.ini",
+            ],
+        )
     }
 }
 
@@ -179,7 +153,7 @@ fn read_doorstop_version(profile_root: &Path) -> Result<Option<u32>> {
     path.exists()
         .then(|| {
             let version = fs::read_to_string(&path)
-                .map_err(|err| Error::wrap_io(err, path))?
+                .wrap_err(path, "reading doorstop version file")?
                 .split('.') // read only the major version number
                 .next()
                 .and_then(|str| str.parse().ok())
@@ -217,10 +191,11 @@ fn find_preloader(profile_root: &Path) -> Result<Option<PathBuf>> {
         "BepInEx.IL2CPP.dll",
     ];
 
-    let path = profile_root
-        .join("BepInEx")
-        .join("core")
-        .read_dir()?
+    let core_path = profile_root.join("BepInEx").join("core");
+
+    let path = core_path
+        .read_dir()
+        .wrap_err(&core_path, "reading core directory")?
         .filter_map(|entry| entry.ok())
         .find(|entry| {
             let file_name = entry.file_name();

@@ -3,8 +3,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use glob::Pattern;
-
 use crate::{
     ModLoader, PackageInstaller, Result,
     extract::ExtractInstaller,
@@ -125,8 +123,6 @@ impl ModLoader for MelonLoader {
     }
 
     fn prepare_launch(&self, profile_root: &Path, game_root: &Path) -> Result<()> {
-        let patterns = [Pattern::new("*.dll").unwrap()];
-
-        crate::util::copy_matching_files(profile_root, game_root, &patterns)
+        crate::util::copy_matching_files(profile_root, game_root, &["*.dll"])
     }
 }

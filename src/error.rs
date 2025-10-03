@@ -1,12 +1,16 @@
-use std::{io, path::PathBuf};
+use std::{
+    io,
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error(transparent)]
-    Io(#[from] io::Error),
-
-    #[error("io error at {}: {}", _1.display(), _0)]
-    IoWithPath(io::Error, PathBuf),
+    #[error("io error at {} while {}: {}", path.display(), description, err)]
+    Io {
+        err: io::Error,
+        path: PathBuf,
+        description: &'static str,
+    },
 
     #[error(transparent)]
     Walkdir(#[from] walkdir::Error),
@@ -39,7 +43,25 @@ pub enum Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 impl Error {
-    pub(crate) fn wrap_io(err: io::Error, path: impl Into<PathBuf>) -> Self {
-        Self::IoWithPath(err, path.into())
+    pub(crate) fn wrap_io(
+        err: io::Error,
+        path: impl AsRef<Path>,
+        description: &'static str,
+    ) -> Self {
+        Self::Io {
+            err,
+            path: path.as_ref().into(),
+            description,
+        }
+    }
+}
+
+pub(crate) trait IoResultExt<T> {
+    fn wrap_err(self, path: impl AsRef<Path>, description: &'static str) -> Result<T>;
+}
+
+impl<T> IoResultExt<T> for io::Result<T> {
+    fn wrap_err(self, path: impl AsRef<Path>, description: &'static str) -> Result<T> {
+        self.map_err(|err| Error::wrap_io(err, path, description))
     }
 }

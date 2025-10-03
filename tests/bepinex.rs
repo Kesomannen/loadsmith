@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
-use loadsmith::{BepInEx, BepInExBuilder, rule::Rule};
+use loadsmith::{BepInEx, BepInExBuilder, ModLoader, PackageInstaller, rule::Rule};
+use tempfile::TempDir;
 
 mod common;
 
@@ -45,4 +46,27 @@ fn it_extracts_installs_and_uninstalls_package() -> anyhow::Result<()> {
         ],
         Vec::new(),
     )
+}
+
+#[test]
+fn it_installs_loader() -> anyhow::Result<()> {
+    let tempdir = TempDir::new_in(format!("{}/temp", env!("CARGO_MANIFEST_DIR")))?;
+    let zip = common::open_zip("bepinex");
+
+    let loader = make_loader();
+
+    loader
+        .loader_installer()
+        .extract_and_install(zip, "BepInEx", tempdir.path())?;
+
+    let zip = common::open_zip("bepinex_1");
+    loader.extract_and_install(zip, "modname", tempdir.path())?;
+
+    loader
+        .loader_installer()
+        .uninstall(tempdir.path(), "BepInEx")?;
+
+    let _ = tempdir.keep();
+
+    Ok(())
 }

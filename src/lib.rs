@@ -1,4 +1,5 @@
 use std::{
+    env,
     ffi::OsString,
     fs::{self, File},
     io::{BufReader, Read, Seek},
@@ -111,12 +112,12 @@ pub trait PackageInstaller {
         _package_name: &str,
         _use_links: bool,
     ) -> Result<()> {
-        util::install(profile_root, source_root, InstallOptions::default()).map_err(Error::Io)
+        util::install(profile_root, source_root, InstallOptions::default())
     }
 
     fn uninstall(&self, profile_root: &Path, package_name: &str) -> Result<()> {
         for file in self.package_files(profile_root, package_name)? {
-            fs::remove_file(&file).map_err(|err| Error::wrap_io(err, file))?;
+            fs::remove_file(&file).wrap_err(file, "removing package file")?;
         }
 
         util::delete_empty_dirs(profile_root)?;
@@ -134,19 +135,18 @@ pub trait PackageInstaller {
         package_name: &str,
         profile_root: &Path,
     ) -> Result<()> {
-        let tempdir = TempDir::new()?;
+        let tempdir = TempDir::new().wrap_err(env::temp_dir(), "creating temporary directory")?;
 
         self.extract(archive, package_name, tempdir.path())?;
         self.install(profile_root, tempdir.path(), package_name, true)?;
 
-        tempdir.close()?;
         Ok(())
     }
 }
 
 pub fn open_zip(path: impl AsRef<Path>) -> Result<AnyZipArchive> {
     let reader: Box<dyn AnyZipReader> = File::open(&path)
-        .map_err(|err| Error::wrap_io(err, path.as_ref()))
+        .wrap_err(path.as_ref(), "opening zip file")
         .map(BufReader::new)
         .map(Box::new)?;
 
