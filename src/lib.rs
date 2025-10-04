@@ -4,7 +4,7 @@
 //!
 //! This crate is primarily focused on [Thunderstore](https://thunderstore.io) compatibility,
 //! and was originally a part of the mod manager [Gale](https://github.com/Kesomannen/gale).
-//! The supported mod loaders is those found on Thunderstore's registry, including:
+//! The supported mod loaders are those found in Thunderstore's game registry, that is:
 //!
 //! * [BepInEx](crate::loaders::BepInEx)
 //! * [MelonLoader](crate::loaders::MelonLoader)

@@ -18,20 +18,28 @@ pub struct BepInExBuilder {
 }
 
 impl BepInExBuilder {
+    /// Creates a new [`BepInExBuilder`].
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Adds extra rules to the loader's inner [`RuleInstaller`].
+    ///
+    /// Read more in the [rule module documentation](crate::rule).
     pub fn with_extra_rules(mut self, extra_rules: Vec<Rule>) -> Self {
         self.extra_installer_rules = extra_rules;
         self
     }
 
+    /// Sets a custom path for the profile state file.
+    ///
+    /// Read more in the [rule module documentation](crate::rule).
     pub fn with_state_file_name(mut self, state_file_path: impl Into<PathBuf>) -> Self {
         self.custom_state_file_path = Some(state_file_path.into());
         self
     }
 
+    /// Creates a [`BepInEx`] instance from the builder's configuration.
     pub fn build(self) -> BepInEx {
         let rules = [
             Rule::flat_separated("plugins", Path::new("BepInEx/plugins")),
@@ -73,6 +81,9 @@ impl BepInExBuilder {
 
 /// [`ModLoader`] for the [BepInEx](https://github.com/BepInEx/BepInEx) Unity modding framework.
 ///
+/// This type can either be created with [`BepInEx::default()`] or [`BepInEx::new()`] for a default
+/// configuration, or via [`BepInExBuilder`] for more configuration options.
+///
 /// Supports both the Mono and IL2CPP editions of both BepInEx 5 and 6.
 #[derive(Debug, Clone)]
 pub struct BepInEx {
@@ -81,6 +92,7 @@ pub struct BepInEx {
 }
 
 impl BepInEx {
+    /// Creates a new [`BepInEx`] instance with the default configuration.
     pub fn new() -> Self {
         Self::default()
     }
