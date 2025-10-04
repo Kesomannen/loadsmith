@@ -1,3 +1,6 @@
+//! Contains implementors of [`ModLoader`](crate::ModLoader) and mod-loader specific [`PackageInstaller`](crate::PackageInstaller)s.
+//!
+
 mod bepinex;
 mod bepisloader;
 mod gdweave;

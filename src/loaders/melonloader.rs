@@ -9,6 +9,7 @@ use crate::{
     rule::{Rule, RuleInstaller},
 };
 
+/// Builder for the [`MelonLoader`] struct.
 #[derive(Debug, Default)]
 pub struct MelonLoaderBuilder {
     extra_installer_rules: Vec<Rule>,
@@ -66,6 +67,7 @@ impl MelonLoaderBuilder {
     }
 }
 
+/// [`ModLoader`] for the [MelonLoader](https://github.com/LavaGang/MelonLoader) Unity modding framework.
 #[derive(Debug, Clone)]
 pub struct MelonLoader {
     plugin_installer: RuleInstaller,

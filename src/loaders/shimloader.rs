@@ -9,6 +9,7 @@ use crate::{
     rule::{Rule, RuleInstaller},
 };
 
+/// [`ModLoader`] for the [Shimloader](https://github.com/thunderstore-io/unreal-shimloader) Unreal Engine mod loader.
 #[derive(Debug, Clone)]
 pub struct Shimloader {
     internal_game_name: String,
@@ -77,6 +78,7 @@ impl ModLoader for Shimloader {
     }
 }
 
+/// A [`PackageInstaller`] for the Unreal Shimloader mod loader package.
 #[non_exhaustive]
 #[derive(Debug, Clone)]
 pub struct ShimloaderInstaller;

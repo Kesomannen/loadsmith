@@ -9,6 +9,7 @@ use crate::{
     rule::{Rule, RuleInstaller},
 };
 
+/// [`ModLoader`] for the [Northstar](https://github.com/R2Northstar/Northstar) Titanfall 2 modding framework.
 #[derive(Debug, Clone)]
 pub struct Northstar {
     loader_installer: ExtractInstaller,

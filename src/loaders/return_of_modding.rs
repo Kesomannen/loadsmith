@@ -9,6 +9,7 @@ use crate::{
     rule::{Rule, RuleInstaller},
 };
 
+/// [`ModLoader`] for the [Return Of Modding](https://github.com/R2Northstar/Northstar) GameMaker modding framework.
 #[derive(Debug, Clone)]
 pub struct ReturnOfModding {
     loader_installer: ExtractInstaller,

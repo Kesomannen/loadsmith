@@ -1,7 +1,13 @@
-use std::{collections::HashSet, path::PathBuf};
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+};
 
 use anyhow::Context;
-use loadsmith::{AnyZipArchive, PackageInstaller};
+use loadsmith::{
+    AnyZipArchive, PackageInstaller,
+    rule::{Rule, RuleInstaller, RuleMode},
+};
 use tempfile::TempDir;
 
 pub fn open_zip(name: &str) -> AnyZipArchive {
@@ -72,4 +78,43 @@ pub fn test_mod_operations(
     );
 
     Ok(())
+}
+
+#[test]
+fn test_1() {
+    let package_name = "AUTHOR-NAME";
+
+    fn make_installer(rule_mode: RuleMode) -> RuleInstaller {
+        let rule_name = "rule_name";
+        let rule_target = Path::new("target");
+
+        RuleInstaller::new(vec![Rule::new(rule_name, rule_target, rule_mode)])
+    }
+
+    let separate = make_installer(RuleMode::Separate);
+    let separate_flatten = make_installer(RuleMode::SeparateFlatten);
+    let track = make_installer(RuleMode::Track);
+    let none = make_installer(RuleMode::None);
+
+    let file_path = Path::new("dir1/rule_name/dir2/file.txt");
+
+    assert_eq!(
+        separate.map_file(file_path, package_name),
+        Some(Path::new("target/AUTHOR-NAME/dir1/dir2/file.txt").into())
+    );
+
+    assert_eq!(
+        separate_flatten.map_file(file_path, package_name),
+        Some(Path::new("target/AUTHOR-NAME/dir2/file.txt").into())
+    );
+
+    assert_eq!(
+        track.map_file(file_path, package_name),
+        Some(Path::new("target/dir2/file.txt").into())
+    );
+
+    assert_eq!(
+        none.map_file(file_path, package_name),
+        Some(Path::new("target/dir2/file.txt").into())
+    );
 }

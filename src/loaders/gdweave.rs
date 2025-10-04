@@ -9,6 +9,7 @@ use walkdir::WalkDir;
 
 use crate::{AnyZipArchive, Error, ModLoader, PackageInstaller, Result, extract::ExtractInstaller};
 
+/// [`ModLoader`] for the [GDWeave](https://github.com/NotNite/GDWeave) Godot modding framework.
 #[derive(Debug, Clone)]
 pub struct GDWeave {
     package_installer: GDWeavePackageIntaller,
@@ -63,6 +64,7 @@ impl ModLoader for GDWeave {
     }
 }
 
+/// A [`PackageInstaller`] for GDWeave packages.
 #[non_exhaustive]
 #[derive(Debug, Clone, Default)]
 pub struct GDWeavePackageIntaller;

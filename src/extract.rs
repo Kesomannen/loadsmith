@@ -1,3 +1,12 @@
+//! Contains the [`ExtractInstaller`], a [`PackageInstaller`] that follows standard zip extraction logic.
+//!
+//! Files are simply placed into the target directory according to their relative path inside of the
+//! zip archive.
+//!
+//! Only files that match any of the glob patterns given to [`ExtractInstaller::new()`](ExtractInstaller::new) get
+//! extracted and included in the mod installation.
+//!
+
 use std::{
     borrow::Cow,
     fmt::Debug,
@@ -10,11 +19,7 @@ use crate::Result;
 
 /// A [`PackageInstaller`] that follows standard zip extraction logic.
 ///
-/// Files are simply placed into the target directory according to their relative path inside of the
-/// zip archive.
-///
-/// Only files that match any of the glob patterns given to [`new()`](ExtractInstaller::new) get
-/// extracted and included in the mod installation.
+/// See the module-level documentation for more details.
 #[derive(Debug, Clone)]
 pub struct ExtractInstaller {
     include_patterns: Vec<&'static str>,

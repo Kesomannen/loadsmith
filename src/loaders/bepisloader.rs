@@ -5,6 +5,7 @@ use std::{
 
 use crate::{Error, ModLoader, PackageInstaller, Result, extract::ExtractInstaller, rule::Rule};
 
+/// Builder for the [`BepisLoader`] struct.
 #[derive(Debug, Default)]
 pub struct BepisLoaderBuilder {
     extra_installer_rules: Vec<Rule>,
@@ -62,6 +63,7 @@ impl BepisLoaderBuilder {
     }
 }
 
+/// [`ModLoader`] for the [BepisLoader](https://github.com/ResoniteModding/BepisLoader) Unity modding framework.
 #[derive(Debug, Clone)]
 pub struct BepisLoader {
     doorstop_version_override: Option<u32>,

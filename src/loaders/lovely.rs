@@ -10,6 +10,7 @@ use crate::{
     rule::{Rule, RuleInstaller},
 };
 
+/// [`ModLoader`] for the [Lovely](https://github.com/ethangreen-dev/lovely-injector) LÖVE 2d modding framework.
 #[derive(Debug, Clone)]
 pub struct Lovely {
     loader_installer: ExtractInstaller,

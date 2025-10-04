@@ -9,7 +9,7 @@
 //! * [BepInEx](crate::loaders::BepInEx)
 //! * [MelonLoader](crate::loaders::MelonLoader)
 //! * [Shimloader](crate::loaders::Shimloader)
-//! * [ReturnOfModding](crate::loaders::ReturnOfModding)
+//! * [Return Of Modding](crate::loaders::ReturnOfModding)
 //! * [GDWeave](crate::loaders::GDWeave)
 //! * [Lovely](crate::loaders::Lovely)
 //! * [Northstar](crate::loaders::Northstar)
