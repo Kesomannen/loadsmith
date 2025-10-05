@@ -38,9 +38,10 @@
 //! then install it into as many profiles you want. If you want a simpler flow however, there is also
 //! [`PackageInstaller::extract_and_install`], which extracts to a temporary directory.
 //!
-//! ```rust
+//! ```no_run
+//! # fn main() -> anyhow::Result<()> {
 //! use std::path::Path;
-//! use loadsmith::loaders::BepInEx;
+//! use loadsmith::{PackageInstaller, ModLoader, loaders::BepInEx};
 //!
 //! // create a BepInEx loader with the default config
 //! let loader = BepInEx::new();
@@ -57,26 +58,32 @@
 //! // then install BepInEx itself
 //! let zip = loadsmith::open_zip("mods/BepInExPack.zip")?;
 //! loader.loader_installer().extract_and_install(zip, "BepInEx-BepInExPack", profile_path)?;
+//! # Ok(())
+//! # }
 //! ```
 //!
 //! ### Uninstall a mod
 //!
-//! ```rust
+//! ```no_run
+//! # fn main() -> anyhow::Result<()> {
 //! use std::path::Path;
-//! use loadsmith::loaders::BepInEx;
+//! use loadsmith::{PackageInstaller, ModLoader, loaders::BepInEx};
 //!
 //! let loader = BepInEx::new();
 //! let profile_path = Path::new("profiles/Default");
 //!
 //! // second argument must be the same as when the mod was installed
 //! loader.uninstall(profile_path, "notnotnotswipez-MoreCompany")?;
+//! # Ok(())
+//! # }
 //! ```
 //!
 //! ### List files belonging to a mod
 //!
-//! ```rust
+//! ```no_run
+//! # fn main() -> anyhow::Result<()> {
 //! use std::path::Path;
-//! use loadsmith::loaders::MelonLoader;
+//! use loadsmith::{PackageInstaller, ModLoader, loaders::MelonLoader};
 //!
 //! let loader = MelonLoader::new();
 //! let profile_path = Path::new("profiles/Default");
@@ -88,13 +95,16 @@
 //!     // will print an absolute path
 //!     println!("{}", path.display());
 //! }
+//! # Ok(())
+//! # }
 //! ```
 //!
 //! ### Launch the (modded) game
 //!
-//! ```rust
+//! ```no_run
+//! # fn main() -> anyhow::Result<()> {
 //! use std::{path::Path, process::Command};
-//! use loadsmith::loaders::MelonLoader;
+//! use loadsmith::{PackageInstaller, ModLoader, loaders::GDWeave};
 //!
 //! let loader = GDWeave::new();
 //! let profile_path = Path::new("profiles/Default");
@@ -109,6 +119,8 @@
 //!     .args(["-applaunch", "3146520"]) // app ID for WEBFISHING
 //!     .args(args)
 //!     .spawn()?;
+//! # Ok(())
+//! # }
 //! ```
 //!
 
@@ -169,8 +181,10 @@ pub trait ModLoader {
     ///
     /// **Example**
     ///
-    /// ```rust
+    /// ```no_run
+    /// # fn main() -> anyhow::Result<()> {
     /// use std::{path::Path, process::Command};
+    /// use loadsmith::{PackageInstaller, ModLoader, loaders::BepInEx};
     ///
     /// // use the working directory as our profile
     /// let profile_path = Path::new(".");
@@ -195,6 +209,8 @@ pub trait ModLoader {
     /// Command::new(exe_path)
     ///     .args(args)
     ///     .spawn()?;
+    /// # Ok(())
+    /// # }
     /// ```
     fn get_launch_args(&self, profile_root: &Path) -> Result<Vec<OsString>>;
 

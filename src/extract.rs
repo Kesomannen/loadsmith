@@ -51,7 +51,9 @@ impl ExtractInstaller {
     /// This is applied *before* matching file patterns, so these two are equivalent
     /// (unless other top level directories than `TopLevel` exist):
     ///
-    /// ```rust
+    /// ```
+    /// use loadsmith::extract::ExtractInstaller;
+    ///
     /// let a = ExtractInstaller::new(["TopLevel/Other/*"]).flatten_top_level(false);
     /// let b = ExtractInstaller::new(["Other/*"]).flatten_top_level(true);
     /// ```
