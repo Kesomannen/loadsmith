@@ -6,6 +6,7 @@ license = "MIT OR Apache-2.0"
 description = "Mod extraction and (un)installation utilities for a range of mod loaders."
 repository = "https://github.com/Kesomannen/loadsmith"
 readme = "README.md"
+exclude = ["tests/"]
 
 [dependencies]
 anyhow = "1.0.100"
