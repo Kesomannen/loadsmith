@@ -163,7 +163,7 @@ pub type AnyZipArchive = ZipArchive<Box<dyn AnyZipReader>>;
 /// For many mod loaders, this carries no actual data or state and thus can be shared across your application.
 /// Even for those with game-specific configuration like [`BepInEx`](crate::loaders::BepInEx), since methods only take `&self`,
 /// this can easily be shared by wrapping it in a smart-pointer like [`LazyLock`](std::sync::LazyLock) or [`Arc`](std::sync::Arc).
-pub trait ModLoader {
+pub trait ModLoader: Send + Sync {
     /// The name of this mod loader.
     fn to_str(&self) -> &'static str;
 
@@ -306,7 +306,7 @@ where
 /// [`MelonLoader`](loaders::MelonLoader) among others.
 ///
 /// See [`RuleMode::Track`](rule::RuleMode::Track) for more information.
-pub trait PackageInstaller {
+pub trait PackageInstaller: Send + Sync {
     /// Extracts a mod archive to the specified `output_path`, according to this implementor's
     /// unpacking rules.
     ///
