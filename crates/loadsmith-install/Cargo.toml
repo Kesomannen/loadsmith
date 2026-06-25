@@ -1,0 +1,16 @@
+[package]
+name = "loadsmith-install"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+loadsmith-core = { path = "../loadsmith-core" }
+
+serde = { workspace = true }
+globset = { workspace = true }
+camino = { workspace = true }
+zip = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+walkdir = { workspace = true }
+tempfile = { workspace = true }

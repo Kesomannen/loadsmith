@@ -1,0 +1,11 @@
+{
+  "BepInEx/loader": [
+    "BepInEx-BepInExPack_ROUNDS-5.4.1901",
+    "BepInEx-BepInExPack_H3VR-5.4.1700"
+  ],
+  "BepInEx/package": [
+    "olavim-RoundsWithFriends-2.2.2",
+    "Hamunii-AutoHookGenPatcher-1.1.1"
+  ],
+  "MelonLoader/loader": ["LavaGang-MelonLoader-0.7.3"]
+}

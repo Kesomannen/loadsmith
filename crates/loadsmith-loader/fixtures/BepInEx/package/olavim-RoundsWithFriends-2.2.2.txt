@@ -1,0 +1,4 @@
+plugins/RoundsWithFriends.dll
+icon.png
+manifest.json
+README.md

@@ -1,0 +1,12 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+BepInEx/core/MonoMod.RuntimeDetour.HookGen.dll: BepInEx/core/Hamunii-AutoHookGenPatcher/MonoMod.RuntimeDetour.HookGen.dll
+BepInEx/core/MonoMod.dll: BepInEx/core/Hamunii-AutoHookGenPatcher/MonoMod.dll
+BepInEx/patchers/BepInEx.MonoMod.AutoHookGenPatcher.dll: BepInEx/patchers/Hamunii-AutoHookGenPatcher/BepInEx.MonoMod.AutoHookGenPatcher.dll
+CHANGELOG.md: BepInEx/plugins/Hamunii-AutoHookGenPatcher/CHANGELOG.md
+LICENSE: BepInEx/plugins/Hamunii-AutoHookGenPatcher/LICENSE
+README.md: BepInEx/plugins/Hamunii-AutoHookGenPatcher/README.md
+icon.png: BepInEx/plugins/Hamunii-AutoHookGenPatcher/icon.png
+manifest.json: BepInEx/plugins/Hamunii-AutoHookGenPatcher/manifest.json

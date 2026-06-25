@@ -1,0 +1,8 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+README.md: BepInEx/plugins/olavim-RoundsWithFriends/README.md
+icon.png: BepInEx/plugins/olavim-RoundsWithFriends/icon.png
+manifest.json: BepInEx/plugins/olavim-RoundsWithFriends/manifest.json
+plugins/RoundsWithFriends.dll: BepInEx/plugins/olavim-RoundsWithFriends/RoundsWithFriends.dll

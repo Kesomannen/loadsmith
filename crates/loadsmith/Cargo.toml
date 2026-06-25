@@ -1,0 +1,10 @@
+[package]
+name = "loadsmith"
+version = "0.2.0"
+edition = "2024"
+
+[dependencies]
+loadsmith-core = { path = "../loadsmith-core" }
+loadsmith-install = { path = "../loadsmith-install" }
+loadsmith-loader = { path = "../loadsmith-loader" }
+loadsmith-manifest = { path = "../loadsmith-manifest" }

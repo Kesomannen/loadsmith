@@ -1,20 +1,31 @@
-[package]
-name = "loadsmith"
-version = "0.1.1"
-edition = "2024"
-license = "MIT OR Apache-2.0"
-description = "Mod extraction and (un)installation utilities for a range of mod loaders."
-repository = "https://github.com/Kesomannen/loadsmith"
-readme = "README.md"
-exclude = ["tests/"]
+[workspace]
+resolver = "3"
+members = ["crates/*"]
 
-[dependencies]
-anyhow = "1.0.100"
-glob-match = "0.2.1"
-itertools = "0.14.0"
+[workspace.dependencies]
+camino = { version = "1.2.3", features = ["serde1"] }
+chrono = { version = "0.4.45", features = ["serde"] }
+globset = { version = "0.4.18", features = ["serde1"] }
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.145"
-tempfile = "3.23.0"
-thiserror = "2.0.16"
+serde_json = "1.0.150"
+sha2 = "0.11.0"
+thiserror = "2.0.18"
+tokio = "1.52.3"
+toml = "1.1.2"
+tracing = "0.1.44"
+url = "2.5.8"
+zip = "8.6.0"
+tempfile = "3.27.0"
 walkdir = "2.5.0"
-zip = "5.1.1"
+reqwest = { version = "0.13.4", features = ["json"] }
+tracing-subscriber = { version = "0.3.23", features = [
+    "env-filter",
+    "fmt",
+    "json",
+] }
+anyhow = "1.0.102"
+bytes = "1.12.0"
+
+[profile.dev.package]
+insta.opt-level = 3
+similar.opt-level = 3
