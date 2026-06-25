@@ -1,0 +1,8 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+BepInEx/plugins/MoreCompany.dll: BepInEx/plugins/notnotnotswipez-MoreCompany/MoreCompany.dll
+README.md: BepInEx/plugins/notnotnotswipez-MoreCompany/README.md
+icon.png: BepInEx/plugins/notnotnotswipez-MoreCompany/icon.png
+manifest.json: BepInEx/plugins/notnotnotswipez-MoreCompany/manifest.json

@@ -1,0 +1,4 @@
+BepInEx/plugins/MoreCompany.dll
+icon.png
+manifest.json
+README.md

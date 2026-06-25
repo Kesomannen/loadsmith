@@ -1,11 +1,15 @@
 {
   "BepInEx/loader": [
     "BepInEx-BepInExPack_ROUNDS-5.4.1901",
-    "BepInEx-BepInExPack_H3VR-5.4.1700"
+    "BepInEx-BepInExPack_H3VR-5.4.1700",
+    "BepInEx-BepInExPack-5.4.2305",
+    "Subnautica_Modding-BepInExPack-5.4.2305"
   ],
   "BepInEx/package": [
     "olavim-RoundsWithFriends-2.2.2",
-    "Hamunii-AutoHookGenPatcher-1.1.1"
+    "Hamunii-AutoHookGenPatcher-1.1.1",
+    "notnotnotswipez-MoreCompany-1.14.0",
+    "Crafty-LunarConfig-0.4.2"
   ],
   "MelonLoader/loader": ["LavaGang-MelonLoader-0.7.3"]
 }

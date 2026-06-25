@@ -1,0 +1,9 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+CHANGELOG.md: BepInEx/plugins/Crafty-LunarConfig/CHANGELOG.md
+README.md: BepInEx/plugins/Crafty-LunarConfig/README.md
+icon.png: BepInEx/plugins/Crafty-LunarConfig/icon.png
+manifest.json: BepInEx/plugins/Crafty-LunarConfig/manifest.json
+plugins/LunarConfig/Crafty.LunarConfig.dll: BepInEx/plugins/Crafty-LunarConfig/LunarConfig/Crafty.LunarConfig.dll

@@ -1,0 +1,5 @@
+CHANGELOG.md
+icon.png
+manifest.json
+README.md
+plugins/LunarConfig/Crafty.LunarConfig.dll

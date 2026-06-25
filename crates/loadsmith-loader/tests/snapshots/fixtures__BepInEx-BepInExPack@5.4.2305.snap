@@ -1,0 +1,29 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+BepInExPack/.doorstop_version: "./.doorstop_version"
+BepInExPack/BepInEx/config/BepInEx.cfg: "./BepInEx/config/BepInEx.cfg"
+BepInExPack/BepInEx/core/0Harmony.dll: "./BepInEx/core/0Harmony.dll"
+BepInExPack/BepInEx/core/0Harmony.xml: "./BepInEx/core/0Harmony.xml"
+BepInExPack/BepInEx/core/0Harmony20.dll: "./BepInEx/core/0Harmony20.dll"
+BepInExPack/BepInEx/core/BepInEx.Harmony.dll: "./BepInEx/core/BepInEx.Harmony.dll"
+BepInExPack/BepInEx/core/BepInEx.Harmony.xml: "./BepInEx/core/BepInEx.Harmony.xml"
+BepInExPack/BepInEx/core/BepInEx.Preloader.dll: "./BepInEx/core/BepInEx.Preloader.dll"
+BepInExPack/BepInEx/core/BepInEx.Preloader.xml: "./BepInEx/core/BepInEx.Preloader.xml"
+BepInExPack/BepInEx/core/BepInEx.dll: "./BepInEx/core/BepInEx.dll"
+BepInExPack/BepInEx/core/BepInEx.xml: "./BepInEx/core/BepInEx.xml"
+BepInExPack/BepInEx/core/HarmonyXInterop.dll: "./BepInEx/core/HarmonyXInterop.dll"
+BepInExPack/BepInEx/core/Mono.Cecil.Mdb.dll: "./BepInEx/core/Mono.Cecil.Mdb.dll"
+BepInExPack/BepInEx/core/Mono.Cecil.Pdb.dll: "./BepInEx/core/Mono.Cecil.Pdb.dll"
+BepInExPack/BepInEx/core/Mono.Cecil.Rocks.dll: "./BepInEx/core/Mono.Cecil.Rocks.dll"
+BepInExPack/BepInEx/core/Mono.Cecil.dll: "./BepInEx/core/Mono.Cecil.dll"
+BepInExPack/BepInEx/core/MonoMod.RuntimeDetour.dll: "./BepInEx/core/MonoMod.RuntimeDetour.dll"
+BepInExPack/BepInEx/core/MonoMod.RuntimeDetour.xml: "./BepInEx/core/MonoMod.RuntimeDetour.xml"
+BepInExPack/BepInEx/core/MonoMod.Utils.dll: "./BepInEx/core/MonoMod.Utils.dll"
+BepInExPack/BepInEx/core/MonoMod.Utils.xml: "./BepInEx/core/MonoMod.Utils.xml"
+BepInExPack/doorstop_config.ini: "./doorstop_config.ini"
+BepInExPack/winhttp.dll: "./winhttp.dll"
+README.md: ~
+icon.png: ~
+manifest.json: ~

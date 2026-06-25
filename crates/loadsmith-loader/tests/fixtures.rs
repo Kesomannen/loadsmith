@@ -1,15 +1,18 @@
-use std::{collections::BTreeMap, path::PathBuf};
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+};
 
 use loadsmith_core::PackageRef;
 use loadsmith_install::InstallRuleset;
 use loadsmith_loader::{BepInExLoader, Loader};
 
 fn test_fixture_category(category: &str, rules: &InstallRuleset) {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+    let category_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("fixtures")
         .join(category);
 
-    for entry in std::fs::read_dir(path).expect("failed to read fixture directory") {
+    for entry in std::fs::read_dir(category_path).expect("failed to read fixture directory") {
         let entry = entry.expect("failed to read fixture directory entry");
         let path = entry.path();
         let file_stem = path
@@ -22,19 +25,13 @@ fn test_fixture_category(category: &str, rules: &InstallRuleset) {
             panic!("invalid fixture file name: {file_stem}");
         };
 
-        let package_id = PackageRef::new(id.to_string(), version);
-        test_fixture(category, &package_id, rules);
+        let package = PackageRef::new(id.to_string(), version);
+
+        test_fixture(&path, &package, rules);
     }
 }
 
-fn test_fixture(category: &str, package: &PackageRef, rules: &InstallRuleset) {
-    let file_name = format!("{}-{}.txt", package.id.0, package.version);
-
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("fixtures")
-        .join(category)
-        .join(file_name);
-
+fn test_fixture(path: &Path, package: &PackageRef, rules: &InstallRuleset) {
     let contents = std::fs::read_to_string(&path).expect("failed to read fixture file");
     let lines = contents
         .lines()
@@ -49,7 +46,7 @@ fn test_fixture(category: &str, package: &PackageRef, rules: &InstallRuleset) {
 }
 
 #[test]
-fn bepinex_loader_fixtures() {
+fn bep_in_ex_loader() {
     test_fixture_category(
         "BepInEx/loader",
         &BepInExLoader::with_default_rules().loader_install_rules(),
@@ -57,7 +54,7 @@ fn bepinex_loader_fixtures() {
 }
 
 #[test]
-fn bepinex_package_fixtures() {
+fn bep_in_ex_package() {
     test_fixture_category(
         "BepInEx/package",
         &BepInExLoader::with_default_rules().package_install_rules(),
