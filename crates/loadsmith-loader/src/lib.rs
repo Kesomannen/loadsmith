@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, fmt::Debug};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use loadsmith_core::{LaunchArgs, LoaderId};
@@ -11,7 +11,7 @@ mod loaders;
 pub use error::{Error, Result};
 pub use loaders::*;
 
-pub trait Loader {
+pub trait Loader: Debug {
     fn id(&self) -> LoaderId;
 
     fn package_install_rules(&self) -> InstallRuleset<'_>;
@@ -70,6 +70,7 @@ impl<'a> LaunchContext<'a> {
 mod test_util {
     use camino::{Utf8Path, Utf8PathBuf};
     use loadsmith_core::PackageRef;
+    use loadsmith_install::InstallRuleset;
 
     use crate::Loader;
 
@@ -118,14 +119,16 @@ mod test_util {
             }
         }
 
-        pub fn map(&self, file: impl AsRef<Utf8Path>) -> Option<Utf8PathBuf> {
-            let rules = if self.loader_package {
+        pub fn ruleset(&self) -> InstallRuleset<'_> {
+            if self.loader_package {
                 self.loader.loader_install_rules()
             } else {
                 self.loader.package_install_rules()
-            };
+            }
+        }
 
-            rules.map_file(file, &self.package)
+        pub fn map(&self, file: impl AsRef<Utf8Path>) -> Option<Utf8PathBuf> {
+            self.ruleset().map_file(file, &self.package)
         }
     }
 }

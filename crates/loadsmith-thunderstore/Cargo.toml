@@ -1,0 +1,25 @@
+[package]
+name = "loadsmith-thunderstore"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+loadsmith-core = { path = "../loadsmith-core" }
+loadsmith-loader = { path = "../loadsmith-loader" }
+loadsmith-install = { path = "../loadsmith-install" }
+
+serde = { workspace = true }
+serde_yaml_ng = { workspace = true }
+thunderstore = { workspace = true }
+zip = { workspace = true }
+thiserror = { workspace = true }
+camino = { workspace = true }
+tracing = { workspace = true }
+walkdir = { workspace = true }
+globset = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+reqwest = { workspace = true, features = ["blocking", "json"] }
+insta = { workspace = true }

@@ -1,0 +1,67 @@
+---
+source: crates/loadsmith-thunderstore/src/ecosystem.rs
+expression: loader
+---
+BepInEx {
+    package_install_ruleset: OwnedInstallRuleset {
+        rules: [
+            Route(
+                RouteRule {
+                    name: "plugins",
+                    target: "BepInEx/plugins",
+                    file_extensions: [
+                        "dll",
+                    ],
+                    subdir: true,
+                    flatten: true,
+                    mutable: false,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "core",
+                    target: "BepInEx/core",
+                    file_extensions: [],
+                    subdir: true,
+                    flatten: true,
+                    mutable: false,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "patchers",
+                    target: "BepInEx/patchers",
+                    file_extensions: [],
+                    subdir: true,
+                    flatten: true,
+                    mutable: false,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "monomod",
+                    target: "BepInEx/monomod",
+                    file_extensions: [
+                        "mm.dll",
+                    ],
+                    subdir: true,
+                    flatten: true,
+                    mutable: false,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "config",
+                    target: "BepInEx/config",
+                    file_extensions: [],
+                    subdir: false,
+                    flatten: false,
+                    mutable: true,
+                },
+            ),
+        ],
+        default_rule: Some(
+            0,
+        ),
+    },
+}

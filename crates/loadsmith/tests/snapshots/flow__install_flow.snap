@@ -1,0 +1,11 @@
+---
+source: crates/loadsmith/tests/flow.rs
+expression: files
+---
+- BepInEx/plugins/Evaisa-LethalLib/CHANGELOG.md
+- BepInEx/plugins/Evaisa-LethalLib/LICENSE
+- BepInEx/plugins/Evaisa-LethalLib/LethalLib/LethalLib.dll
+- BepInEx/plugins/Evaisa-LethalLib/LethalLib/lethallib
+- BepInEx/plugins/Evaisa-LethalLib/README.md
+- BepInEx/plugins/Evaisa-LethalLib/icon.png
+- BepInEx/plugins/Evaisa-LethalLib/manifest.json

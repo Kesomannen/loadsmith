@@ -8,3 +8,13 @@ loadsmith-core = { path = "../loadsmith-core" }
 loadsmith-install = { path = "../loadsmith-install" }
 loadsmith-loader = { path = "../loadsmith-loader" }
 loadsmith-manifest = { path = "../loadsmith-manifest" }
+loadsmith-thunderstore = { path = "../loadsmith-thunderstore" }
+
+[dev-dependencies]
+thunderstore = { workspace = true }
+tokio = { workspace = true }
+tempfile = { workspace = true }
+walkdir = { workspace = true }
+insta = { workspace = true }
+anyhow = { workspace = true }
+tracing-subscriber = { workspace = true }

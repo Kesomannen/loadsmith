@@ -58,16 +58,31 @@ impl Display for PackageRef {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InstalledPackage {
     pub package: PackageRef,
-    pub files: Vec<Utf8PathBuf>,
+    pub files: Vec<InstalledFile>,
     pub date: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InstalledFile {
+    pub relative_path: Utf8PathBuf,
+    pub linked: bool,
+}
+
 impl InstalledPackage {
-    pub fn now(package: PackageRef, files: Vec<Utf8PathBuf>) -> Self {
+    pub fn now(package: PackageRef, files: Vec<InstalledFile>) -> Self {
         Self {
             package,
             files,
             date: Utc::now(),
+        }
+    }
+}
+
+impl InstalledFile {
+    pub fn new(relative_path: impl Into<Utf8PathBuf>, linked: bool) -> Self {
+        Self {
+            relative_path: relative_path.into(),
+            linked,
         }
     }
 }

@@ -15,4 +15,4 @@ serde = { workspace = true }
 
 [dev-dependencies]
 zip = { workspace = true }
-insta = { version = "1.48.0", features = ["yaml"] }
+insta = { workspace = true }

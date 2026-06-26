@@ -4,14 +4,14 @@ use camino::{Utf8Path, Utf8PathBuf};
 use loadsmith_core::{LaunchArgs, LoaderId};
 use loadsmith_install::{InstallRule, InstallRuleset, OwnedInstallRuleset, RouteRule};
 
-use crate::{Error, LaunchContext, Loader, Result, doorstop, glob_rule, glob_rules};
+use crate::{Error, LaunchContext, Loader, Result, doorstop, glob_rules};
 
 #[derive(Debug, Clone)]
-pub struct BepInExLoader {
+pub struct BepInEx {
     package_install_ruleset: OwnedInstallRuleset,
 }
 
-impl BepInExLoader {
+impl BepInEx {
     pub fn with_rules(package_install_ruleset: OwnedInstallRuleset) -> Self {
         Self {
             package_install_ruleset,
@@ -21,9 +21,10 @@ impl BepInExLoader {
     pub fn with_default_rules() -> Self {
         OwnedInstallRuleset::with_rules(
             vec![
-                InstallRule::Route(RouteRule::new("plugins", Utf8Path::new("BepInEx/plugins"))),
                 InstallRule::Route(
-                    RouteRule::new("config", Utf8Path::new("BepInEx/config")).with_subdir(false),
+                    RouteRule::new("config", Utf8Path::new("BepInEx/config"))
+                        .with_subdir(false)
+                        .with_mutable(true),
                 ),
                 InstallRule::Route(RouteRule::new(
                     "patchers",
@@ -34,8 +35,12 @@ impl BepInExLoader {
                     RouteRule::new("monomod", Utf8Path::new("BepInEx/monomod"))
                         .with_file_extensions(vec![Cow::Borrowed("mm.dll")]),
                 ),
+                InstallRule::Route(
+                    RouteRule::new("plugins", Utf8Path::new("BepInEx/plugins"))
+                        .with_file_extensions(vec![Cow::Borrowed("dll")]),
+                ),
             ],
-            Some(0),
+            Some(4),
         )
         .map(Self::with_rules)
         .expect("rules are not empty so there should always be a valid default rule index")
@@ -46,13 +51,13 @@ impl BepInExLoader {
     }
 }
 
-impl Default for BepInExLoader {
+impl Default for BepInEx {
     fn default() -> Self {
         Self::with_default_rules()
     }
 }
 
-impl Loader for BepInExLoader {
+impl Loader for BepInEx {
     fn id(&self) -> LoaderId {
         LoaderId("BepInEx")
     }
@@ -127,7 +132,7 @@ mod tests {
     #[test]
     fn map_loader_files() {
         assert_maps!(MapFileTester::new(
-            BepInExLoader::with_default_rules(),
+            BepInEx::with_default_rules(),
             "BepInEx-BepInExPack",
             "5.4.2100",
             true,
@@ -141,7 +146,7 @@ mod tests {
     #[test]
     fn map_package_files() {
         assert_maps!(MapFileTester::new(
-            BepInExLoader::with_default_rules(),
+            BepInEx::with_default_rules(),
             "Author-Name",
             "1.0.0",
             false,
@@ -157,5 +162,52 @@ mod tests {
             "monomod/patch.dll" => "BepInEx/monomod/Author-Name/patch.dll",
             "monomod/nested/patch.dll" => "BepInEx/monomod/Author-Name/nested/patch.dll"
         ]);
+    }
+
+    #[test]
+    fn config_files_should_not_link() {
+        let loader = BepInEx::with_default_rules();
+        let rules = loader.package_install_rules();
+
+        assert!(
+            !rules
+                .find_rule_for_path("config/settings.json")
+                .unwrap()
+                .use_links()
+        );
+    }
+
+    #[test]
+    fn other_files_should_link() {
+        let loader = BepInEx::with_default_rules();
+        let rules = loader.package_install_rules();
+
+        assert!(
+            rules
+                .find_rule_for_path("plugins/file.txt")
+                .unwrap()
+                .use_links()
+        );
+
+        assert!(
+            rules
+                .find_rule_for_path("patchers/patch.dll")
+                .unwrap()
+                .use_links()
+        );
+
+        assert!(
+            rules
+                .find_rule_for_path("core/core.dll")
+                .unwrap()
+                .use_links()
+        );
+
+        assert!(
+            rules
+                .find_rule_for_path("patch.mm.dll")
+                .unwrap()
+                .use_links()
+        );
     }
 }

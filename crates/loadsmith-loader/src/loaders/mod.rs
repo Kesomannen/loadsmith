@@ -2,4 +2,4 @@ pub mod bep_in_ex;
 
 mod macros;
 
-pub use bep_in_ex::BepInExLoader;
+pub use bep_in_ex::BepInEx;

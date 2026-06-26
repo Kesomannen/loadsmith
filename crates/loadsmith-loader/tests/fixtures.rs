@@ -5,7 +5,7 @@ use std::{
 
 use loadsmith_core::PackageRef;
 use loadsmith_install::InstallRuleset;
-use loadsmith_loader::{BepInExLoader, Loader};
+use loadsmith_loader::{BepInEx, Loader};
 
 fn test_fixture_category(category: &str, rules: &InstallRuleset) {
     let category_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -49,7 +49,7 @@ fn test_fixture(path: &Path, package: &PackageRef, rules: &InstallRuleset) {
 fn bep_in_ex_loader() {
     test_fixture_category(
         "BepInEx/loader",
-        &BepInExLoader::with_default_rules().loader_install_rules(),
+        &BepInEx::with_default_rules().loader_install_rules(),
     );
 }
 
@@ -57,6 +57,6 @@ fn bep_in_ex_loader() {
 fn bep_in_ex_package() {
     test_fixture_category(
         "BepInEx/package",
-        &BepInExLoader::with_default_rules().package_install_rules(),
+        &BepInEx::with_default_rules().package_install_rules(),
     );
 }
