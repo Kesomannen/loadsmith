@@ -21,11 +21,9 @@ fn test_fixture_category(category: &str, rules: &InstallRuleset) {
             .to_str()
             .expect("file stem should be UTF-8");
 
-        let Some((id, version)) = file_stem.rsplit_once('-') else {
-            panic!("invalid fixture file name: {file_stem}");
-        };
-
-        let package = PackageRef::new(id.to_string(), version);
+        let package = file_stem
+            .parse()
+            .expect("failed to parse package reference from file stem");
 
         test_fixture(&path, &package, rules);
     }

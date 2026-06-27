@@ -27,13 +27,13 @@ impl PackageRefExt for loadsmith_core::PackageRef {
     fn into_ts_ident(self) -> Result<VersionIdent> {
         self.id
             .into_ts_ident()
-            .map(|package| package.with_version(self.version))
+            .map(|package| package.with_version(self.version.to_string()))
     }
 
     fn from_ts_ident(ident: VersionIdent) -> Self {
         Self {
             id: PackageId::from_ts_ident(ident.package_id()),
-            version: ident.version().to_string(),
+            version: ident.parsed_version().into(),
         }
     }
 }

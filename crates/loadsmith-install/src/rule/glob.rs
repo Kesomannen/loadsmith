@@ -81,7 +81,7 @@ mod tests {
     fn map_file() {
         let rule = GlobRule::try_from_pattern("*.rs", Utf8Path::new("target")).unwrap();
 
-        let package = PackageRef::new(PackageId::new("Author-Name"), "1.0.0");
+        let package = PackageRef::new(PackageId::new("Author-Name"), (1, 0, 0));
 
         assert_eq!(
             rule.map_file("main.rs", &package),
@@ -104,7 +104,7 @@ mod tests {
         let rule = GlobRule::try_from_pattern("in/**", Utf8Path::new("out"))
             .unwrap()
             .with_strip_top_level(true);
-        let package = PackageRef::new(PackageId::new("Author-Name"), "1.0.0");
+        let package = PackageRef::new(PackageId::new("Author-Name"), (1, 0, 0));
 
         assert_eq!(
             rule.map_file("in/file.txt", &package),

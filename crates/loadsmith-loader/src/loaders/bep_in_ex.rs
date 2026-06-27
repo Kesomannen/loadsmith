@@ -1,7 +1,7 @@
 use std::{borrow::Cow, sync::LazyLock};
 
 use camino::{Utf8Path, Utf8PathBuf};
-use loadsmith_core::{LaunchArgs, LoaderId};
+use loadsmith_core::LaunchArgs;
 use loadsmith_install::{InstallRule, InstallRuleset, OwnedInstallRuleset, RouteRule};
 
 use crate::{Error, LaunchContext, Loader, Result, doorstop, glob_rules};
@@ -58,8 +58,8 @@ impl Default for BepInEx {
 }
 
 impl Loader for BepInEx {
-    fn id(&self) -> LoaderId {
-        LoaderId("BepInEx")
+    fn id(&self) -> &'static str {
+        "BepInEx"
     }
 
     fn loader_install_rules(&self) -> InstallRuleset<'_> {
@@ -125,6 +125,8 @@ pub(crate) fn bepinex_preloader_path(
 
 #[cfg(test)]
 mod tests {
+    use loadsmith_core::PackageRef;
+
     use crate::{assert_map, assert_maps, test_util::MapFileTester};
 
     use super::*;
@@ -133,8 +135,7 @@ mod tests {
     fn map_loader_files() {
         assert_maps!(MapFileTester::new(
             BepInEx::with_default_rules(),
-            "BepInEx-BepInExPack",
-            "5.4.2100",
+            PackageRef::new("BepInEx-BepInExPack".to_string(), (5, 4, 2100)),
             true,
         ), [
             "README.md" => None,
@@ -147,8 +148,7 @@ mod tests {
     fn map_package_files() {
         assert_maps!(MapFileTester::new(
             BepInEx::with_default_rules(),
-            "Author-Name",
-            "1.0.0",
+            PackageRef::new("Author-Name".to_string(), (1, 0, 0)),
             false,
         ), [
             "README.md" => "BepInEx/plugins/Author-Name/README.md",

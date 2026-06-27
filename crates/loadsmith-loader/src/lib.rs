@@ -1,7 +1,7 @@
 use std::{borrow::Cow, fmt::Debug};
 
 use camino::{Utf8Path, Utf8PathBuf};
-use loadsmith_core::{LaunchArgs, LoaderId};
+use loadsmith_core::LaunchArgs;
 use loadsmith_install::InstallRuleset;
 
 mod doorstop;
@@ -12,7 +12,7 @@ pub use error::{Error, Result};
 pub use loaders::*;
 
 pub trait Loader: Debug {
-    fn id(&self) -> LoaderId;
+    fn id(&self) -> &'static str;
 
     fn package_install_rules(&self) -> InstallRuleset<'_>;
     fn loader_install_rules(&self) -> InstallRuleset<'_>;
@@ -106,14 +106,9 @@ mod test_util {
     }
 
     impl<T: Loader> MapFileTester<T> {
-        pub fn new(
-            loader: T,
-            package: &'static str,
-            version: &'static str,
-            loader_package: bool,
-        ) -> Self {
+        pub fn new(loader: T, package: PackageRef, loader_package: bool) -> Self {
             Self {
-                package: PackageRef::new(package.to_string(), version.to_string()),
+                package,
                 loader_package,
                 loader,
             }

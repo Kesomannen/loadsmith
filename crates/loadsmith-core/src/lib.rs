@@ -1,9 +1,17 @@
-use std::{collections::HashMap, ffi::OsString, fmt::Display, path::PathBuf};
+use std::{collections::HashMap, ffi::OsString, fmt::Display, path::PathBuf, str::FromStr};
 
 use camino::Utf8PathBuf;
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use url::Url;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+mod error;
+mod version;
+
+pub use error::{Error, Result};
+pub use version::Version;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct PackageId(pub String);
 
 impl PackageId {
@@ -34,14 +42,23 @@ impl Display for PackageId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+impl FromStr for PackageId {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        Ok(s.to_string().into())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(into = "String", try_from = "&str")]
 pub struct PackageRef {
     pub id: PackageId,
-    pub version: String,
+    pub version: Version,
 }
 
 impl PackageRef {
-    pub fn new(id: impl Into<PackageId>, version: impl Into<String>) -> Self {
+    pub fn new(id: impl Into<PackageId>, version: impl Into<Version>) -> Self {
         Self {
             id: id.into(),
             version: version.into(),
@@ -55,14 +72,41 @@ impl Display for PackageRef {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+impl FromStr for PackageRef {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let (id, version) = s.rsplit_once('@').ok_or(Error::InvalidPackageRefFormat)?;
+
+        let id = PackageId::from_str(id)?;
+        let version = Version::from_str(version)?;
+
+        Ok(Self::new(id, version))
+    }
+}
+
+impl From<PackageRef> for String {
+    fn from(package_ref: PackageRef) -> Self {
+        package_ref.to_string()
+    }
+}
+
+impl TryFrom<&str> for PackageRef {
+    type Error = Error;
+
+    fn try_from(s: &str) -> Result<Self> {
+        s.parse()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InstalledPackage {
     pub package: PackageRef,
     pub files: Vec<InstalledFile>,
     pub date: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InstalledFile {
     pub relative_path: Utf8PathBuf,
     pub linked: bool,
@@ -86,9 +130,6 @@ impl InstalledFile {
         }
     }
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct LoaderId(pub &'static str);
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct LaunchArgs {
@@ -115,5 +156,42 @@ impl LaunchArgs {
     pub fn wrapper(mut self, wrapper: impl Into<PathBuf>) -> Self {
         self.wrapper = Some(wrapper.into());
         self
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LockedPackage {
+    pub package: PackageRef,
+    pub source: String,
+    pub url: Url,
+    pub checksum: String,
+    pub deps: Vec<PackageRef>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use std::assert_matches;
+
+    #[test]
+    fn package_ref_from_str() {
+        let package_ref: PackageRef = "author-name@1.2.3"
+            .parse()
+            .expect("failed to parse package ref");
+        assert_eq!(package_ref.id.as_str(), "author-name");
+        assert_eq!(package_ref.version, Version::new(1, 2, 3));
+    }
+
+    #[test]
+    fn package_ref_from_str_invalid() {
+        let res: Result<PackageRef> = "author-name-1.2.3".parse();
+        assert_matches!(res, Err(Error::InvalidPackageRefFormat));
+    }
+
+    #[test]
+    fn package_id_from_str() {
+        let package_id: PackageId = "author-name".parse().expect("failed to parse package id");
+        assert_eq!(package_id.as_str(), "author-name");
     }
 }

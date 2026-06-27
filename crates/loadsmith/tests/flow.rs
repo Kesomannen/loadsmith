@@ -27,7 +27,7 @@ async fn install_flow() -> anyhow::Result<()> {
     let loader = loadsmith::thunderstore::r2_config_to_loader(r2_config)?
         .ok_or_else(|| anyhow!("loader couldn't be created"))?;
 
-    let package = PackageRef::new("Evaisa-LethalLib".to_string(), "1.2.0");
+    let package = PackageRef::new("Evaisa-LethalLib".to_string(), (1, 2, 0));
     let bytes = client.download(package.clone().into_ts_ident()?).await?;
 
     let extract_dir = tempfile::tempdir()?;

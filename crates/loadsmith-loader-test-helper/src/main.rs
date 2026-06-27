@@ -1,13 +1,15 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow};
 use bytes::Bytes;
+use loadsmith_core::PackageRef;
+use loadsmith_thunderstore::PackageRefExt;
 use serde::Deserialize;
 use tokio::fs;
 use tracing::{debug, info};
 
 #[derive(Debug, Deserialize)]
-struct Packages(HashMap<String, Vec<String>>);
+struct Packages(HashMap<String, Vec<PackageRef>>);
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -29,29 +31,24 @@ async fn main() -> anyhow::Result<()> {
         let category_path = out_path.join(&category);
         fs::create_dir_all(&category_path).await?;
 
-        for package_id in package_list {
-            let bytes = download_package(&http, &package_id)
+        for pkg in package_list {
+            let bytes = download_package(&http, &pkg)
                 .await
-                .with_context(|| format!("failed to download {package_id}"))?;
+                .with_context(|| format!("failed to download {pkg}"))?;
 
-            debug!(
-                category,
-                package_id,
-                len = bytes.len(),
-                "downloaded package"
-            );
+            debug!(category, %pkg, len = bytes.len(), "downloaded package");
 
             let file_list = extract_file_list(bytes)
                 .await
-                .with_context(|| format!("failed to extract file list for {package_id}"))?;
+                .with_context(|| format!("failed to extract file list for {pkg}"))?;
             let contents = file_list.join("\n");
 
-            let package_path = category_path.join(format!("{package_id}.txt"));
+            let package_path = category_path.join(format!("{pkg}.txt"));
             fs::write(&package_path, contents).await?;
 
             info!(
+                %pkg,
                 category,
-                package_id,
                 file_count = file_list.len(),
                 path = %package_path.display(),
                 "wrote package list"
@@ -62,16 +59,12 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn download_package(http: &reqwest::Client, thunderstore_id: &str) -> Result<Bytes> {
-    let mut split = thunderstore_id.split('-');
-    let (Some(author), Some(name), Some(version)) = (split.next(), split.next(), split.next())
-    else {
-        bail!("invalid thunderstore package id: {thunderstore_id}")
-    };
+pub async fn download_package(http: &reqwest::Client, pkg: &PackageRef) -> Result<Bytes> {
+    let ident = pkg.to_owned().into_ts_ident()?;
 
-    let url = format!("https://thunderstore.io/package/download/{author}/{name}/{version}/",);
+    let url = format!("https://thunderstore.io/package/download/{}/", ident.path());
 
-    debug!(thunderstore_id, %url, "downloading package");
+    debug!(%pkg, %url, "downloading package");
 
     let response = http
         .get(&url)

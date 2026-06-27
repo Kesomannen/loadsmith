@@ -7,3 +7,6 @@ edition = "2024"
 serde = { workspace = true }
 chrono = { workspace = true }
 camino = { workspace = true }
+url = { workspace = true }
+thiserror = { workspace = true }
+semver = { workspace = true }

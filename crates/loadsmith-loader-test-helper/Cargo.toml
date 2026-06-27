@@ -5,7 +5,9 @@ edition = "2024"
 
 [dependencies]
 loadsmith-core = { path = "../loadsmith-core" }
+loadsmith-thunderstore = { path = "../loadsmith-thunderstore" }
 
+thunderstore = { workspace = true }
 zip = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 reqwest = { workspace = true }

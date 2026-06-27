@@ -99,7 +99,7 @@ mod tests {
     const TEST_PACKAGE_ID: &str = "Author-Name";
 
     fn test_extract(zip: &mut MockZip, ruleset: InstallRuleset) -> tempfile::TempDir {
-        let package = loadsmith_core::PackageRef::new(TEST_PACKAGE_ID.to_string(), "1.0.0");
+        let package = loadsmith_core::PackageRef::new(TEST_PACKAGE_ID.to_string(), (1, 0, 0));
         let tempfile = tempfile::tempdir().unwrap();
 
         extract(zip, &package, ruleset, tempfile.path()).unwrap();

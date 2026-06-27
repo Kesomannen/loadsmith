@@ -159,7 +159,7 @@ mod tests {
             .with_flatten(false)
             .with_file_extensions(vec![Cow::Borrowed("plugin")]);
 
-        let package = PackageRef::new(PackageId::new("Author-Name"), "1.0.0");
+        let package = PackageRef::new(PackageId::new("Author-Name"), (1, 0, 0));
 
         assert_eq!(
             rule.map_file("MyPlugin.dll", &package),
@@ -210,7 +210,7 @@ mod tests {
             .with_flatten(true)
             .with_file_extensions(vec![Cow::Borrowed("plugin")]);
 
-        let package = PackageRef::new(PackageId::new("Author-Name"), "1.0.0");
+        let package = PackageRef::new(PackageId::new("Author-Name"), (1, 0, 0));
 
         assert_eq!(
             rule.map_file("MyPlugin.dll", &package),
@@ -260,7 +260,10 @@ mod tests {
         let rule = RouteRule::new("plugins", Utf8Path::new("BepInEx/plugins")).with_flatten(false);
 
         assert_eq!(
-            rule.map_file("", &PackageRef::new(PackageId::new("Author-Name"), "1.0.0")),
+            rule.map_file(
+                "",
+                &PackageRef::new(PackageId::new("Author-Name"), (1, 0, 0))
+            ),
             None
         );
     }
