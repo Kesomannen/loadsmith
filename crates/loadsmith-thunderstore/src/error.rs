@@ -11,6 +11,9 @@ pub enum Error {
     #[error(transparent)]
     Yaml(#[from] serde_yaml_ng::Error),
 
+    #[error("client error: {0}")]
+    Thunderstore(#[from] thunderstore::Error),
+
     #[error("non UTF-8 path: {0}")]
     NonUtf8Path(PathBuf),
 

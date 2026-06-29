@@ -1,66 +1,78 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
-use loadsmith_core::Version;
-use serde::{Deserialize, Serialize};
+use loadsmith_core::{PackageId, Version};
+use loadsmith_registry::RegistrySet;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Manifest {
-    pub profile: Profile,
-    pub mods: Dependencies,
+use crate::{Result, lockfile::Lockfile};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Dependencies(pub(crate) HashMap<PackageId, Dependency>);
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Dependency {
+    version: Version,
+    source: Option<String>,
+    registry_metadata: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Profile {
-    #[serde(default, rename = "version")]
-    pub version: Option<u32>,
-    pub game: String,
+impl Dependencies {
+    pub fn new() -> Self {
+        Self(HashMap::new())
+    }
+
+    pub async fn resolve(
+        &self,
+        registries: &RegistrySet,
+        existing_lockfile: Option<&Lockfile>,
+    ) -> Result<Lockfile> {
+        crate::resolve::resolve(self.0.clone(), registries, existing_lockfile).await
+    }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Dependencies(BTreeMap<String, Dependency>);
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(untagged)]
-pub enum Dependency {
-    Simple(Version),
-    Detailed {
-        version: Version,
-        #[serde(default)]
-        source: Option<String>,
-    },
+impl FromIterator<(PackageId, Dependency)> for Dependencies {
+    fn from_iter<T: IntoIterator<Item = (PackageId, Dependency)>>(iter: T) -> Self {
+        Self(iter.into_iter().collect())
+    }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+impl From<HashMap<PackageId, Dependency>> for Dependencies {
+    fn from(map: HashMap<PackageId, Dependency>) -> Self {
+        Self(map)
+    }
+}
 
-    #[test]
-    fn deserialize_manifest() {
-        let manifest_str = r#"
-[profile]
-version = 1
-game = "valheim"
+impl Dependency {
+    pub fn new(version: impl Into<Version>) -> Self {
+        Self {
+            version: version.into(),
+            source: None,
+            registry_metadata: None,
+        }
+    }
 
-[mods]
-author-name = "1.2.3"
-"author/name-2" = { version = "4.5.6", source = "github" }
-"#;
+    pub fn with_source(mut self, source: impl Into<String>) -> Self {
+        self.source = Some(source.into());
+        self
+    }
 
-        let manifest: Manifest =
-            toml::from_str(manifest_str).expect("failed to deserialize manifest");
+    pub fn with_registry_metadata(mut self, metadata: impl Into<serde_json::Value>) -> Self {
+        self.registry_metadata = Some(metadata.into());
+        self
+    }
 
-        assert_eq!(manifest.profile.version, Some(1));
-        assert_eq!(manifest.profile.game, "valheim");
-        assert_eq!(
-            manifest.mods.0.get("author-name"),
-            Some(&Dependency::Simple(Version::new(1, 2, 3)))
-        );
-        assert_eq!(
-            manifest.mods.0.get("author/name-2"),
-            Some(&Dependency::Detailed {
-                version: Version::new(4, 5, 6),
-                source: Some("github".to_string()),
-            })
-        );
+    pub fn version(&self) -> &Version {
+        &self.version
+    }
+
+    pub fn source(&self) -> Option<&str> {
+        self.source.as_deref()
+    }
+
+    pub fn registry_metadata(&self) -> Option<&serde_json::Value> {
+        self.registry_metadata.as_ref()
+    }
+
+    pub fn into_registry_metadata(self) -> Option<serde_json::Value> {
+        self.registry_metadata
     }
 }

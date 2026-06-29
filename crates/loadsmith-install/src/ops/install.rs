@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8PathBuf;
 use loadsmith_core::{InstalledFile, InstalledPackage, PackageRef};
 use tracing::{debug, trace};
 use walkdir::WalkDir;
@@ -17,11 +17,14 @@ use crate::{
 #[tracing::instrument(skip(ruleset))]
 pub fn install(
     package: PackageRef,
+    ruleset: InstallRuleset,
     source: impl AsRef<Path> + Debug,
     profile: impl AsRef<Path> + Debug,
-    ruleset: InstallRuleset,
     no_links: bool,
 ) -> Result<(InstalledPackage, Vec<Utf8PathBuf>)> {
+    let source = source.as_ref();
+    let profile = profile.as_ref();
+
     let mut files = Vec::new();
     let mut overwrote_files = Vec::new();
     let walkdir = WalkDir::new(&source).follow_links(false).into_iter();
@@ -36,7 +39,7 @@ pub fn install(
 
         let relative_path = Utf8PathBuf::try_from(relative_path.to_path_buf())?;
 
-        let target_path = profile.as_ref().join(&relative_path);
+        let target_path = profile.join(&relative_path);
 
         if entry.file_type().is_dir() {
             if target_path.is_dir() {
@@ -113,7 +116,9 @@ fn install_file(
 }
 
 #[tracing::instrument]
-pub fn uninstall(package: InstalledPackage, profile: &Utf8Path) -> Result<()> {
+pub fn uninstall(package: InstalledPackage, profile: impl AsRef<Path> + Debug) -> Result<()> {
+    let profile = profile.as_ref();
+
     for file in &package.files {
         let target_path = profile.join(&file.relative_path);
 

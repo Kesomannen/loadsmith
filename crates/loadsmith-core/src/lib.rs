@@ -3,7 +3,6 @@ use std::{collections::HashMap, ffi::OsString, fmt::Display, path::PathBuf, str:
 use camino::Utf8PathBuf;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use url::Url;
 
 mod error;
 mod version;
@@ -161,11 +160,12 @@ impl LaunchArgs {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LockedPackage {
-    pub package: PackageRef,
+    pub package: PackageId,
+    pub version: Version,
     pub source: String,
-    pub url: Url,
-    pub checksum: String,
-    pub deps: Vec<PackageRef>,
+    pub url: String,
+    pub checksum: Option<String>,
+    pub deps: Vec<PackageId>,
 }
 
 #[cfg(test)]

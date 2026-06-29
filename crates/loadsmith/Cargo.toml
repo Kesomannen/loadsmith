@@ -9,6 +9,7 @@ loadsmith-install = { path = "../loadsmith-install" }
 loadsmith-loader = { path = "../loadsmith-loader" }
 loadsmith-manifest = { path = "../loadsmith-manifest" }
 loadsmith-thunderstore = { path = "../loadsmith-thunderstore" }
+loadsmith-registry = { path = "../loadsmith-registry" }
 
 [dev-dependencies]
 thunderstore = { workspace = true }
@@ -18,3 +19,6 @@ walkdir = { workspace = true }
 insta = { workspace = true }
 anyhow = { workspace = true }
 tracing-subscriber = { workspace = true }
+bytes = { workspace = true }
+serde = { workspace = true }
+blake3 = { workspace = true }

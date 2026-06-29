@@ -7,6 +7,7 @@ edition = "2024"
 loadsmith-core = { path = "../loadsmith-core" }
 loadsmith-loader = { path = "../loadsmith-loader" }
 loadsmith-install = { path = "../loadsmith-install" }
+loadsmith-registry = { path = "../loadsmith-registry" }
 
 serde = { workspace = true }
 serde_yaml_ng = { workspace = true }
@@ -19,6 +20,7 @@ walkdir = { workspace = true }
 globset = { workspace = true }
 serde_json = { workspace = true }
 uuid = { workspace = true }
+tokio = { workspace = true }
 
 [dev-dependencies]
 reqwest = { workspace = true, features = ["blocking", "json"] }

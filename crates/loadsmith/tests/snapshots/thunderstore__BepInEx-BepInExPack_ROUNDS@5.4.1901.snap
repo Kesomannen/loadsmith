@@ -1,0 +1,48 @@
+---
+source: crates/loadsmith/tests/thunderstore.rs
+expression: files
+---
+- file: BepInEx/config/BepInEx.cfg
+  hash: 8cd33542d53523cf0ce91ef00c24b266ef98a1169760d0750a8d84cb313395d4
+- file: BepInEx/core/0Harmony.dll
+  hash: ef99adf22e2e136172344326c7222c2b6d890db150769f7a4231a38d10c1b641
+- file: BepInEx/core/0Harmony.xml
+  hash: de21073fbd1cff70bae94bcdc2dcf2dda6d11cb7c9b0006a5da2b58eb34e7c68
+- file: BepInEx/core/0Harmony20.dll
+  hash: 70b6e022b3409b0bbb7490346abf9b9b148f38f219bc8c699ab2ed145bdd3983
+- file: BepInEx/core/BepInEx.Harmony.dll
+  hash: 6a3ad4819fd31f28c2d34aa5f600130a096ef7ba5e285fe296a498dbe07ef538
+- file: BepInEx/core/BepInEx.Harmony.xml
+  hash: 67d9514e366ed9ef90e26c1f32e68ae287e7e9780a001b78bede2f4da00028d8
+- file: BepInEx/core/BepInEx.Preloader.dll
+  hash: 8fbd90bd82b05c185780fd8317e7b188b4f12b8d8d44c8c3c4d632b6bc1639dc
+- file: BepInEx/core/BepInEx.Preloader.xml
+  hash: 8a1abba0d1dc83792c51dd956cccbda41ab89abe6984b58b828d2422e2769eb6
+- file: BepInEx/core/BepInEx.dll
+  hash: b15c3fe1c6e55bd482df1a6f414ae62e1e538f9b19858d00bdbdf859db70330a
+- file: BepInEx/core/BepInEx.xml
+  hash: 9761ba303c34859ef4b0a919a88e628b04c47b59163623022841f796a8c0680a
+- file: BepInEx/core/HarmonyXInterop.dll
+  hash: 0b7bf6b77d521a8cf495f62fe306d297d16d49762ffc432ffa55d6bbc694ff84
+- file: BepInEx/core/Mono.Cecil.Mdb.dll
+  hash: 65560678fb6d262093b4851913c1335863d20697f8245b213821d255a5de3652
+- file: BepInEx/core/Mono.Cecil.Pdb.dll
+  hash: b16f1f8c7c045b55288b7c755e1382114e09bf74dd24f05ff2c82544ef320368
+- file: BepInEx/core/Mono.Cecil.Rocks.dll
+  hash: b7f540ff7598aa530afe3021a30466f91ab224bc71a5fd39fcd3f1aea9f95f6c
+- file: BepInEx/core/Mono.Cecil.dll
+  hash: 24cf988b672d4f8bc24bc55e41a8079de9f9c0774d477d4a371b59349fe819f9
+- file: BepInEx/core/MonoMod.RuntimeDetour.dll
+  hash: b4bd73085a3b63aa136fd9bb32debafd9ad4fcde0f9d25179da775f12176873f
+- file: BepInEx/core/MonoMod.RuntimeDetour.xml
+  hash: 395df0336b316345f06d9248fa976c0ae9862a7421af04b666c2398648bfffbe
+- file: BepInEx/core/MonoMod.Utils.dll
+  hash: 533c9ae241906796dd5659ffa267e7b1e2308f378f6b39bd3f011d4840a0553a
+- file: BepInEx/core/MonoMod.Utils.xml
+  hash: e2e032a2ae82e1eda0bd06e37d197cbf3289cf909e0230b6bcfc861106a31792
+- file: corlibs/mscorlib.dll
+  hash: cc8ce11d605b154f788090bd7c1684f47bed1e1953b1a3f2510ff41df06c64a3
+- file: doorstop_config.ini
+  hash: b51246e470b3ace3d0062430af80f183b5d1549a04493891562e19bac6a772ee
+- file: winhttp.dll
+  hash: fe057c3adb940cf50ccac056921a4f1bccb8fe78e33e92c8961e0ad4cfab30ec

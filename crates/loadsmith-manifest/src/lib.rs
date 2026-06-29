@@ -1,3 +1,8 @@
+mod error;
 mod lockfile;
 mod manifest;
-mod resolve;
+pub mod resolve;
+
+pub use error::{Error, Result};
+pub use lockfile::Lockfile;
+pub use manifest::{Dependencies, Dependency};

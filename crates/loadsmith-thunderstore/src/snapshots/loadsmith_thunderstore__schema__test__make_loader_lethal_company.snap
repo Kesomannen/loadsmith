@@ -1,6 +1,5 @@
 ---
 source: crates/loadsmith-thunderstore/src/schema.rs
-assertion_line: 122
 expression: loader
 ---
 BepInEx {

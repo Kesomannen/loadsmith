@@ -7,13 +7,13 @@ use crate::Error;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Copy, Hash)]
 #[serde(into = "String", try_from = "&str")]
 pub struct Version {
-    pub major: u32,
-    pub minor: u32,
-    pub patch: u32,
+    pub major: u64,
+    pub minor: u64,
+    pub patch: u64,
 }
 
 impl Version {
-    pub fn new(major: u32, minor: u32, patch: u32) -> Self {
+    pub fn new(major: u64, minor: u64, patch: u64) -> Self {
         Self {
             major,
             minor,
@@ -22,8 +22,8 @@ impl Version {
     }
 }
 
-impl From<(u32, u32, u32)> for Version {
-    fn from((major, minor, patch): (u32, u32, u32)) -> Self {
+impl From<(u64, u64, u64)> for Version {
+    fn from((major, minor, patch): (u64, u64, u64)) -> Self {
         Self::new(major, minor, patch)
     }
 }
@@ -55,7 +55,7 @@ impl FromStr for Version {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut parts = s
             .split('.')
-            .map(|s| s.parse::<u32>().map_err(Error::InvalidVersionPart));
+            .map(|s| s.parse::<u64>().map_err(Error::InvalidVersionPart));
 
         let major = parts.next().ok_or(Error::InvalidVersionFormat)??;
         let minor = parts.next().ok_or(Error::InvalidVersionFormat)??;
@@ -85,11 +85,7 @@ impl TryFrom<&str> for Version {
 
 impl From<semver::Version> for Version {
     fn from(version: semver::Version) -> Self {
-        Self::new(
-            version.major as u32,
-            version.minor as u32,
-            version.patch as u32,
-        )
+        Self::new(version.major, version.minor, version.patch)
     }
 }
 

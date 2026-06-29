@@ -1,0 +1,18 @@
+---
+source: crates/loadsmith/tests/thunderstore.rs
+expression: files
+---
+- file: BepInEx/plugins/Evaisa-LethalLib/CHANGELOG.md
+  hash: b46c8f61b8a73c17469a2ab6cdf6eb4e6ac5a2a514f1ee855b0d9ef7131d03fe
+- file: BepInEx/plugins/Evaisa-LethalLib/LICENSE
+  hash: a4adea372628a7800e951aa17533c0f4b1a6987bb557ef45b4dc8c3510a934b7
+- file: BepInEx/plugins/Evaisa-LethalLib/LethalLib/LethalLib.dll
+  hash: 5d959d4e172ab8f0dd050516aeca7eedbe65ed7243b579b1e53a02e82f60abdc
+- file: BepInEx/plugins/Evaisa-LethalLib/LethalLib/lethallib
+  hash: 7deeb4254299177b8b33ae55982693440c4ae1fc6e61ac95890ac8d76b61f5bd
+- file: BepInEx/plugins/Evaisa-LethalLib/README.md
+  hash: edb1829ce7b34d329e49c8a297fa9a99153cd043682e5fb8b3517eab8e5c6634
+- file: BepInEx/plugins/Evaisa-LethalLib/icon.png
+  hash: b49ecab7ede18b02bf484f6d173a406758e57fe71a14fe77c7751003bcee377e
+- file: BepInEx/plugins/Evaisa-LethalLib/manifest.json
+  hash: 62fec9c17b65c64c71b737c8354d977d014b569e451f3e006b04718e22bf5e75

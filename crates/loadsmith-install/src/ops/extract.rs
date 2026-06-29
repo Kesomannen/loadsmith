@@ -15,18 +15,18 @@ use crate::{
     zip::Zip,
 };
 
-pub fn extract_from_reader<R: Read + Seek>(
+pub fn extract_reader<R: Read + Seek>(
     reader: R,
     package: &PackageRef,
     ruleset: InstallRuleset,
     target: &Path,
 ) -> Result<Vec<PathBuf>> {
     let mut zip = zip::ZipArchive::new(reader)?;
-    extract(&mut zip, package, ruleset, target)
+    extract_zip(&mut zip, package, ruleset, target)
 }
 
 #[tracing::instrument(skip(zip, ruleset))]
-pub fn extract<Z: Zip>(
+pub fn extract_zip<Z: Zip>(
     zip: &mut Z,
     package: &PackageRef,
     ruleset: InstallRuleset,
@@ -102,7 +102,7 @@ mod tests {
         let package = loadsmith_core::PackageRef::new(TEST_PACKAGE_ID.to_string(), (1, 0, 0));
         let tempfile = tempfile::tempdir().unwrap();
 
-        extract(zip, &package, ruleset, tempfile.path()).unwrap();
+        extract_zip(zip, &package, ruleset, tempfile.path()).unwrap();
 
         tempfile
     }
