@@ -18,7 +18,7 @@ pub use error::{Error, Result};
 pub use loaders::*;
 use walkdir::WalkDir;
 
-pub trait Loader: Debug {
+pub trait Loader: Debug + Send + Sync {
     fn id(&self) -> &'static str;
 
     fn package_install_rules(&self) -> InstallRuleset<'_>;

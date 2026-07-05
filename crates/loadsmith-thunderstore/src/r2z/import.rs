@@ -52,7 +52,8 @@ impl<R: Read + Seek> ImportFile<R> {
         Ok(())
     }
 
-    pub fn import_config_files(&mut self, target: &Path, filter: bool) -> Result<()> {
+    pub fn import_config_files(&mut self, target: impl AsRef<Path>, filter: bool) -> Result<()> {
+        let target = target.as_ref();
         self.read_files(|relative_path, reader| {
             let mut relative_path = Utf8PathBuf::from(relative_path.to_string_lossy().into_owned());
 

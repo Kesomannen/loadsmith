@@ -54,18 +54,18 @@ async fn try_main() -> anyhow::Result<()> {
 }
 
 fn create_context() -> anyhow::Result<loadsmith_cli::Context> {
-    let home = dirs_next::home_dir()
+    let home_dir = dirs_next::home_dir()
         .context("failed to determine home directory")?
         .join(".loadsmith");
 
-    std::fs::create_dir_all(&home).context("failed to create home directory")?;
+    std::fs::create_dir_all(&home_dir).context("failed to create home directory")?;
 
     let http = reqwest::Client::new();
     let thunderstore = thunderstore::Client::builder()
         .with_client(http.clone())
         .build()
         .context("failed to initialise thunderstore client")?;
-    let index = SqliteIndex::open(thunderstore.clone(), home.join("index.db"))
+    let index = SqliteIndex::open(thunderstore.clone(), home_dir.join("index.db"))
         .context("failed to open index")?;
 
     let mut registry_set = loadsmith::registry::RegistrySet::new();
@@ -83,5 +83,6 @@ fn create_context() -> anyhow::Result<loadsmith_cli::Context> {
         registry_set,
         index,
         working_dir,
+        home_dir,
     ))
 }

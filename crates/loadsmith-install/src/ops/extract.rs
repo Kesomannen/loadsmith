@@ -5,15 +5,11 @@ use std::{
 };
 
 use loadsmith_core::PackageRef;
-use tracing::trace;
+use tracing::{trace, warn};
 
 #[cfg(unix)]
 use crate::zip::ZipFile;
-use crate::{
-    error::{Error, Result},
-    rule::InstallRuleset,
-    zip::Zip,
-};
+use crate::{error::Result, rule::InstallRuleset, zip::Zip};
 
 pub fn extract<R: Read + Seek>(
     reader: R,
@@ -51,15 +47,18 @@ pub fn extract_zip<Z: Zip>(
 
         let target_path = target.join(&mapped_path);
 
+        if target_path.exists() {
+            warn!(%source_path, %mapped_path, "file already exists, skipping extraction");
+            continue;
+        }
+
+        trace!(%source_path, %mapped_path, "extract file");
+
         fs::create_dir_all(
             target_path
                 .parent()
                 .expect("path should have target as parent"),
         )?;
-
-        if target_path.exists() {
-            return Err(Error::FileAlreadyExists(target_path));
-        }
 
         let mut target_file = File::create(&target_path)?;
 
@@ -69,8 +68,6 @@ pub fn extract_zip<Z: Zip>(
         set_unix_mode(&source_file, &target_path)?;
 
         files.push(target_path);
-
-        trace!(%source_path, %mapped_path, "extracted file");
     }
 
     Ok(files)

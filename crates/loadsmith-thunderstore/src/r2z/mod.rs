@@ -28,7 +28,7 @@ pub struct ProfileManifest<T = ()> {
 #[serde(rename_all = "camelCase")]
 pub struct Mod {
     pub name: PackageIdent,
-    pub version_number: Version,
+    pub version: Version,
     pub enabled: bool,
 }
 
@@ -38,6 +38,18 @@ pub struct Version {
     pub major: u64,
     pub minor: u64,
     pub patch: u64,
+}
+
+impl From<Version> for loadsmith_core::Version {
+    fn from(value: Version) -> Self {
+        Self::new(value.major, value.minor, value.patch)
+    }
+}
+
+impl From<loadsmith_core::Version> for Version {
+    fn from(value: loadsmith_core::Version) -> Self {
+        Self::new(value.major, value.minor, value.patch)
+    }
 }
 
 impl<T> ProfileManifest<T> {
@@ -51,14 +63,10 @@ impl<T> ProfileManifest<T> {
 }
 
 impl Mod {
-    pub fn new(
-        name: impl Into<PackageIdent>,
-        version_number: impl Into<Version>,
-        enabled: bool,
-    ) -> Self {
+    pub fn new(name: impl Into<PackageIdent>, version: impl Into<Version>, enabled: bool) -> Self {
         Self {
             name: name.into(),
-            version_number: version_number.into(),
+            version: version.into(),
             enabled,
         }
     }

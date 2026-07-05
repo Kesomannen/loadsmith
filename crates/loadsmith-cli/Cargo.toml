@@ -23,3 +23,4 @@ futures = { workspace = true }
 bytes = { workspace = true }
 camino = { workspace = true }
 chrono = { workspace = true }
+uuid = { workspace = true }

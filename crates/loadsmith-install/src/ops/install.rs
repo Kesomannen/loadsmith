@@ -6,7 +6,7 @@ use std::{
 
 use camino::Utf8PathBuf;
 use loadsmith_core::{InstalledFile, InstalledPackage, PackageRef};
-use tracing::{debug, trace};
+use tracing::{debug, trace, warn};
 use walkdir::WalkDir;
 
 use crate::{
@@ -77,14 +77,19 @@ fn install_file(
     rule: Option<&InstallRule>,
     no_links: bool,
 ) -> Result<(Option<InstalledFile>, bool)> {
+    let target = target.as_ref();
+
     let link = !no_links && rule.map(|r| r.use_links()).unwrap_or(false);
     let mut overwrote = false;
 
-    if target.as_ref().exists() {
-        match rule
-            .map(|r| r.conflict_strategy())
-            .unwrap_or(ConflictStrategy::Error)
-        {
+    if target.exists() {
+        match rule.map(|r| r.conflict_strategy()).unwrap_or_else(|| {
+            debug!(
+                ?relative_path,
+                "no matching rule, defaulting to overwrite strategy"
+            );
+            ConflictStrategy::Overwrite
+        }) {
             ConflictStrategy::Overwrite => {
                 trace!(?relative_path, "overwriting existing file");
                 overwrote = true;

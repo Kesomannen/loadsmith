@@ -1,8 +1,4 @@
-use std::{
-    collections::HashMap,
-    fmt::Debug,
-    pin::Pin,
-};
+use std::{collections::HashMap, fmt::Debug, pin::Pin};
 
 use loadsmith_core::{Dependency, PackageId, Version};
 
@@ -26,7 +22,7 @@ pub struct ResolvedVersion {
     pub deps: Vec<Dependency>,
 }
 
-pub trait Registry: Debug {
+pub trait Registry: Debug + Send + Sync {
     fn version_info<'a>(
         &'a self,
         id: &'a PackageId,

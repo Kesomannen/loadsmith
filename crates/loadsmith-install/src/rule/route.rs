@@ -114,11 +114,7 @@ impl RouteRule {
     }
 
     pub fn conflict_strategy(&self) -> ConflictStrategy {
-        if self.subdir {
-            ConflictStrategy::Error
-        } else {
-            ConflictStrategy::Skip
-        }
+        ConflictStrategy::Skip
     }
 }
 

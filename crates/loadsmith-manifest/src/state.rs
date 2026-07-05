@@ -36,6 +36,10 @@ impl ProfileState {
         }
     }
 
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+
     pub fn data(&self) -> &ProfileStateData {
         &self.data
     }
@@ -49,9 +53,7 @@ impl ProfileState {
     }
 
     fn id_to_package_map(&self) -> HashMap<&PackageId, &InstalledPackage> {
-        self.packages()
-            .iter()
-            .collect()
+        self.packages().iter().collect()
     }
 
     pub fn diff<'a>(

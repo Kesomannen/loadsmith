@@ -8,12 +8,12 @@ use crate::Result;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Manifest {
-    pub profile: Profile,
+    pub profile: ProfileInfo,
     pub mods: Mods,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Profile {
+pub struct ProfileInfo {
     pub game: String,
 }
 
@@ -33,7 +33,23 @@ pub enum Mod {
     },
 }
 
+impl Manifest {
+    pub fn new(profile: ProfileInfo, mods: Mods) -> Self {
+        Self { profile, mods }
+    }
+}
+
+impl ProfileInfo {
+    pub fn new(game: impl Into<String>) -> Self {
+        Self { game: game.into() }
+    }
+}
+
 impl Mods {
+    pub fn new(mods: BTreeMap<PackageId, Mod>) -> Self {
+        Self(mods)
+    }
+
     pub fn remove(&mut self, package_id: &PackageId) -> Option<Mod> {
         self.0.remove(package_id)
     }

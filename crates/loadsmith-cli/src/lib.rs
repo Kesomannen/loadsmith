@@ -1,17 +1,31 @@
+use std::{
+    collections::BTreeMap,
+    io::Cursor,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
+
+use anyhow::{Context as _, bail};
+use camino::Utf8Path;
+use loadsmith::{
+    core::{PackageId, VersionRange},
+    thunderstore::{PackageIdExt, r2z},
+};
+use serde::{Deserialize, Serialize};
+use tracing::{debug, info, warn};
+use tracing_indicatif::{span_ext::IndicatifSpanExt, style::ProgressStyle};
+use uuid::Uuid;
+
+use crate::{
+    manifest::{Manifest, Mods, ProfileInfo},
+    profile::Profile,
+};
+
 mod context;
 mod fmt;
 mod manifest;
 mod profile;
-
-use std::path::PathBuf;
-
-use anyhow::Context as _;
-use camino::Utf8Path;
-use loadsmith::core::PackageId;
-use tracing::{debug, info, warn};
-use tracing_indicatif::{span_ext::IndicatifSpanExt, style::ProgressStyle};
-
-use crate::profile::Profile;
+mod util;
 
 pub use context::Context;
 
@@ -45,21 +59,25 @@ enum Command {
     Remove {
         package: PackageId,
     },
-}
-
-impl Command {
-    fn is_profile_command(&self) -> bool {
-        true
-    }
+    Import {
+        code: String,
+        path: Option<PathBuf>,
+    },
+    Export,
 }
 
 impl Cli {
     pub async fn run(self, ctx: Context) -> Result {
-        if !self.command.is_profile_command() {
-            todo!()
-        }
+        let ctx = Arc::new(ctx);
 
-        let mut profile = ctx.read_profile().context("failed to read profile")?;
+        match &self.command {
+            Command::Import { code, path } => {
+                return Self::import(ctx, code, path.as_deref()).await;
+            }
+            _ => (),
+        };
+
+        let mut profile = Profile::read(&ctx.working_dir).context("failed to read profile")?;
 
         if !matches!(self.command, Command::Fetch) {
             Self::check_index(&ctx, &profile)
@@ -68,15 +86,17 @@ impl Cli {
         }
 
         let res = match self.command {
-            Command::Install => Self::install(&ctx, &mut profile).await,
-            Command::Update => Self::update(&ctx, &mut profile).await,
+            Command::Install => Self::install(ctx, &mut profile).await,
+            Command::Update => Self::update(ctx, &mut profile).await,
             Command::Fetch => Self::fetch(&ctx, &profile).await,
             Command::Check => Self::check(&ctx, &profile).await,
             Command::Launch { game_path } => Self::launch(&ctx, &profile, game_path).await,
-            Command::Remove { package } => Self::remove(&ctx, &mut profile, package).await,
+            Command::Remove { package } => Self::remove(ctx, &mut profile, package).await,
+            Command::Export => Self::export(&ctx, &profile).await,
+            _ => unreachable!(),
         };
 
-        ctx.write_profile(&profile)?;
+        profile.write()?;
         res
     }
 
@@ -114,15 +134,15 @@ impl Cli {
         Ok(())
     }
 
-    async fn install(ctx: &Context, profile: &mut Profile) -> Result {
-        profile.resolve_and_update_lockfile(ctx, false).await?;
-        // profile.sync(ctx).await?;
+    async fn install(ctx: Arc<Context>, profile: &mut Profile) -> Result {
+        profile.resolve_and_update_lockfile(&ctx, false).await?;
+        profile.sync(ctx).await?;
 
         Ok(())
     }
 
-    async fn update(ctx: &Context, profile: &mut Profile) -> Result {
-        profile.resolve_and_update_lockfile(ctx, true).await?;
+    async fn update(ctx: Arc<Context>, profile: &mut Profile) -> Result {
+        profile.resolve_and_update_lockfile(&ctx, true).await?;
         profile.sync(ctx).await?;
 
         Ok(())
@@ -178,13 +198,85 @@ impl Cli {
         Ok(())
     }
 
-    async fn remove(ctx: &Context, profile: &mut Profile, package: PackageId) -> Result {
+    async fn remove(ctx: Arc<Context>, profile: &mut Profile, package: PackageId) -> Result {
         let (package_id, _) = profile.manifest.mods.get_or_search(&package)?;
         profile.manifest.mods.remove(&package_id.clone());
 
-        profile.resolve_and_update_lockfile(ctx, false).await?;
+        profile.resolve_and_update_lockfile(&ctx, false).await?;
         profile.sync(ctx).await?;
 
         Ok(())
     }
+
+    async fn import(ctx: Arc<Context>, key: &str, path: Option<&Path>) -> Result {
+        let key: Uuid = key.parse().context("invalid UUID")?;
+        let content = {
+            let span = tracing::info_span!("import", %key);
+            span.pb_set_style(&ProgressStyle::default_spinner());
+            span.pb_set_message("fetching profile from Thunderstore...");
+
+            let _enter = span.enter();
+
+            ctx.thunderstore.get_profile(key).await
+        }?;
+
+        let mut import = r2z::ImportFile::open(Cursor::new(content))?;
+        let import_manifest = import
+            .read_manifest::<ExtraImportData>()
+            .context("failed to read manifest")?;
+
+        let path = path.map_or_else(
+            || ctx.working_dir.join(&import_manifest.profile_name),
+            |p| p.to_path_buf(),
+        );
+
+        if path.exists() {
+            bail!(
+                "target path {} already exists, please specify a different path",
+                path.display()
+            );
+        }
+
+        import
+            .import_config_files(&path, true)
+            .context("failed to import config files")?;
+
+        let game = import_manifest.extra.community.unwrap_or_else(|| {
+            warn!("imported profile does not specify a game, defaulting to 'unknown'");
+
+            "unknown".to_string()
+        });
+
+        let mods = import_manifest
+            .mods
+            .into_iter()
+            .map(|m| {
+                (
+                    PackageId::from_ts_ident(m.name),
+                    manifest::Mod::Simple(VersionRange::Exact(m.version.into())),
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+
+        let mut profile =
+            Profile::create(path, Manifest::new(ProfileInfo::new(game), Mods::new(mods)));
+
+        let mut res = profile.resolve_and_update_lockfile(&ctx, false).await;
+        if res.is_ok() {
+            res = profile.sync(ctx).await;
+        }
+
+        profile.write()?;
+        res
+    }
+
+    async fn export(ctx: &Context, profile: &Profile) -> Result {
+        Ok(())
+    }
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(default)]
+struct ExtraImportData {
+    community: Option<String>,
 }

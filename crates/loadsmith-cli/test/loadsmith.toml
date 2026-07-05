@@ -2,4 +2,6 @@
 game = "lethal-company"
 
 [mods]
-SpinoRavenger-Squadron_Frontiers = "=2.10.0"
+Letads-Letads = "*"
+LimeSkillZ-LimeModPack = "*"
+quain808-SafeCompanyUnion = "*"
