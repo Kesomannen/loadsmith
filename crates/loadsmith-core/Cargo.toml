@@ -10,3 +10,4 @@ camino = { workspace = true }
 url = { workspace = true }
 thiserror = { workspace = true }
 semver = { workspace = true }
+serde_json = { workspace = true }

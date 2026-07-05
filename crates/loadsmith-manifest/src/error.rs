@@ -1,25 +1,38 @@
-use loadsmith_core::PackageId;
-use loadsmith_registry::RegistryId;
+use loadsmith_core::{PackageId, PackageRef, VersionRange};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("registry error: {0}")]
+    #[error(transparent)]
+    Install(#[from] loadsmith_install::Error),
+
+    #[error(transparent)]
     Registry(#[from] loadsmith_registry::Error),
 
     #[error("unknown registry: {0}")]
     UnknownRegistry(String),
 
-    #[error("no default registry was set but a package was requested without a source")]
-    NoDefaultRegistry,
+    #[error("no available version found for package {0} matching range {1}")]
+    NoAvailableVersion(PackageId, VersionRange),
 
-    #[error("package not found: {package} in {registry}")]
-    UnknownPackage {
-        package: PackageId,
-        registry: RegistryId,
+    #[error("failed to get versions for package {id}")]
+    VersionInfo {
+        id: PackageId,
+        #[source]
+        err: loadsmith_registry::Error,
     },
 
-    #[error("no available version found for package: {id}")]
-    NoAvailableVersion { id: PackageId },
+    #[error("failed to resolve package {ref_}")]
+    Resolve {
+        ref_: PackageRef,
+        #[source]
+        err: loadsmith_registry::Error,
+    },
+
+    #[error("package is not installed")]
+    PackageNotInstalled,
+
+    #[error("package already installed")]
+    PackageAlreadyInstalled,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

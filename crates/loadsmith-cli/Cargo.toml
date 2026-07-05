@@ -14,3 +14,12 @@ tracing-subscriber = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }
 toml = { workspace = true }
+reqwest = { workspace = true }
+tempfile = { workspace = true }
+serde_json = { workspace = true }
+dirs-next = { workspace = true }
+tracing-indicatif = { workspace = true }
+futures = { workspace = true }
+bytes = { workspace = true }
+camino = { workspace = true }
+chrono = { workspace = true }

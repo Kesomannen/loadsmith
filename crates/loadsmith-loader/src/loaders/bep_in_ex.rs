@@ -1,6 +1,7 @@
-use std::{borrow::Cow, sync::LazyLock};
+use std::{borrow::Cow, path::PathBuf, sync::LazyLock};
 
 use camino::{Utf8Path, Utf8PathBuf};
+use globset::GlobSet;
 use loadsmith_core::LaunchArgs;
 use loadsmith_install::{InstallRule, InstallRuleset, OwnedInstallRuleset, RouteRule};
 
@@ -73,9 +74,19 @@ impl Loader for BepInEx {
         self.package_install_ruleset.as_ref()
     }
 
-    fn get_launch_args(&self, ctx: LaunchContext) -> Result<LaunchArgs> {
-        let (enable_prefix, target_prefix) = doorstop::args(None, &ctx)?;
-        let preloader_path = bepinex_preloader_path(None, &ctx)?;
+    fn prepare_launch(&self, ctx: &LaunchContext) -> Result<()> {
+        static PATTERNS: LazyLock<GlobSet> = LazyLock::new(|| {
+            GlobSet::builder()
+                .build()
+                .expect("constant globs should be valid")
+        });
+
+        ctx.copy_glob_to_game(&PATTERNS)
+    }
+
+    fn get_launch_args(&self, ctx: &LaunchContext) -> Result<LaunchArgs> {
+        let (enable_prefix, target_prefix) = doorstop::args(None, ctx)?;
+        let preloader_path = bepinex_preloader_path(None, ctx)?;
 
         let args = LaunchArgs::new()
             .arg(enable_prefix)
@@ -85,13 +96,25 @@ impl Loader for BepInEx {
 
         Ok(args)
     }
+
+    fn mod_config_dirs(&self) -> Vec<PathBuf> {
+        vec!["BepInEx/config".into()]
+    }
+
+    fn log_file(&self) -> Option<PathBuf> {
+        Some("BepInEx/BepInEx.log".into())
+    }
+
+    fn proxy_dll(&self) -> Option<PathBuf> {
+        Some("winhttp.dll".into())
+    }
 }
 
 pub(crate) fn bepinex_preloader_path(
     prefix: Option<&str>,
     ctx: &LaunchContext,
 ) -> Result<Utf8PathBuf> {
-    let mut core_directory = ctx.profile.to_path_buf();
+    let mut core_directory = ctx.profile_path.to_path_buf();
 
     if let Some(prefix) = prefix {
         core_directory.push(prefix);

@@ -12,7 +12,7 @@ pub fn r2_config_to_loader(
 ) -> Result<Option<Box<dyn loadsmith_loader::Loader>>> {
     match config.package_loader {
         schema::Loader::BepInEx => {
-            let loader = BepInEx::with_rules(r2_config_to_ruleset(config)?);
+            let loader = BepInEx::with_rules(convert_ruleset(&config.install_rules)?);
 
             Ok(Some(Box::new(loader)))
         }
@@ -20,20 +20,17 @@ pub fn r2_config_to_loader(
     }
 }
 
-fn r2_config_to_ruleset(config: &schema::R2ModmanConfig) -> Result<OwnedInstallRuleset> {
-    let rules = config
-        .install_rules
+fn convert_ruleset(rules: &[schema::InstallRule]) -> Result<OwnedInstallRuleset> {
+    let default_rule_index = rules.iter().position(|rule| rule.is_default_location);
+    let converted = rules
         .iter()
         .map(|rule| rule_to_loadsmith(rule))
         .collect::<Result<Vec<_>>>()?;
 
-    let default_rule_index = config
-        .install_rules
-        .iter()
-        .position(|rule| rule.is_default_location);
-
-    Ok(OwnedInstallRuleset::with_rules(rules, default_rule_index)
-        .expect("default index should be in range"))
+    Ok(
+        OwnedInstallRuleset::with_rules(converted, default_rule_index)
+            .expect("default index should be in range"),
+    )
 }
 
 fn rule_to_loadsmith(rule: &schema::InstallRule) -> Result<loadsmith_install::InstallRule> {

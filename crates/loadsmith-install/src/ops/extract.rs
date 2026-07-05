@@ -15,17 +15,16 @@ use crate::{
     zip::Zip,
 };
 
-pub fn extract_reader<R: Read + Seek>(
+pub fn extract<R: Read + Seek>(
     reader: R,
     package: &PackageRef,
     ruleset: InstallRuleset,
-    target: &Path,
+    target: impl AsRef<Path>,
 ) -> Result<Vec<PathBuf>> {
     let mut zip = zip::ZipArchive::new(reader)?;
-    extract_zip(&mut zip, package, ruleset, target)
+    extract_zip(&mut zip, package, ruleset, target.as_ref())
 }
 
-#[tracing::instrument(skip(zip, ruleset))]
 pub fn extract_zip<Z: Zip>(
     zip: &mut Z,
     package: &PackageRef,

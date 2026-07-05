@@ -1,6 +1,6 @@
 use std::fs;
 
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 use crate::{Error, LaunchContext, Result};
 
@@ -11,10 +11,10 @@ pub fn args(
     ctx: &LaunchContext,
 ) -> Result<(&'static str, &'static str)> {
     let version = if let Some(v) = version_override {
-        info!("using doorstop version override: {}", v);
+        debug!("using doorstop version override: {}", v);
         v
     } else {
-        let path = ctx.profile.join(".doorstop_version");
+        let path = ctx.profile_path.join(".doorstop_version");
 
         if path.exists() {
             let version_content = fs::read_to_string(&path)?;
@@ -24,7 +24,7 @@ pub fn args(
                 .and_then(|str| str.parse().ok())
                 .ok_or_else(|| Error::InvalidDoorstopVersionFormat(version_content))?;
 
-            info!(version, "doorstop version read",);
+            debug!(version, "doorstop version read");
             version
         } else {
             warn!(
@@ -80,7 +80,7 @@ mod tests {
         let tempdir = tempfile::tempdir().unwrap();
         let ctx = LaunchContext::in_tempdir(&tempdir, false).unwrap();
 
-        let version_path = ctx.profile.join(".doorstop_version");
+        let version_path = ctx.profile_path.join(".doorstop_version");
         std::fs::write(&version_path, "4.0.0").unwrap();
 
         let (enable, target) = args(None, &ctx).unwrap();
@@ -93,7 +93,7 @@ mod tests {
         let tempdir = tempfile::tempdir().unwrap();
         let ctx = LaunchContext::in_tempdir(&tempdir, false).unwrap();
 
-        let version_path = ctx.profile.join(".doorstop_version");
+        let version_path = ctx.profile_path.join(".doorstop_version");
         std::fs::write(&version_path, "invalid").unwrap();
 
         let err = args(None, &ctx).unwrap_err();

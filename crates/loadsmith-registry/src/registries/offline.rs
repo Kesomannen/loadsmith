@@ -1,9 +1,9 @@
 use std::{collections::HashMap, pin::Pin};
 
-use loadsmith_core::{PackageId, PackageRef, Version};
+use loadsmith_core::{Dependency, PackageId, PackageRef, Version};
 use serde::{Deserialize, Serialize};
 
-use crate::{Registry, RegistryId, Result};
+use crate::{Error, Registry, ResolvedVersion, Result, VersionInfo};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Package {
@@ -18,25 +18,40 @@ impl Package {
             versions,
         }
     }
+
+    fn version_by_version<'a>(&'a self, version: &Version) -> Result<&'a PackageVersion> {
+        self.versions
+            .iter()
+            .find(|v| v.version == *version)
+            .ok_or(Error::VersionNotFound)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PackageVersion {
     pub version: Version,
-    pub download_url: String,
+    pub url: String,
+    #[serde(default)]
+    pub size: Option<u64>,
     #[serde(default)]
     pub checksum: Option<String>,
-    pub deps: Vec<PackageRef>,
+    pub deps: Vec<Dependency>,
 }
 
 impl PackageVersion {
     pub fn new(version: impl Into<Version>, download_url: impl Into<String>) -> Self {
         Self {
             version: version.into(),
-            download_url: download_url.into(),
+            url: download_url.into(),
+            size: None,
             checksum: None,
             deps: Vec::new(),
         }
+    }
+
+    pub fn with_size(mut self, size: u64) -> Self {
+        self.size = Some(size);
+        self
     }
 
     pub fn with_checksum(mut self, checksum: impl Into<String>) -> Self {
@@ -44,7 +59,7 @@ impl PackageVersion {
         self
     }
 
-    pub fn with_deps(mut self, deps: Vec<PackageRef>) -> Self {
+    pub fn with_deps(mut self, deps: Vec<Dependency>) -> Self {
         self.deps = deps;
         self
     }
@@ -59,35 +74,46 @@ impl OfflineRegistry {
     pub fn new(packages: HashMap<PackageId, Package>) -> Self {
         Self { packages }
     }
+
+    fn package_by_id<'a>(&'a self, id: &PackageId) -> Result<&'a Package> {
+        self.packages.get(id).ok_or(Error::PackageNotFound)
+    }
 }
 
 impl Registry for OfflineRegistry {
-    fn id(&self) -> RegistryId {
-        RegistryId("offline")
-    }
-
-    fn get_package<'a>(
+    fn version_info<'a>(
         &'a self,
         id: &'a PackageId,
         _metadata: Option<&'a serde_json::Value>,
-    ) -> Pin<Box<dyn Future<Output = Result<Option<crate::Package>>> + 'a>> {
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<VersionInfo>>> + 'a>> {
         Box::pin(async move {
-            let Some(package) = self.packages.get(id) else {
-                return Ok(None);
-            };
+            let package = self.package_by_id(id)?;
 
-            let versions = package.versions.iter().map(|v| crate::PackageVersion {
-                version: v.version,
-                download_url: v.download_url.clone(),
-                checksum: v.checksum.clone(),
-                deps: v.deps.iter().map(|dep| dep.id.clone()).collect(),
-            });
+            let versions = package
+                .versions
+                .iter()
+                .map(|v| VersionInfo { version: v.version })
+                .collect();
 
-            let package = crate::Package {
-                versions: versions.collect(),
-            };
+            Ok(versions)
+        })
+    }
 
-            Ok(Some(package))
+    fn resolve<'a>(
+        &'a self,
+        id: &'a PackageId,
+        version: &'a Version,
+        _metadata: Option<&'a serde_json::Value>,
+    ) -> Pin<Box<dyn Future<Output = Result<ResolvedVersion>> + 'a>> {
+        Box::pin(async move {
+            let version = self.package_by_id(id)?.version_by_version(version)?;
+
+            Ok(ResolvedVersion {
+                url: version.url.clone(),
+                size: version.size,
+                checksum: version.checksum.clone(),
+                deps: version.deps.clone(),
+            })
         })
     }
 }
@@ -95,6 +121,8 @@ impl Registry for OfflineRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use std::assert_matches;
 
     #[tokio::test]
     async fn it_works() {
@@ -109,41 +137,17 @@ mod tests {
             ),
         )]));
 
-        let package = registry
-            .get_package(&PackageId::new("author-name"), None)
+        let versions = registry
+            .version_info(&PackageId::new("author-name"), None)
             .await
-            .unwrap()
             .unwrap();
 
-        assert_eq!(package.versions.len(), 2);
-
-        let version_1_0_0 = package
-            .versions
-            .iter()
-            .find(|v| v.version == Version::new(1, 0, 0))
-            .unwrap();
-
-        assert_eq!(
-            version_1_0_0.download_url,
-            "https://example.com/package-1.0.0.zip"
-        );
-
-        let version_1_1_0 = package
-            .versions
-            .iter()
-            .find(|v| v.version == Version::new(1, 1, 0))
-            .unwrap();
-
-        assert_eq!(
-            version_1_1_0.download_url,
-            "https://example.com/package-1.1.0.zip"
-        );
+        assert_eq!(versions.len(), 2);
 
         let non_existent_package = registry
-            .get_package(&PackageId::new("non-existent"), None)
-            .await
-            .unwrap();
+            .version_info(&PackageId::new("non-existent"), None)
+            .await;
 
-        assert!(non_existent_package.is_none());
+        assert_matches!(non_existent_package, Err(Error::PackageNotFound));
     }
 }

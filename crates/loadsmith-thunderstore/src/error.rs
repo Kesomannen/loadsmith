@@ -11,7 +11,13 @@ pub enum Error {
     #[error(transparent)]
     Yaml(#[from] serde_yaml_ng::Error),
 
-    #[error("client error: {0}")]
+    #[error(transparent)]
+    Json(#[from] serde_json::Error),
+
+    #[error(transparent)]
+    Sqlite(#[from] rusqlite::Error),
+
+    #[error("thunderstore client error")]
     Thunderstore(#[from] thunderstore::Error),
 
     #[error("non UTF-8 path: {0}")]
@@ -25,6 +31,9 @@ pub enum Error {
 
     #[error("invalid thunderstore identifier: {0}")]
     InvalidIdent(thunderstore::Error),
+
+    #[error("index is not built")]
+    IndexNotComplete,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

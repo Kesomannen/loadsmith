@@ -8,9 +8,9 @@ mod error;
 mod version;
 
 pub use error::{Error, Result};
-pub use version::Version;
+pub use version::{Version, VersionRange};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, PartialOrd, Ord)]
 pub struct PackageId(pub String);
 
 impl PackageId {
@@ -100,7 +100,8 @@ impl TryFrom<&str> for PackageRef {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InstalledPackage {
-    pub package: PackageRef,
+    #[serde(rename = "package")]
+    pub ref_: PackageRef,
     pub files: Vec<InstalledFile>,
     pub date: DateTime<Utc>,
 }
@@ -112,9 +113,9 @@ pub struct InstalledFile {
 }
 
 impl InstalledPackage {
-    pub fn now(package: PackageRef, files: Vec<InstalledFile>) -> Self {
+    pub fn now(ref_: PackageRef, files: Vec<InstalledFile>) -> Self {
         Self {
-            package,
+            ref_,
             files,
             date: Utc::now(),
         }
@@ -156,16 +157,62 @@ impl LaunchArgs {
         self.wrapper = Some(wrapper.into());
         self
     }
+
+    pub fn apply(self, command: &mut std::process::Command) {
+        if let Some(wrapper) = self.wrapper {
+            let mut new_command = std::process::Command::new(wrapper);
+            new_command
+                .arg(command.get_program())
+                .args(command.get_args());
+
+            for (key, value) in command.get_envs() {
+                if let Some(value) = value {
+                    new_command.env(key, value);
+                } else {
+                    new_command.env_remove(key);
+                }
+            }
+
+            *command = new_command;
+        }
+
+        for arg in self.args {
+            command.arg(arg);
+        }
+
+        for (key, value) in self.env {
+            command.env(key, value);
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LockedPackage {
-    pub package: PackageId,
-    pub version: Version,
+pub struct Dependency {
+    pub id: PackageId,
+    pub version_range: VersionRange,
     pub source: String,
-    pub url: String,
-    pub checksum: Option<String>,
-    pub deps: Vec<PackageId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub registry_metadata: Option<serde_json::Value>,
+}
+
+impl Dependency {
+    pub fn new(
+        id: impl Into<PackageId>,
+        version_range: impl Into<VersionRange>,
+        source: impl Into<String>,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            version_range: version_range.into(),
+            source: source.into(),
+            registry_metadata: None,
+        }
+    }
+
+    pub fn with_registry_metadata(mut self, metadata: impl Into<serde_json::Value>) -> Self {
+        self.registry_metadata = Some(metadata.into());
+        self
+    }
 }
 
 #[cfg(test)]

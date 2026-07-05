@@ -1,17 +1,25 @@
 use std::{error::Error as StdError, path::PathBuf};
 
+use camino::Utf8PathBuf;
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error(transparent)]
+    #[error("I/O error")]
     Io(#[from] std::io::Error),
 
-    #[error("thunderstore client error: {0}")]
+    #[error("thunderstore client error")]
     Thunderstore(#[from] thunderstore::Error),
+
+    #[error("zip error")]
+    Zip(#[from] zip::result::ZipError),
+
+    #[error("json error")]
+    Json(#[from] serde_json::Error),
 
     #[error("registry not found: {0}")]
     RegistryNotFound(String),
 
-    #[error("registry implementation returned an uncategorized error: {0}")]
+    #[error(transparent)]
     Other(Box<dyn StdError + Send + Sync>),
 
     #[error("registry requires metadata, but none was provided")]
@@ -21,11 +29,20 @@ pub enum Error {
     InvalidMetadata { error: serde_json::Error },
 
     #[error("file not found: {0}")]
-    FileNotFound(PathBuf),
+    FileNotFound(Utf8PathBuf),
+
+    #[error("invalid file type: {0}")]
+    InvalidFileType(Utf8PathBuf),
+
+    #[error("package not found")]
+    PackageNotFound,
+
+    #[error("package version not found")]
+    VersionNotFound,
 }
 
 impl Error {
-    pub fn other_registry<E: StdError + Send + Sync + 'static>(err: E) -> Self {
+    pub fn other<E: StdError + Send + Sync + 'static>(err: E) -> Self {
         Self::Other(Box::new(err))
     }
 }

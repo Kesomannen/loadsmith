@@ -14,7 +14,6 @@ use crate::{
     error::{Error, Result},
 };
 
-#[tracing::instrument(skip(ruleset))]
 pub fn install(
     package: PackageRef,
     ruleset: InstallRuleset,
@@ -115,7 +114,6 @@ fn install_file(
     Ok((Some(InstalledFile::new(relative_path, link)), overwrote))
 }
 
-#[tracing::instrument]
 pub fn uninstall(package: InstalledPackage, profile: impl AsRef<Path> + Debug) -> Result<()> {
     let profile = profile.as_ref();
 
@@ -125,8 +123,26 @@ pub fn uninstall(package: InstalledPackage, profile: impl AsRef<Path> + Debug) -
         if target_path.exists() {
             fs::remove_file(&target_path)?;
             trace!(?file, "remove file");
+
+            remove_empty_parents(target_path)?;
         } else {
             debug!(?file, "file does not exist, skipping");
+        }
+    }
+
+    Ok(())
+}
+
+fn remove_empty_parents(mut path: PathBuf) -> Result<()> {
+    while path.pop() {
+        match fs::remove_dir(&path) {
+            Ok(_) => {
+                trace!(path = %path.display(), "removed empty directory");
+            }
+            Err(err) if err.kind() == std::io::ErrorKind::DirectoryNotEmpty => {
+                break;
+            }
+            Err(err) => return Err(err.into()),
         }
     }
 

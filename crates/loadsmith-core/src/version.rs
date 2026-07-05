@@ -89,6 +89,76 @@ impl From<semver::Version> for Version {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(into = "String", try_from = "&str")]
+pub enum VersionRange {
+    Any,
+    Exact(Version),
+}
+
+impl VersionRange {
+    pub fn any() -> Self {
+        VersionRange::Any
+    }
+
+    pub fn exact(version: impl Into<Version>) -> Self {
+        VersionRange::Exact(version.into())
+    }
+
+    pub fn matches(&self, version: &Version) -> bool {
+        match self {
+            VersionRange::Any => true,
+            VersionRange::Exact(v) => v == version,
+        }
+    }
+}
+
+impl From<Version> for VersionRange {
+    fn from(version: Version) -> Self {
+        VersionRange::Exact(version)
+    }
+}
+
+impl FromStr for VersionRange {
+    type Err = Error;
+
+    fn from_str(mut s: &str) -> Result<Self, Self::Err> {
+        if s == "*" {
+            Ok(VersionRange::Any)
+        } else {
+            if s.starts_with('=') {
+                s = &s[1..];
+            }
+
+            let version = s.parse::<Version>()?;
+            Ok(VersionRange::Exact(version))
+        }
+    }
+}
+
+impl TryFrom<&str> for VersionRange {
+    type Error = Error;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        value.parse()
+    }
+}
+
+impl Display for VersionRange {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            VersionRange::Any => write!(f, "*"),
+            VersionRange::Exact(v) => write!(f, "={v}"),
+        }
+    }
+}
+
+impl From<VersionRange> for String {
+    fn from(range: VersionRange) -> Self {
+        range.to_string()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -141,5 +211,41 @@ mod tests {
         let semver = semver::Version::new(1, 2, 3);
         let version: Version = semver.into();
         assert_eq!(version, Version::new(1, 2, 3));
+    }
+
+    #[test]
+    fn version_range_matches() {
+        let range_any = VersionRange::Any;
+        let range_exact = VersionRange::Exact(Version::new(1, 2, 3));
+
+        let v1 = Version::new(1, 2, 3);
+        let v2 = Version::new(1, 2, 4);
+
+        assert!(range_any.matches(&v1));
+        assert!(range_any.matches(&v2));
+
+        assert!(range_exact.matches(&v1));
+        assert!(!range_exact.matches(&v2));
+    }
+
+    #[test]
+    fn version_range_display() {
+        let range_any = VersionRange::Any;
+        let range_exact = VersionRange::Exact(Version::new(1, 2, 3));
+
+        assert_eq!(range_any.to_string(), "*");
+        assert_eq!(range_exact.to_string(), "=1.2.3");
+    }
+
+    #[test]
+    fn version_range_from_str() {
+        let range: VersionRange = "*".parse().unwrap();
+        assert_eq!(range, VersionRange::Any);
+
+        let range: VersionRange = "1.2.3".parse().unwrap();
+        assert_eq!(range, VersionRange::Exact(Version::new(1, 2, 3)));
+
+        let range: VersionRange = "=1.2.3".parse().unwrap();
+        assert_eq!(range, VersionRange::Exact(Version::new(1, 2, 3)));
     }
 }
