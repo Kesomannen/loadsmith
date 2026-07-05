@@ -67,14 +67,12 @@ impl<'a, T: Diffable, U: Diffable> Diff<'a, T, U> {
     pub fn to_add(&'a self) -> impl Iterator<Item = &'a U> {
         self.added
             .iter()
-            .chain(self.changed.iter().map(|(_old, new)| new))
-            .map(|p| *p)
+            .chain(self.changed.iter().map(|(_old, new)| new)).copied()
     }
 
     pub fn to_remove(&'a self) -> impl Iterator<Item = &'a T> {
         self.removed
             .iter()
-            .chain(self.changed.iter().map(|(old, _new)| old))
-            .map(|p| *p)
+            .chain(self.changed.iter().map(|(old, _new)| old)).copied()
     }
 }

@@ -1,23 +1,15 @@
 use std::{
     fs,
-    io::Cursor,
     path::{Path, PathBuf},
 };
 
 use anyhow::Context as _;
-use futures::TryStreamExt;
 use loadsmith::{
-    core::PackageRef,
-    install::InstallRuleset,
-    loader::Loader,
-    manifest::{LockedPackage, Lockfile, ProfileState, ProfileStateData},
+    manifest::{Lockfile, ProfileState, ProfileStateData},
     registry::RegistrySet,
     thunderstore::sqlite::SqliteIndex,
 };
 use serde::de::DeserializeOwned;
-use thunderstore::models::schema::Schema as ThunderstoreSchema;
-use tracing::{debug, info};
-use tracing_indicatif::{span_ext::IndicatifSpanExt, style::ProgressStyle};
 
 use crate::{Result, manifest::Manifest, profile::Profile};
 
@@ -31,6 +23,7 @@ pub struct Context {
 }
 
 impl Context {
+    const MANIFEST_FILE_NAME: &str = "loadsmith.toml";
     const LOCKFILE_FILE_NAME: &str = "loadsmith.lock";
     const PROFILE_STATE_FILE_NAME: &str = "_state/profile.json";
 
@@ -102,7 +95,7 @@ impl Context {
     }
 
     fn read_manifest(&self) -> Result<Manifest> {
-        self.read_toml(Manifest::FILE_NAME)
+        self.read_toml(Self::MANIFEST_FILE_NAME)
             .context("failed to read manifest")
     }
 
@@ -145,7 +138,7 @@ impl Context {
     }
 
     fn write_manifest(&self, manifest: &Manifest) -> Result {
-        self.write_toml(Manifest::FILE_NAME, manifest)
+        self.write_toml(Self::MANIFEST_FILE_NAME, manifest)
             .context("failed to write manifest")
     }
 

@@ -154,7 +154,7 @@ impl State {
         Ok(state)
     }
 
-    fn save<F>(&self, path: &Path, mut filter: F) -> Result<()>
+    fn save<F>(&self, path: &Path, _filter: F) -> Result<()>
     where
         F: FnMut(&PackageId) -> bool,
     {

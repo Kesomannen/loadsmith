@@ -16,6 +16,12 @@ use crate::{Error, Registry, ResolvedVersion, Result, VersionInfo};
 #[derive(Debug)]
 pub struct LocalRegistry;
 
+impl Default for LocalRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LocalRegistry {
     pub fn new() -> Self {
         Self
@@ -149,10 +155,10 @@ impl Source {
 struct ThunderstoreManifest {
     namespace: String,
     name: String,
-    description: String,
+    // description: String,
     version_number: Version,
     dependencies: Vec<VersionIdent>,
-    website_url: Option<String>,
+    // website_url: Option<String>,
 }
 
 fn read_zip(path: impl AsRef<Path>) -> Result<ThunderstoreManifest> {

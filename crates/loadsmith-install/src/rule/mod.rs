@@ -23,6 +23,7 @@ pub struct InstallRuleset<'a> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Default)]
 pub struct OwnedInstallRuleset {
     rules: Vec<InstallRule>,
     default_rule: Option<usize>,
@@ -92,7 +93,7 @@ impl<'a> InstallRuleset<'a> {
     pub fn find_rule_for_path(&self, path: impl AsRef<Utf8Path>) -> Option<&'a InstallRule> {
         let path = path.as_ref();
         self.rules
-            .into_iter()
+            .iter()
             .find(|rule| rule.matches(path))
             .or(self.default_rule)
     }
@@ -100,7 +101,7 @@ impl<'a> InstallRuleset<'a> {
     pub fn find_rule_for_mapped_path(&self, path: impl AsRef<Utf8Path>) -> Option<&'a InstallRule> {
         let path = path.as_ref();
         self.rules
-            .into_iter()
+            .iter()
             .find(|rule| rule.matches_mapped(path))
     }
 
@@ -143,11 +144,3 @@ impl OwnedInstallRuleset {
     }
 }
 
-impl Default for OwnedInstallRuleset {
-    fn default() -> Self {
-        Self {
-            rules: Vec::new(),
-            default_rule: None,
-        }
-    }
-}

@@ -26,14 +26,14 @@ pub fn install(
 
     let mut files = Vec::new();
     let mut overwrote_files = Vec::new();
-    let walkdir = WalkDir::new(&source).follow_links(false).into_iter();
+    let walkdir = WalkDir::new(source).follow_links(false).into_iter();
 
     for entry in walkdir {
         let entry = entry?;
 
         let relative_path = entry
             .path()
-            .strip_prefix(&source)
+            .strip_prefix(source)
             .expect("entry path should be relative to source");
 
         let relative_path = Utf8PathBuf::try_from(relative_path.to_path_buf())?;

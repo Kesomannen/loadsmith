@@ -51,7 +51,6 @@ impl ProfileState {
     fn id_to_package_map(&self) -> HashMap<&PackageId, &InstalledPackage> {
         self.packages()
             .iter()
-            .map(|(id, install)| (id, install))
             .collect()
     }
 

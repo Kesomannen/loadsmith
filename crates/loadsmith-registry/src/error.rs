@@ -1,4 +1,4 @@
-use std::{error::Error as StdError, path::PathBuf};
+use std::error::Error as StdError;
 
 use camino::Utf8PathBuf;
 

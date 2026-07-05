@@ -1,6 +1,6 @@
 use std::fs;
 
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 
 use crate::{Error, LaunchContext, Result};
 
@@ -22,7 +22,7 @@ pub fn args(
                 .split('.') // read only the major version number
                 .next()
                 .and_then(|str| str.parse().ok())
-                .ok_or_else(|| Error::InvalidDoorstopVersionFormat(version_content))?;
+                .ok_or(Error::InvalidDoorstopVersionFormat(version_content))?;
 
             debug!(version, "doorstop version read");
             version

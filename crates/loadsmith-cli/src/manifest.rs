@@ -1,7 +1,4 @@
-use std::{
-    collections::{BTreeMap, HashMap},
-    path,
-};
+use std::collections::BTreeMap;
 
 use anyhow::anyhow;
 use loadsmith::core::{Dependency, PackageId, VersionRange};
@@ -36,25 +33,7 @@ pub enum Mod {
     },
 }
 
-impl Manifest {
-    pub const FILE_NAME: &str = "loadsmith.toml";
-
-    pub fn new(profile: Profile, mods: Mods) -> Self {
-        Self { profile, mods }
-    }
-}
-
-impl Profile {
-    pub fn new(game: impl Into<String>) -> Self {
-        Self { game: game.into() }
-    }
-}
-
 impl Mods {
-    pub fn new(mods: BTreeMap<PackageId, Mod>) -> Self {
-        Self(mods)
-    }
-
     pub fn remove(&mut self, package_id: &PackageId) -> Option<Mod> {
         self.0.remove(package_id)
     }
@@ -140,10 +119,9 @@ impl Mod {
             registry_metadata: serde_json::Value::Object(map),
             ..
         } = self
+            && map.contains_key("path")
         {
-            if map.contains_key("path") {
-                return Some(Self::LOCAL_REGISTRY);
-            }
+            return Some(Self::LOCAL_REGISTRY);
         }
 
         None

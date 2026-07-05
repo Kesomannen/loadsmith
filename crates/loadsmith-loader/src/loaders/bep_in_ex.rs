@@ -67,7 +67,7 @@ impl Loader for BepInEx {
         static RULES: LazyLock<Vec<InstallRule>> =
             LazyLock::new(|| glob_rules![("*/**" => ".", true)]);
 
-        InstallRuleset::new(&*RULES, None)
+        InstallRuleset::new(&RULES, None)
     }
 
     fn package_install_rules(&self) -> InstallRuleset<'_> {
@@ -138,7 +138,7 @@ pub(crate) fn bepinex_preloader_path(
             let file_name = entry.file_name();
             PRELOADER_NAMES.iter().any(|name| file_name == **name)
         })
-        .ok_or_else(|| Error::BepInExPreloaderNotFound { core_directory })?;
+        .ok_or(Error::BepInExPreloaderNotFound { core_directory })?;
 
     let path = Utf8PathBuf::from_path_buf(entry.path())
         .expect("BepInEx core directory should be valid UTF-8");

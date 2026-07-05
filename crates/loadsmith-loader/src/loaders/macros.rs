@@ -14,7 +14,7 @@ macro_rules! glob_rules {
     [$(($pattern:literal => $destination:literal, $strip_top_level:expr)),* $(,)?] => {
         vec![
             $(
-                crate::glob_rule!($pattern, $destination, $strip_top_level),
+                $crate::glob_rule!($pattern, $destination, $strip_top_level),
             )*
         ]
     };

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, pin::Pin};
 
-use loadsmith_core::{Dependency, PackageId, PackageRef, Version};
+use loadsmith_core::{Dependency, PackageId, Version};
 use serde::{Deserialize, Serialize};
 
 use crate::{Error, Registry, ResolvedVersion, Result, VersionInfo};

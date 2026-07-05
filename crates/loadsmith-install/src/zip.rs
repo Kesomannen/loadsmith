@@ -67,10 +67,10 @@ pub(crate) mod mock {
             self.with_file(path, &[])
         }
 
-        pub fn with_dir(mut self, path: impl Into<Utf8PathBuf>) -> Self {
-            self.files.push(MockZipFile::new_dir(path.into()));
-            self
-        }
+        // pub fn with_dir(mut self, path: impl Into<Utf8PathBuf>) -> Self {
+        //     self.files.push(MockZipFile::new_dir(path.into()));
+        //     self
+        // }
     }
 
     impl<'a> MockZipFile<'a> {
@@ -83,19 +83,19 @@ pub(crate) mod mock {
             }
         }
 
-        pub fn new_dir(path: Utf8PathBuf) -> Self {
-            Self {
-                path,
-                contents: &[],
-                is_dir: true,
-                unix_mode: None,
-            }
-        }
+        // pub fn new_dir(path: Utf8PathBuf) -> Self {
+        //     Self {
+        //         path,
+        //         contents: &[],
+        //         is_dir: true,
+        //         unix_mode: None,
+        //     }
+        // }
 
-        pub fn with_unix_mode(mut self, mode: u32) -> Self {
-            self.unix_mode = Some(mode);
-            self
-        }
+        // pub fn with_unix_mode(mut self, mode: u32) -> Self {
+        //     self.unix_mode = Some(mode);
+        //     self
+        // }
     }
 
     impl<'a> Zip for MockZip<'a> {
@@ -145,7 +145,7 @@ pub(crate) mod mock {
 }
 
 /// Zip trait implementation for the `zip` crate
-mod zip {
+mod zip_crate {
     use camino::Utf8PathBuf;
     use std::io::{Read, Seek};
 

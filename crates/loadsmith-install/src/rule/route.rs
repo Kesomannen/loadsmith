@@ -60,7 +60,7 @@ impl RouteRule {
             .unwrap_or(false)
     }
 
-    fn split_path<'a>(&self, path: &'a Utf8Path) -> Option<(Utf8PathBuf, Utf8PathBuf)> {
+    fn split_path(&self, path: &Utf8Path) -> Option<(Utf8PathBuf, Utf8PathBuf)> {
         // eat components until we find the route name
         let Some(route_name_index) = path
             .components()

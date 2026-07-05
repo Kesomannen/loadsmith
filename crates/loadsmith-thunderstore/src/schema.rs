@@ -24,7 +24,7 @@ fn convert_ruleset(rules: &[schema::InstallRule]) -> Result<OwnedInstallRuleset>
     let default_rule_index = rules.iter().position(|rule| rule.is_default_location);
     let converted = rules
         .iter()
-        .map(|rule| rule_to_loadsmith(rule))
+        .map(rule_to_loadsmith)
         .collect::<Result<Vec<_>>>()?;
 
     Ok(
@@ -46,8 +46,8 @@ fn rule_to_loadsmith(rule: &schema::InstallRule) -> Result<loadsmith_install::In
         .default_file_extensions
         .iter()
         .map(|ext| {
-            if ext.starts_with(".") {
-                ext[1..].to_string()
+            if let Some(stripped) = ext.strip_prefix('.') {
+                stripped.to_string()
             } else {
                 ext.clone()
             }

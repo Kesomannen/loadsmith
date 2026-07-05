@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    fmt::{Debug, Display},
+    fmt::Debug,
     pin::Pin,
 };
 
@@ -44,6 +44,12 @@ pub trait Registry: Debug {
 #[derive(Debug)]
 pub struct RegistrySet {
     registries: HashMap<String, Box<dyn Registry>>,
+}
+
+impl Default for RegistrySet {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl RegistrySet {
