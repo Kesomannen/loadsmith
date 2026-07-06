@@ -38,6 +38,8 @@ pub struct LockedPackage {
     pub ref_: PackageRef,
     pub source: String,
     pub url: String,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub transitive: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub size: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -56,10 +58,16 @@ impl LockedPackage {
             ref_: package.into(),
             source: source.into(),
             url: url.into(),
+            transitive: false,
             size: None,
             checksum: None,
             deps: Vec::new(),
         }
+    }
+
+    pub fn with_transitive(mut self, transitive: bool) -> Self {
+        self.transitive = transitive;
+        self
     }
 
     pub fn with_size(mut self, size: u64) -> Self {

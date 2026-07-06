@@ -20,12 +20,15 @@ where
     // simple BFS that uses the newest version of each encountered package,
     // while respecting the exisitng lockfile versions
 
-    let mut queue = deps.into_iter().collect::<VecDeque<Dependency>>();
+    let mut queue = deps
+        .into_iter()
+        .map(|dep| (dep, false))
+        .collect::<VecDeque<(Dependency, bool)>>();
 
-    let mut visited = HashSet::<PackageId>::from_iter(queue.iter().map(|dep| dep.id.clone()));
+    let mut visited = HashSet::<PackageId>::from_iter(queue.iter().map(|(dep, _)| dep.id.clone()));
     let mut resolved = Vec::<LockedPackage>::new();
 
-    while let Some(dep) = queue.pop_front() {
+    while let Some((dep, transitive)) = queue.pop_front() {
         let Dependency {
             id,
             version_range,
@@ -85,12 +88,13 @@ where
                 url: resolved.url,
                 size: resolved.size,
                 checksum: resolved.checksum,
+                transitive,
             }
         };
 
         for trans_dep in locked.deps.iter() {
             if visited.insert(trans_dep.id.clone()) {
-                queue.push_back(trans_dep.clone());
+                queue.push_back((trans_dep.clone(), true));
             }
         }
 

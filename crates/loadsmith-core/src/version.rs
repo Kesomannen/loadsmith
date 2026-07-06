@@ -111,6 +111,10 @@ impl VersionRange {
             VersionRange::Exact(v) => v == version,
         }
     }
+
+    pub fn is_any(&self) -> bool {
+        matches!(self, VersionRange::Any)
+    }
 }
 
 impl From<Version> for VersionRange {

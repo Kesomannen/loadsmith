@@ -185,6 +185,23 @@ impl SqliteIndex {
 
         Ok(Some(resolved))
     }
+
+    pub fn search_packages(&self, query: &str, community: Option<&str>) -> Result<Vec<PackageId>> {
+        let db = self.db.lock();
+
+        let packages = db
+            .prepare(include_str!("queries/search_packages.sql"))?
+            .query_map(
+                rusqlite::params![format!("%{}%", query), community],
+                |row| {
+                    let id: String = row.get(0)?;
+                    Ok(PackageId::new(&id))
+                },
+            )?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+
+        Ok(packages)
+    }
 }
 
 #[cfg(test)]

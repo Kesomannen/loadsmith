@@ -44,7 +44,11 @@ impl<W: Write + Seek> ExportFile<W> {
         Ok(())
     }
 
-    pub fn export_from_dir(&mut self, directory: impl AsRef<Utf8Path>, filter: bool) -> Result<()> {
+    pub fn write_config_from_dir(
+        &mut self,
+        directory: impl AsRef<Utf8Path>,
+        filter: bool,
+    ) -> Result<()> {
         let directory = directory.as_ref();
         WalkDir::new(directory)
             .follow_links(false)

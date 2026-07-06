@@ -6,7 +6,7 @@ use std::{
 
 use camino::Utf8PathBuf;
 use loadsmith_core::{InstalledFile, InstalledPackage, PackageRef};
-use tracing::{debug, trace, warn};
+use tracing::{debug, trace};
 use walkdir::WalkDir;
 
 use crate::{
