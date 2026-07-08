@@ -14,7 +14,7 @@ pub fn args(
         debug!("using doorstop version override: {}", v);
         v
     } else {
-        let path = ctx.profile_path.join(".doorstop_version");
+        let path = ctx.profile_path().join(".doorstop_version");
 
         if path.exists() {
             let version_content = fs::read_to_string(&path)?;
@@ -80,7 +80,7 @@ mod tests {
         let tempdir = tempfile::tempdir().unwrap();
         let ctx = LaunchContext::in_tempdir(&tempdir, false).unwrap();
 
-        let version_path = ctx.profile_path.join(".doorstop_version");
+        let version_path = ctx.profile_path().join(".doorstop_version");
         std::fs::write(&version_path, "4.0.0").unwrap();
 
         let (enable, target) = args(None, &ctx).unwrap();
@@ -93,7 +93,7 @@ mod tests {
         let tempdir = tempfile::tempdir().unwrap();
         let ctx = LaunchContext::in_tempdir(&tempdir, false).unwrap();
 
-        let version_path = ctx.profile_path.join(".doorstop_version");
+        let version_path = ctx.profile_path().join(".doorstop_version");
         std::fs::write(&version_path, "invalid").unwrap();
 
         let err = args(None, &ctx).unwrap_err();

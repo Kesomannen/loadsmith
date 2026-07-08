@@ -1,11 +1,10 @@
 use std::{borrow::Cow, path::PathBuf, sync::LazyLock};
 
 use camino::{Utf8Path, Utf8PathBuf};
-use globset::GlobSet;
-use loadsmith_core::LaunchArgs;
+use globset::{Glob, GlobBuilder, GlobSet};
 use loadsmith_install::{InstallRule, InstallRuleset, OwnedInstallRuleset, RouteRule};
 
-use crate::{Error, LaunchContext, Loader, Result, doorstop, glob_rules};
+use crate::{Error, LaunchArgs, LaunchContext, Loader, Result, doorstop, glob, glob_rules};
 
 #[derive(Debug, Clone)]
 pub struct BepInEx {
@@ -77,6 +76,15 @@ impl Loader for BepInEx {
     fn prepare_launch(&self, ctx: &LaunchContext) -> Result<()> {
         static PATTERNS: LazyLock<GlobSet> = LazyLock::new(|| {
             GlobSet::builder()
+                .add(
+                    // copy all top-level files
+                    GlobBuilder::new("*")
+                        .literal_separator(true)
+                        .build()
+                        .expect("constant glob should be valid"),
+                )
+                .add(glob!("doorstop_libs/*"))
+                .add(glob!("dotnet/*"))
                 .build()
                 .expect("constant globs should be valid")
         });
@@ -84,7 +92,7 @@ impl Loader for BepInEx {
         ctx.copy_glob_to_game(&PATTERNS)
     }
 
-    fn get_launch_args(&self, ctx: &LaunchContext) -> Result<LaunchArgs> {
+    fn generate_launch_args(&self, ctx: &LaunchContext) -> Result<LaunchArgs> {
         let (enable_prefix, target_prefix) = doorstop::args(None, ctx)?;
         let preloader_path = bepinex_preloader_path(None, ctx)?;
 
@@ -97,7 +105,7 @@ impl Loader for BepInEx {
         Ok(args)
     }
 
-    fn mod_config_dirs(&self) -> Vec<PathBuf> {
+    fn package_config_dirs(&self) -> Vec<PathBuf> {
         vec!["BepInEx/config".into()]
     }
 
@@ -114,7 +122,7 @@ pub(crate) fn bepinex_preloader_path(
     prefix: Option<&str>,
     ctx: &LaunchContext,
 ) -> Result<Utf8PathBuf> {
-    let mut core_directory = ctx.profile_path.to_path_buf();
+    let mut core_directory = ctx.profile_path().to_path_buf();
 
     if let Some(prefix) = prefix {
         core_directory.push(prefix);
@@ -232,5 +240,15 @@ mod tests {
                 .unwrap()
                 .use_links()
         );
+    }
+
+    #[test]
+    fn package_dir_works() {
+        let loader = BepInEx::with_default_rules();
+        let package = PackageRef::new("Author-Name".to_string(), (1, 0, 0));
+
+        let package_dir = loader.package_dir(&package).unwrap();
+
+        assert_eq!(package_dir, PathBuf::from("BepInEx/plugins/Author-Name"));
     }
 }

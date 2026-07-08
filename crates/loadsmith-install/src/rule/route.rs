@@ -86,13 +86,16 @@ impl RouteRule {
         package: &PackageRef,
     ) -> Option<Utf8PathBuf> {
         let path = path.as_ref();
-        let (prefix, suffix) = self.split_path(path).map(Some).unwrap_or_else(|| {
+        let (prefix, suffix) = self.split_path(path).unwrap_or_else(|| {
             let mut components = path.components();
-            let file_name = components.next_back()?;
+            let file_name = components
+                .next_back()
+                .map(|file_name| file_name.as_str())
+                .unwrap_or_default();
             let prefix = components.collect();
 
-            Some((prefix, Utf8PathBuf::from(file_name.as_str())))
-        })?;
+            (prefix, Utf8PathBuf::from(file_name))
+        });
 
         let mut target_path = Utf8PathBuf::from(self.target.as_ref());
 
@@ -260,7 +263,7 @@ mod tests {
                 "",
                 &PackageRef::new(PackageId::new("Author-Name"), (1, 0, 0))
             ),
-            None
+            Some(Utf8PathBuf::from("BepInEx/plugins/Author-Name"))
         );
     }
 }

@@ -34,6 +34,12 @@ pub enum Error {
 
     #[error("index is not built")]
     IndexNotComplete,
+
+    #[error("distribution is missing identifier")]
+    DistributionIsMissingIdentifier,
+
+    #[error("invalid steam id")]
+    InvalidSteamId(#[source] std::num::ParseIntError),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

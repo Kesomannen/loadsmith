@@ -21,17 +21,17 @@ impl GlobRule {
         }
     }
 
-    pub fn with_strip_top_level(mut self, strip_top_level: bool) -> Self {
-        self.strip_top_level = strip_top_level;
-        self
-    }
-
     pub fn try_from_pattern(
         pattern: impl AsRef<str>,
         target: impl Into<Cow<'static, Utf8Path>>,
     ) -> Result<Self, globset::Error> {
         let pattern = GlobBuilder::new(pattern.as_ref()).build()?;
         Ok(Self::new(pattern, target))
+    }
+
+    pub fn with_strip_top_level(mut self, strip_top_level: bool) -> Self {
+        self.strip_top_level = strip_top_level;
+        self
     }
 
     pub fn matches(&self, path: impl AsRef<Utf8Path>) -> bool {

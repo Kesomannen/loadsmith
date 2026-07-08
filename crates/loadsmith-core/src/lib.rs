@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ffi::OsString, fmt::Display, path::PathBuf, str::FromStr};
+use std::{fmt::Display, str::FromStr};
 
 use camino::Utf8PathBuf;
 use chrono::{DateTime, Utc};
@@ -41,14 +41,6 @@ impl Display for PackageId {
     }
 }
 
-impl FromStr for PackageId {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self> {
-        Ok(s.to_string().into())
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(into = "String", try_from = "&str")]
 pub struct PackageRef {
@@ -75,9 +67,16 @@ impl FromStr for PackageRef {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self> {
-        let (id, version) = s.rsplit_once('@').ok_or(Error::InvalidPackageRefFormat)?;
+        let mut split = s.split('@');
 
-        let id = PackageId::from_str(id)?;
+        let id = split.next().ok_or(Error::InvalidPackageRefFormat)?;
+        let version = split.next().ok_or(Error::InvalidPackageRefFormat)?;
+
+        if split.next().is_some() {
+            return Err(Error::InvalidPackageRefFormat);
+        }
+
+        let id = PackageId::new(id);
         let version = Version::from_str(version)?;
 
         Ok(Self::new(id, version))
@@ -131,61 +130,6 @@ impl InstalledFile {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct LaunchArgs {
-    pub args: Vec<OsString>,
-    pub env: HashMap<OsString, OsString>,
-    pub wrapper: Option<PathBuf>,
-}
-
-impl LaunchArgs {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn arg(mut self, arg: impl Into<OsString>) -> Self {
-        self.args.push(arg.into());
-        self
-    }
-
-    pub fn env(mut self, key: impl Into<OsString>, value: impl Into<OsString>) -> Self {
-        self.env.insert(key.into(), value.into());
-        self
-    }
-
-    pub fn wrapper(mut self, wrapper: impl Into<PathBuf>) -> Self {
-        self.wrapper = Some(wrapper.into());
-        self
-    }
-
-    pub fn apply(self, command: &mut std::process::Command) {
-        if let Some(wrapper) = self.wrapper {
-            let mut new_command = std::process::Command::new(wrapper);
-            new_command
-                .arg(command.get_program())
-                .args(command.get_args());
-
-            for (key, value) in command.get_envs() {
-                if let Some(value) = value {
-                    new_command.env(key, value);
-                } else {
-                    new_command.env_remove(key);
-                }
-            }
-
-            *command = new_command;
-        }
-
-        for arg in self.args {
-            command.arg(arg);
-        }
-
-        for (key, value) in self.env {
-            command.env(key, value);
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Dependency {
     pub id: PackageId,
@@ -231,6 +175,12 @@ mod tests {
     }
 
     #[test]
+    fn package_ref_from_str_two_ats() {
+        let res: Result<PackageRef> = "author-name@1.2.3@4.5.6".parse();
+        assert_matches!(res, Err(Error::InvalidPackageRefFormat));
+    }
+
+    #[test]
     fn package_ref_from_str_invalid() {
         let res: Result<PackageRef> = "author-name-1.2.3".parse();
         assert_matches!(res, Err(Error::InvalidPackageRefFormat));
@@ -238,7 +188,7 @@ mod tests {
 
     #[test]
     fn package_id_from_str() {
-        let package_id: PackageId = "author-name".parse().expect("failed to parse package id");
+        let package_id: PackageId = PackageId::new("author-name");
         assert_eq!(package_id.as_str(), "author-name");
     }
 }

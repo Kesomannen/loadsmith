@@ -10,6 +10,7 @@ loadsmith-loader = { path = "../loadsmith-loader" }
 loadsmith-manifest = { path = "../loadsmith-manifest" }
 loadsmith-thunderstore = { path = "../loadsmith-thunderstore" }
 loadsmith-registry = { path = "../loadsmith-registry" }
+loadsmith-platform = { path = "../loadsmith-platform" }
 
 [dev-dependencies]
 thunderstore = { workspace = true }

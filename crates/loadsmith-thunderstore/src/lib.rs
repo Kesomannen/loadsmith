@@ -9,4 +9,4 @@ pub use error::{Error, Result};
 pub use ext::{PackageIdExt, PackageRefExt};
 pub use index::{in_memory, sqlite};
 pub use registry::ThunderstoreRegistry;
-pub use schema::r2_config_to_loader;
+pub use schema::{distribution_into_platform, r2_config_to_loader};

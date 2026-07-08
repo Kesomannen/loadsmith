@@ -3,9 +3,10 @@ use std::borrow::Cow;
 use camino::Utf8PathBuf;
 use loadsmith_install::{OwnedInstallRuleset, RouteRule};
 use loadsmith_loader::BepInEx;
-use thunderstore::models::schema;
+use loadsmith_platform::Platform as LoadsmithPlatform;
+use thunderstore::models::schema::{self, Distribution};
 
-use crate::Result;
+use crate::{Error, Result};
 
 pub fn r2_config_to_loader(
     config: &schema::R2ModmanConfig,
@@ -81,6 +82,32 @@ fn rule_to_loadsmith(rule: &schema::InstallRule) -> Result<loadsmith_install::In
     Ok(rule)
 }
 
+pub fn distribution_into_platform(distribution: Distribution) -> Result<Option<LoadsmithPlatform>> {
+    let identifier = distribution
+        .identifier
+        .ok_or_else(|| Error::DistributionIsMissingIdentifier);
+
+    let platform = match distribution.platform {
+        schema::Platform::Steam => {
+            let id = identifier?.parse::<u32>().map_err(Error::InvalidSteamId)?;
+
+            Ok(LoadsmithPlatform::Steam { id })
+        }
+        schema::Platform::EpicGamesStore => {
+            identifier.map(|identifier| LoadsmithPlatform::EpicGames { identifier })
+        }
+        schema::Platform::XboxGamePass => {
+            identifier.map(|identifier| LoadsmithPlatform::XboxStore { identifier })
+        }
+        schema::Platform::Other => Ok(LoadsmithPlatform::Other),
+        schema::Platform::OculusStore => Ok(LoadsmithPlatform::Oculus),
+        schema::Platform::Origin => Ok(LoadsmithPlatform::Origin),
+        schema::Platform::SteamDirect => return Ok(None),
+    }?;
+
+    Ok(Some(platform))
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -98,12 +125,14 @@ mod test {
     #[ignore]
     fn fetch_and_parse_ecosystem_live() {
         const URL: &str = "https://thunderstore.io/api/experimental/schema/dev/latest/";
-        reqwest::blocking::get(URL)
+        let response = reqwest::blocking::get(URL)
             .expect("failed to fetch ecosystem")
             .error_for_status()
             .expect("ecosystem fetch returned error status")
             .json::<schema::Schema>()
             .expect("failed to parse ecosystem");
+
+        println!("{response:#?}");
     }
 
     #[test]
