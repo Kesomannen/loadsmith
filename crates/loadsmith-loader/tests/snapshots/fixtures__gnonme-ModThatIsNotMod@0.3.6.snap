@@ -1,0 +1,10 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+Mods/ModThatIsNotMod.dll: Mods/ModThatIsNotMod.dll
+Mods/ModThatIsNotMod.xml: Mods/ModThatIsNotMod.xml
+Plugins/BackwardsCompatibilityPlugin.dll: Plugins/BackwardsCompatibilityPlugin.dll
+README.md: UserData/ModManager/gnonme-ModThatIsNotMod/README.md
+icon.png: UserData/ModManager/gnonme-ModThatIsNotMod/icon.png
+manifest.json: UserData/ModManager/gnonme-ModThatIsNotMod/manifest.json

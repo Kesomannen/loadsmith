@@ -1,8 +1,8 @@
-icon.png
-README.md
-manifest.json
+BepInEx/core/MonoMod.RuntimeDetour.HookGen.dll
+BepInEx/core/MonoMod.dll
+BepInEx/patchers/BepInEx.MonoMod.AutoHookGenPatcher.dll
 CHANGELOG.md
 LICENSE
-BepInEx/patchers/BepInEx.MonoMod.AutoHookGenPatcher.dll
-BepInEx/core/MonoMod.dll
-BepInEx/core/MonoMod.RuntimeDetour.HookGen.dll
+README.md
+icon.png
+manifest.json

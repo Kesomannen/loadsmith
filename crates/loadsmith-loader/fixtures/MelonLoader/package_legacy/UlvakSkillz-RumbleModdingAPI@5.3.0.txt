@@ -1,0 +1,6 @@
+CHANGELOG.md
+Mods/RumbleModdingAPI.dll
+Mods/RumbleModdingAPI.xml
+README.md
+icon.png
+manifest.json

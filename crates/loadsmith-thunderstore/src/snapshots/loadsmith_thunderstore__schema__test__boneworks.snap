@@ -1,0 +1,200 @@
+---
+source: crates/loadsmith-thunderstore/src/schema.rs
+expression: loader
+---
+MelonLoader {
+    package_install_ruleset: OwnedInstallRuleset {
+        rules: [
+            Route(
+                RouteRule {
+                    name: "Mods",
+                    target: "Mods",
+                    file_extensions: [
+                        "dll",
+                    ],
+                    subdir: false,
+                    flatten: false,
+                    mutable: true,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "Plugins",
+                    target: "Plugins",
+                    file_extensions: [
+                        "plugin.dll",
+                    ],
+                    subdir: false,
+                    flatten: false,
+                    mutable: true,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "UserLibs",
+                    target: "UserLibs",
+                    file_extensions: [
+                        "lib.dll",
+                    ],
+                    subdir: false,
+                    flatten: false,
+                    mutable: true,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "MelonLoader",
+                    target: "MelonLoader",
+                    file_extensions: [],
+                    subdir: false,
+                    flatten: false,
+                    mutable: true,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "Managed",
+                    target: "MelonLoader/Managed",
+                    file_extensions: [
+                        "managed.dll",
+                    ],
+                    subdir: false,
+                    flatten: false,
+                    mutable: true,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "Libs",
+                    target: "MelonLoader/Libs",
+                    file_extensions: [],
+                    subdir: false,
+                    flatten: false,
+                    mutable: true,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "UserData",
+                    target: "UserData",
+                    file_extensions: [],
+                    subdir: false,
+                    flatten: false,
+                    mutable: true,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "CustomItems",
+                    target: "UserData/CustomItems",
+                    file_extensions: [
+                        "melon",
+                    ],
+                    subdir: false,
+                    flatten: false,
+                    mutable: true,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "CustomMaps",
+                    target: "UserData/CustomMaps",
+                    file_extensions: [
+                        "bcm",
+                        "cma",
+                    ],
+                    subdir: false,
+                    flatten: false,
+                    mutable: true,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "PlayerModels",
+                    target: "UserData/PlayerModels",
+                    file_extensions: [
+                        "body",
+                    ],
+                    subdir: false,
+                    flatten: false,
+                    mutable: true,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "CustomLoadScreens",
+                    target: "UserData/CustomLoadScreens",
+                    file_extensions: [
+                        "load",
+                    ],
+                    subdir: false,
+                    flatten: false,
+                    mutable: true,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "Music",
+                    target: "UserData/Music",
+                    file_extensions: [
+                        "wav",
+                    ],
+                    subdir: false,
+                    flatten: false,
+                    mutable: true,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "Food",
+                    target: "UserData/Food",
+                    file_extensions: [
+                        "food",
+                    ],
+                    subdir: false,
+                    flatten: false,
+                    mutable: true,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "Scoreworks",
+                    target: "UserData/Scoreworks",
+                    file_extensions: [
+                        "sw",
+                    ],
+                    subdir: false,
+                    flatten: false,
+                    mutable: true,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "CustomSkins",
+                    target: "UserData/CustomSkins",
+                    file_extensions: [
+                        "png",
+                    ],
+                    subdir: false,
+                    flatten: false,
+                    mutable: true,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "Grenades",
+                    target: "UserData/Grenades",
+                    file_extensions: [
+                        "grenade",
+                    ],
+                    subdir: false,
+                    flatten: false,
+                    mutable: true,
+                },
+            ),
+        ],
+        default_rule: Some(
+            0,
+        ),
+    },
+}

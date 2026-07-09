@@ -1,0 +1,13 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+CHANGELOG.md: Mods/k0Mods-ModsApp/CHANGELOG.md
+LICENSE.md: Mods/k0Mods-ModsApp/LICENSE.md
+ModsApp.dll: Mods/k0Mods-ModsApp/ModsApp.dll
+README.md: Mods/k0Mods-ModsApp/README.md
+fomod/ModuleConfig.xml: Mods/k0Mods-ModsApp/fomod/ModuleConfig.xml
+fomod/icon.png: Mods/k0Mods-ModsApp/fomod/icon.png
+fomod/info.xml: Mods/k0Mods-ModsApp/fomod/info.xml
+icon.png: Mods/k0Mods-ModsApp/icon.png
+manifest.json: Mods/k0Mods-ModsApp/manifest.json

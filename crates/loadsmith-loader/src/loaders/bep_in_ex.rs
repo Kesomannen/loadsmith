@@ -1,4 +1,4 @@
-use std::{borrow::Cow, path::PathBuf, sync::LazyLock};
+use std::{path::PathBuf, sync::LazyLock};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use globset::{Glob, GlobBuilder, GlobSet};
@@ -19,26 +19,15 @@ impl BepInEx {
     }
 
     pub fn with_default_rules() -> Self {
-        OwnedInstallRuleset::with_rules(
+        OwnedInstallRuleset::from_rule_iter(
             vec![
-                InstallRule::Route(
-                    RouteRule::new("config", Utf8Path::new("BepInEx/config"))
-                        .with_subdir(false)
-                        .with_mutable(true),
-                ),
-                InstallRule::Route(RouteRule::new(
-                    "patchers",
-                    Utf8Path::new("BepInEx/patchers"),
-                )),
-                InstallRule::Route(RouteRule::new("core", Utf8Path::new("BepInEx/core"))),
-                InstallRule::Route(
-                    RouteRule::new("monomod", Utf8Path::new("BepInEx/monomod"))
-                        .with_file_extensions(vec![Cow::Borrowed("mm.dll")]),
-                ),
-                InstallRule::Route(
-                    RouteRule::new("plugins", Utf8Path::new("BepInEx/plugins"))
-                        .with_file_extensions(vec![Cow::Borrowed("dll")]),
-                ),
+                RouteRule::new_static("BepInEx/config")
+                    .with_subdir(false)
+                    .with_mutable(true),
+                RouteRule::new_static("BepInEx/patchers"),
+                RouteRule::new_static("BepInEx/core"),
+                RouteRule::new_static("BepInEx/monomod").with_file_extension("mm.dll"),
+                RouteRule::new_static("BepInEx/plugins").with_file_extension("dll"),
             ],
             Some(4),
         )
@@ -74,7 +63,7 @@ impl Loader for BepInEx {
     }
 
     fn prepare_launch(&self, ctx: &LaunchContext) -> Result<()> {
-        static PATTERNS: LazyLock<GlobSet> = LazyLock::new(|| {
+        static GLOB_SET: LazyLock<GlobSet> = LazyLock::new(|| {
             GlobSet::builder()
                 .add(
                     // copy all top-level files
@@ -90,7 +79,7 @@ impl Loader for BepInEx {
                 .expect("constant globs should be valid")
         });
 
-        ctx.copy_glob_to_game(&PATTERNS)
+        ctx.copy_glob_to_game(&GLOB_SET)
     }
 
     fn generate_launch_args(&self, ctx: &LaunchContext) -> Result<LaunchArgs> {

@@ -1,0 +1,8 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+Mods/CustomMaps.dll: Mods/CustomMaps.dll
+README.md: UserData/ModManager/Maranara-Custom_Maps/README.md
+icon.png: UserData/ModManager/Maranara-Custom_Maps/icon.png
+manifest.json: UserData/ModManager/Maranara-Custom_Maps/manifest.json

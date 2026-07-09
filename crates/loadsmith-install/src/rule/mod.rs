@@ -22,8 +22,7 @@ pub struct InstallRuleset<'a> {
     pub default_rule: Option<&'a InstallRule>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[derive(Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct OwnedInstallRuleset {
     rules: Vec<InstallRule>,
     default_rule: Option<usize>,
@@ -100,9 +99,7 @@ impl<'a> InstallRuleset<'a> {
 
     pub fn find_rule_for_mapped_path(&self, path: impl AsRef<Utf8Path>) -> Option<&'a InstallRule> {
         let path = path.as_ref();
-        self.rules
-            .iter()
-            .find(|rule| rule.matches_mapped(path))
+        self.rules.iter().find(|rule| rule.matches_mapped(path))
     }
 
     pub fn map_file(
@@ -116,6 +113,15 @@ impl<'a> InstallRuleset<'a> {
 }
 
 impl OwnedInstallRuleset {
+    pub fn from_rule_iter<I, R>(rules: I, default_rule_index: Option<usize>) -> Option<Self>
+    where
+        I: IntoIterator<Item = R>,
+        R: Into<InstallRule>,
+    {
+        let rules = rules.into_iter().map(Into::into).collect();
+        Self::with_rules(rules, default_rule_index)
+    }
+
     pub fn with_rules(rules: Vec<InstallRule>, default_rule_index: Option<usize>) -> Option<Self> {
         if default_rule_index.is_some_and(|index| !(0..rules.len()).contains(&index)) {
             return None;
@@ -135,6 +141,10 @@ impl OwnedInstallRuleset {
         &self.rules
     }
 
+    pub fn into_rules(self) -> Vec<InstallRule> {
+        self.rules
+    }
+
     pub fn default_rule(&self) -> Option<&InstallRule> {
         self.default_rule.map(|index| &self.rules[index])
     }
@@ -143,4 +153,3 @@ impl OwnedInstallRuleset {
         InstallRuleset::new(&self.rules, self.default_rule())
     }
 }
-

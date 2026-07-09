@@ -1,0 +1,6 @@
+Mods/S1API.Il2Cpp.MelonLoader.dll
+Mods/S1API.Mono.MelonLoader.dll
+Plugins/S1APILoader.MelonLoader.dll
+README.md
+icon.png
+manifest.json

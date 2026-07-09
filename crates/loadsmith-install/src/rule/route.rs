@@ -17,7 +17,23 @@ pub struct RouteRule {
 }
 
 impl RouteRule {
-    pub fn new(
+    pub fn new_static(path: &'static str) -> Self {
+        Self::new(Cow::Borrowed(Utf8Path::new(path)))
+    }
+
+    pub fn new(path: impl Into<Cow<'static, Utf8Path>>) -> Self {
+        let path = path.into();
+
+        let name = match path {
+            Cow::Borrowed(borrowed) => borrowed.file_name().map(Cow::Borrowed),
+            Cow::Owned(_) => path.file_name().map(|s| Cow::Owned(s.to_string())),
+        }
+        .unwrap_or_default();
+
+        Self::new_with_target(name, path)
+    }
+
+    pub fn new_with_target(
         name: impl Into<Cow<'static, str>>,
         target: impl Into<Cow<'static, Utf8Path>>,
     ) -> Self {
@@ -29,6 +45,11 @@ impl RouteRule {
             subdir: true,
             mutable: false,
         }
+    }
+
+    pub fn with_file_extension(mut self, extension: impl Into<Cow<'static, str>>) -> Self {
+        self.file_extensions.push(extension.into());
+        self
     }
 
     pub fn with_file_extensions(mut self, extensions: Vec<Cow<'static, str>>) -> Self {
@@ -123,15 +144,40 @@ impl RouteRule {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Cow;
-
     use loadsmith_core::PackageId;
 
     use super::*;
 
     #[test]
+    fn new() {
+        let rule = RouteRule::new(Utf8Path::new("BepInEx/plugins"));
+
+        assert_eq!(rule.name, "plugins");
+        assert_eq!(rule.target, Utf8Path::new("BepInEx/plugins"));
+
+        let rule = RouteRule::new(Utf8Path::new("MelonLoader"));
+
+        assert_eq!(rule.name, "MelonLoader");
+        assert_eq!(rule.target, Utf8Path::new("MelonLoader"));
+
+        let rule = RouteRule::new(Utf8Path::new(""));
+
+        assert_eq!(rule.name, "");
+        assert_eq!(rule.target, Utf8Path::new(""));
+    }
+
+    #[test]
+    fn defaults() {
+        let rule = RouteRule::new_static("BepInEx/plugins");
+
+        assert!(rule.flatten);
+        assert!(rule.subdir);
+        assert!(!rule.mutable);
+    }
+
+    #[test]
     fn matches_path() {
-        let rule = RouteRule::new("plugins", Utf8Path::new("BepInEx/plugins"));
+        let rule = RouteRule::new_static("BepInEx/plugins");
 
         assert!(rule.matches("BepInEx/plugins/myplugin.dll"));
         assert!(rule.matches("plugins/myplugin.dll"));
@@ -143,8 +189,7 @@ mod tests {
 
     #[test]
     fn matches_extension() {
-        let rule = RouteRule::new("monomod", Utf8Path::new("BepInEx/monomod"))
-            .with_file_extensions(vec![Cow::Borrowed("mm.dll")]);
+        let rule = RouteRule::new_static("BepInEx/monomod").with_file_extension("mm.dll");
 
         assert!(rule.matches("BepInEx/monomod/myplugin.mm.dll"));
         assert!(rule.matches("BepInEx/monomod/myplugin.dll"));
@@ -153,117 +198,149 @@ mod tests {
     }
 
     #[test]
+    fn match_extension_with_dot() {
+        let rule1 = RouteRule::new_static("plugins").with_file_extension("dll");
+
+        assert!(rule1.matches("myplugin.dll"));
+        assert!(!rule1.matches("myplugin.mm.dll"));
+        assert!(!rule1.matches("myplugin.dll.mm"));
+        assert!(!rule1.matches("myplugin.dll.dll"));
+
+        let rule2 = RouteRule::new_static("monomod").with_file_extension("mm.dll");
+
+        assert!(!rule2.matches("myplugin.dll"));
+        assert!(rule2.matches("myplugin.mm.dll"));
+        assert!(!rule2.matches("myplugin.mm"));
+        assert!(!rule2.matches("myplugin.mm.mm.dll"));
+    }
+
+    macro_rules! assert_map {
+        ($rule:expr, $file:expr, $package:expr => None) => {
+            assert_eq!($rule.map_file($file, $package), None);
+        };
+        ($rule:expr, $file:expr, $package:expr => $expected:expr) => {
+            assert_eq!(
+                $rule.map_file($file, $package),
+                Some(Utf8PathBuf::from($expected))
+            );
+        };
+    }
+
+    #[test]
     fn map_file() {
-        let rule = RouteRule::new("plugins", Utf8Path::new("BepInEx/plugins"))
-            .with_flatten(false)
-            .with_file_extensions(vec![Cow::Borrowed("plugin")]);
+        let rule = RouteRule::new_static("BepInEx/plugins")
+            .with_file_extension("plugin")
+            .with_subdir(true)
+            .with_flatten(true);
 
         let package = PackageRef::new(PackageId::new("Author-Name"), (1, 0, 0));
 
-        assert_eq!(
-            rule.map_file("MyPlugin.dll", &package),
-            Some(Utf8PathBuf::from(
-                "BepInEx/plugins/Author-Name/MyPlugin.dll"
-            ))
-        );
+        // defaults correctly when name is not present in the path
+        assert_map!(rule, "MyPlugin.dll", &package => "BepInEx/plugins/Author-Name/MyPlugin.dll");
 
-        assert_eq!(
-            rule.map_file("plugins/MyPlugin.dll", &package),
-            Some(Utf8PathBuf::from(
-                "BepInEx/plugins/Author-Name/MyPlugin.dll"
-            ))
-        );
+        // removes the matched "plugins" component
+        assert_map!(rule, "plugins/MyPlugin.dll", &package => "BepInEx/plugins/Author-Name/MyPlugin.dll");
 
-        assert_eq!(
-            rule.map_file("BepInEx/plugins/MyPlugin.dll", &package),
-            Some(Utf8PathBuf::from(
-                "BepInEx/plugins/Author-Name/BepInEx/MyPlugin.dll"
-            ))
-        );
+        // removes the matched "pluguins" component and flattens the "BepInEx" component
+        assert_map!(rule, "BepInEx/plugins/MyPlugin.dll", &package => "BepInEx/plugins/Author-Name/MyPlugin.dll");
 
-        assert_eq!(
-            rule.map_file("BepInEx/Plugins/MyPlugin.dll", &package),
-            Some(Utf8PathBuf::from(
-                "BepInEx/plugins/Author-Name/BepInEx/MyPlugin.dll"
-            ))
-        );
+        // case-insensitive match of "plugins"
+        assert_map!(rule, "BepInEx/Plugins/MyPlugin.dll", &package => "BepInEx/plugins/Author-Name/MyPlugin.dll");
 
-        assert_eq!(
-            rule.map_file("Nested/plugins/MyPlugin.dll", &package),
-            Some(Utf8PathBuf::from(
-                "BepInEx/plugins/Author-Name/Nested/MyPlugin.dll"
-            ))
-        );
+        // flattens the "Nested" component
+        assert_map!(rule, "Nested/plugins/MyPlugin.dll", &package => "BepInEx/plugins/Author-Name/MyPlugin.dll");
 
-        assert_eq!(
-            rule.map_file("Nested/MyPlugin.plugin", &package),
-            Some(Utf8PathBuf::from(
-                "BepInEx/plugins/Author-Name/Nested/MyPlugin.plugin"
-            ))
-        );
+        // flattens the "Nested" component
+        assert_map!(rule, "Nested/MyPlugin.dll", &package => "BepInEx/plugins/Author-Name/MyPlugin.dll");
+
+        // retains nesting after the matched "plugins" component but flattens before
+        assert_map!(rule, "Before/plugins/After/MyPlugin.plugin", &package => "BepInEx/plugins/Author-Name/After/MyPlugin.plugin");
     }
 
     #[test]
     fn map_file_flatten() {
-        let rule = RouteRule::new("plugins", Utf8Path::new("BepInEx/plugins"))
+        let rule = RouteRule::new_static("BepInEx/plugins")
             .with_flatten(true)
-            .with_file_extensions(vec![Cow::Borrowed("plugin")]);
+            .with_subdir(true)
+            .with_file_extension("plugin");
 
         let package = PackageRef::new(PackageId::new("Author-Name"), (1, 0, 0));
 
-        assert_eq!(
-            rule.map_file("MyPlugin.dll", &package),
-            Some(Utf8PathBuf::from(
-                "BepInEx/plugins/Author-Name/MyPlugin.dll"
-            ))
-        );
+        // Flattened routing keeps only the file name and package folder.
+        assert_map!(rule, "MyPlugin.dll", &package => "BepInEx/plugins/Author-Name/MyPlugin.dll");
 
-        assert_eq!(
-            rule.map_file("plugins/MyPlugin.dll", &package),
-            Some(Utf8PathBuf::from(
-                "BepInEx/plugins/Author-Name/MyPlugin.dll"
-            ))
-        );
+        // When the route name is already present, it is removed from the output path.
+        assert_map!(rule, "plugins/MyPlugin.dll", &package => "BepInEx/plugins/Author-Name/MyPlugin.dll");
 
-        assert_eq!(
-            rule.map_file("BepInEx/plugins/MyPlugin.dll", &package),
-            Some(Utf8PathBuf::from(
-                "BepInEx/plugins/Author-Name/MyPlugin.dll"
-            ))
-        );
+        // A fully qualified route path still collapses down to the target folder.
+        assert_map!(rule, "BepInEx/plugins/MyPlugin.dll", &package => "BepInEx/plugins/Author-Name/MyPlugin.dll");
 
-        assert_eq!(
-            rule.map_file("plugins/Nested/MyPlugin.dll", &package),
-            Some(Utf8PathBuf::from(
-                "BepInEx/plugins/Author-Name/Nested/MyPlugin.dll"
-            ))
-        );
+        // Extra nesting after the route name is preserved even when flattening.
+        assert_map!(rule, "plugins/Nested/MyPlugin.dll", &package => "BepInEx/plugins/Author-Name/Nested/MyPlugin.dll");
 
-        assert_eq!(
-            rule.map_file("plugins/Nested/MyPlugin.plugin", &package),
-            Some(Utf8PathBuf::from(
-                "BepInEx/plugins/Author-Name/Nested/MyPlugin.plugin"
-            ))
-        );
+        // File extension matching does not change the mapped directory layout.
+        assert_map!(rule, "plugins/Nested/MyPlugin.plugin", &package => "BepInEx/plugins/Author-Name/Nested/MyPlugin.plugin");
 
-        assert_eq!(
-            rule.map_file("Nested/MyPlugin.plugin", &package),
-            Some(Utf8PathBuf::from(
-                "BepInEx/plugins/Author-Name/MyPlugin.plugin"
-            ))
-        );
+        // Paths without the route name still map relative to the file name.
+        assert_map!(rule, "Nested/MyPlugin.plugin", &package => "BepInEx/plugins/Author-Name/MyPlugin.plugin");
+    }
+
+    #[test]
+    fn map_file_no_subdir_flatten() {
+        let rule = RouteRule::new_static("BepInEx/plugins")
+            .with_subdir(false)
+            .with_flatten(true)
+            .with_file_extension("plugin");
+
+        let package = PackageRef::new(PackageId::new("Author-Name"), (1, 0, 0));
+
+        // Without subdir support, the package id is never inserted.
+        assert_map!(rule, "MyPlugin.dll", &package => "BepInEx/plugins/MyPlugin.dll");
+
+        // The route prefix is still stripped when it appears in the input path.
+        assert_map!(rule, "plugins/MyPlugin.dll", &package => "BepInEx/plugins/MyPlugin.dll");
+
+        // Flattening keeps fully qualified paths at the target root.
+        assert_map!(rule, "BepInEx/plugins/MyPlugin.dll", &package => "BepInEx/plugins/MyPlugin.dll");
+
+        // Nested content stays nested when flattening does not remove it.
+        assert_map!(rule, "plugins/Nested/MyPlugin.plugin", &package => "BepInEx/plugins/Nested/MyPlugin.plugin");
+    }
+
+    #[test]
+    fn map_file_no_subdir_no_flatten() {
+        let rule = RouteRule::new_static("BepInEx/plugins")
+            .with_subdir(false)
+            .with_flatten(false)
+            .with_file_extension("plugin");
+
+        let package = PackageRef::new(PackageId::new("Author-Name"), (1, 0, 0));
+
+        // No package folder is inserted when subdir is disabled.
+        assert_map!(rule, "MyPlugin.dll", &package => "BepInEx/plugins/MyPlugin.dll");
+
+        // Nested routes are preserved even when the route name doesn't appear.
+        assert_map!(rule, "other/MyPlugin.dll", &package => "BepInEx/plugins/other/MyPlugin.dll");
+
+        // A matching route component is removed before the remainder is appended.
+        assert_map!(rule, "plugins/MyPlugin.dll", &package => "BepInEx/plugins/MyPlugin.dll");
+
+        // Without flattening, the unmatched prefix is preserved in the output path.
+        assert_map!(rule, "BepInEx/plugins/MyPlugin.dll", &package => "BepInEx/plugins/BepInEx/MyPlugin.dll");
+
+        // Nested content remains nested when the route name is stripped.
+        assert_map!(rule, "plugins/Nested/MyPlugin.plugin", &package => "BepInEx/plugins/Nested/MyPlugin.plugin");
     }
 
     #[test]
     fn map_file_empty() {
-        let rule = RouteRule::new("plugins", Utf8Path::new("BepInEx/plugins")).with_flatten(false);
+        let rule = RouteRule::new_static("BepInEx/plugins").with_flatten(false);
 
-        assert_eq!(
-            rule.map_file(
-                "",
-                &PackageRef::new(PackageId::new("Author-Name"), (1, 0, 0))
-            ),
-            Some(Utf8PathBuf::from("BepInEx/plugins/Author-Name"))
+        // An empty path falls back to the package directory when flattening is off.
+        assert_map!(
+            rule,
+            "",
+            &PackageRef::new(PackageId::new("Author-Name"), (1, 0, 0)) => "BepInEx/plugins/Author-Name"
         );
     }
 }

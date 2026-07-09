@@ -1,0 +1,6 @@
+Mods/ModThatIsNotMod.dll
+Mods/ModThatIsNotMod.xml
+Plugins/BackwardsCompatibilityPlugin.dll
+README.md
+icon.png
+manifest.json

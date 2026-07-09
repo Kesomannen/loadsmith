@@ -1,0 +1,24 @@
+{
+  "meta": {
+    "displayName": "Schedule I",
+    "iconUrl": "schedule-i/schedule-i-cover-360x480.webp"
+  },
+  "internalFolderName": "ScheduleI",
+  "dataFolderName": "Schedule I_Data",
+  "distributions": [
+    {
+      "platform": "steam",
+      "identifier": "3164500"
+    }
+  ],
+  "settingsIdentifier": "ScheduleI",
+  "packageIndex": "https://thunderstore.io/c/schedule-i/api/v1/package-listing-index/",
+  "steamFolderName": "Schedule I",
+  "exeNames": ["Schedule I.exe"],
+  "gameInstanceType": "game",
+  "gameSelectionDisplayMode": "visible",
+  "additionalSearchStrings": ["绝命毒师模拟器"],
+  "packageLoader": "recursive-melonloader",
+  "installRules": [],
+  "relativeFileExclusions": null
+}

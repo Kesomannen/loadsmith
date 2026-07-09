@@ -6,7 +6,7 @@ use loadsmith_core::PackageRef;
 use loadsmith_thunderstore::PackageRefExt;
 use serde::Deserialize;
 use tokio::fs;
-use tracing::{debug, info};
+use tracing::{Level, debug, info};
 
 #[derive(Debug, Deserialize)]
 struct Packages(HashMap<String, Vec<PackageRef>>);
@@ -14,7 +14,11 @@ struct Packages(HashMap<String, Vec<PackageRef>>);
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::builder()
+                .with_default_directive(Level::INFO.into())
+                .from_env_lossy(),
+        )
         .init();
 
     let out_path = std::env::args()
@@ -81,13 +85,15 @@ pub async fn extract_file_list(bytes: Bytes) -> Result<Vec<String>> {
     let reader = std::io::Cursor::new(bytes);
     let mut archive = zip::ZipArchive::new(reader)?;
 
-    let file_list = (0..archive.len())
+    let mut file_list = (0..archive.len())
         .filter_map(|i| match archive.by_index(i) {
             Ok(entry) if entry.is_dir() => None,
             Ok(entry) => Some(Ok(entry.mangled_name().to_string_lossy().into_owned())),
             Err(err) => Some(Err(anyhow!(err).context("failed to read zip entry"))),
         })
         .collect::<Result<Vec<_>>>()?;
+
+    file_list.sort();
 
     Ok(file_list)
 }

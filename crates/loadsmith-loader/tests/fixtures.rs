@@ -5,7 +5,7 @@ use std::{
 
 use loadsmith_core::PackageRef;
 use loadsmith_install::InstallRuleset;
-use loadsmith_loader::{BepInEx, Loader};
+use loadsmith_loader::{BepInEx, Loader, MelonLoader};
 
 fn test_fixture_category(category: &str, rules: &InstallRuleset) {
     let category_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -56,5 +56,29 @@ fn bep_in_ex_package() {
     test_fixture_category(
         "BepInEx/package",
         &BepInEx::with_default_rules().package_install_rules(),
+    );
+}
+
+#[test]
+fn melon_loader_loader() {
+    test_fixture_category(
+        "MelonLoader/loader",
+        &MelonLoader::with_default_legacy_rules().loader_install_rules(),
+    );
+}
+
+#[test]
+fn melon_loader_package_legacy() {
+    test_fixture_category(
+        "MelonLoader/package_legacy",
+        &MelonLoader::with_default_legacy_rules().package_install_rules(),
+    );
+}
+
+#[test]
+fn melon_loader_package_recursive() {
+    test_fixture_category(
+        "MelonLoader/package_recursive",
+        &MelonLoader::with_default_recursive_rules().package_install_rules(),
     );
 }

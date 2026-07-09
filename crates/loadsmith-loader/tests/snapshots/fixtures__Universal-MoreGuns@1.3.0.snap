@@ -1,0 +1,9 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+CHANGELOG.md: Mods/Universal-MoreGuns/CHANGELOG.md
+MoreGunsMono.dll: Mods/Universal-MoreGuns/MoreGunsMono.dll
+README.md: Mods/Universal-MoreGuns/README.md
+icon.png: Mods/Universal-MoreGuns/icon.png
+manifest.json: Mods/Universal-MoreGuns/manifest.json

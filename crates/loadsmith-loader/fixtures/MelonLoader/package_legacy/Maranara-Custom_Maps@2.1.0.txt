@@ -1,4 +1,4 @@
-BepInEx/plugins/MoreCompany.dll
+Mods/CustomMaps.dll
 README.md
 icon.png
 manifest.json

@@ -1,4 +1,5 @@
-BepInEx/plugins/MoreCompany.dll
+CHANGELOG.md
+MoreGunsMono.dll
 README.md
 icon.png
 manifest.json

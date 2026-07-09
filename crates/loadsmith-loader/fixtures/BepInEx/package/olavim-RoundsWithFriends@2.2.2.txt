@@ -1,4 +1,4 @@
-plugins/RoundsWithFriends.dll
+README.md
 icon.png
 manifest.json
-README.md
+plugins/RoundsWithFriends.dll

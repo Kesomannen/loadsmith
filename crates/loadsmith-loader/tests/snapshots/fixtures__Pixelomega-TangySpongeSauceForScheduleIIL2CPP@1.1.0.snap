@@ -1,0 +1,23 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+CHANGELOG.md: Mods/Pixelomega-TangySpongeSauceForScheduleIIL2CPP/CHANGELOG.md
+MelonLoader/Dependencies/Il2CppAssemblyGenerator/Config.cfg: Mods/Pixelomega-TangySpongeSauceForScheduleIIL2CPP/MelonLoader/Dependencies/Il2CppAssemblyGenerator/Config.cfg
+MelonLoader/Dependencies/Il2CppAssemblyGenerator/Il2CppAssemblyGenerator.deps.json: Mods/Pixelomega-TangySpongeSauceForScheduleIIL2CPP/MelonLoader/Dependencies/Il2CppAssemblyGenerator/Il2CppAssemblyGenerator.deps.json
+MelonLoader/Dependencies/SupportModules/Il2Cpp.deps.json: Mods/Pixelomega-TangySpongeSauceForScheduleIIL2CPP/MelonLoader/Dependencies/SupportModules/Il2Cpp.deps.json
+MelonLoader/Documentation/NOTICE.txt: Mods/Pixelomega-TangySpongeSauceForScheduleIIL2CPP/MelonLoader/Documentation/NOTICE.txt
+MelonLoader/net35/MelonLoader.xml: Mods/Pixelomega-TangySpongeSauceForScheduleIIL2CPP/MelonLoader/net35/MelonLoader.xml
+MelonLoader/net6/MelonLoader.NativeHost.deps.json: Mods/Pixelomega-TangySpongeSauceForScheduleIIL2CPP/MelonLoader/net6/MelonLoader.NativeHost.deps.json
+MelonLoader/net6/MelonLoader.deps.json: Mods/Pixelomega-TangySpongeSauceForScheduleIIL2CPP/MelonLoader/net6/MelonLoader.deps.json
+MelonLoader/net6/MelonLoader.runtimeconfig.json: Mods/Pixelomega-TangySpongeSauceForScheduleIIL2CPP/MelonLoader/net6/MelonLoader.runtimeconfig.json
+MelonLoader/net6/MelonLoader.xml: Mods/Pixelomega-TangySpongeSauceForScheduleIIL2CPP/MelonLoader/net6/MelonLoader.xml
+MelonLoader/net6/UnityEngine.Il2CppAssetBundleManager.deps.json: Mods/Pixelomega-TangySpongeSauceForScheduleIIL2CPP/MelonLoader/net6/UnityEngine.Il2CppAssetBundleManager.deps.json
+MelonLoader/net6/UnityEngine.Il2CppImageConversionManager.deps.json: Mods/Pixelomega-TangySpongeSauceForScheduleIIL2CPP/MelonLoader/net6/UnityEngine.Il2CppImageConversionManager.deps.json
+Mods/MoreRealisticLaundering.json: Mods/Pixelomega-TangySpongeSauceForScheduleIIL2CPP/Mods/MoreRealisticLaundering.json
+README.md: Mods/Pixelomega-TangySpongeSauceForScheduleIIL2CPP/README.md
+UserData/Loader.cfg: UserData/Pixelomega-TangySpongeSauceForScheduleIIL2CPP/Loader.cfg
+UserData/MelonPreferences.cfg: UserData/Pixelomega-TangySpongeSauceForScheduleIIL2CPP/MelonPreferences.cfg
+UserData/MoreRealisticLaundering/MoreRealisticLaundering.json: UserData/Pixelomega-TangySpongeSauceForScheduleIIL2CPP/MoreRealisticLaundering/MoreRealisticLaundering.json
+icon.png: Mods/Pixelomega-TangySpongeSauceForScheduleIIL2CPP/icon.png
+manifest.json: Mods/Pixelomega-TangySpongeSauceForScheduleIIL2CPP/manifest.json

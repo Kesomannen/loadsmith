@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
-use camino::Utf8PathBuf;
+use camino::Utf8Path;
 use loadsmith_install::{OwnedInstallRuleset, RouteRule};
-use loadsmith_loader::BepInEx;
+use loadsmith_loader::{BepInEx, MelonLoader};
 use loadsmith_platform::Platform as LoadsmithPlatform;
 use thunderstore::models::schema::{self, Distribution};
 
@@ -17,6 +17,21 @@ pub fn r2_config_to_loader(
 
             Ok(Some(Box::new(loader)))
         }
+        schema::Loader::MelonLoader => {
+            let loader = MelonLoader::with_rules(convert_ruleset(&config.install_rules)?);
+
+            Ok(Some(Box::new(loader)))
+        }
+        schema::Loader::RecursiveMelonLoader => {
+            let mut loader = MelonLoader::with_default_recursive_rules();
+            let ruleset = convert_ruleset(&config.install_rules)?;
+
+            for rule in ruleset.into_rules() {
+                loader.add_install_rule(rule);
+            }
+
+            Ok(Some(Box::new(loader)))
+        }
         _ => Ok(None),
     }
 }
@@ -25,8 +40,11 @@ fn convert_ruleset(rules: &[schema::InstallRule]) -> Result<OwnedInstallRuleset>
     let default_rule_index = rules.iter().position(|rule| rule.is_default_location);
     let converted = rules
         .iter()
-        .map(rule_to_loadsmith)
-        .collect::<Result<Vec<_>>>()?;
+        .map(|rule| rule_to_loadsmith(rule, Utf8Path::new("")))
+        .collect::<Result<Vec<_>>>()?
+        .into_iter()
+        .flatten()
+        .collect();
 
     Ok(
         OwnedInstallRuleset::with_rules(converted, default_rule_index)
@@ -34,7 +52,10 @@ fn convert_ruleset(rules: &[schema::InstallRule]) -> Result<OwnedInstallRuleset>
     )
 }
 
-fn rule_to_loadsmith(rule: &schema::InstallRule) -> Result<loadsmith_install::InstallRule> {
+fn rule_to_loadsmith(
+    rule: &schema::InstallRule,
+    prefix: &Utf8Path,
+) -> Result<Vec<loadsmith_install::InstallRule>> {
     use schema::TrackingMethod;
 
     let name = rule
@@ -71,15 +92,28 @@ fn rule_to_loadsmith(rule: &schema::InstallRule) -> Result<loadsmith_install::In
         TrackingMethod::State | TrackingMethod::None
     );
 
-    let rule = loadsmith_install::InstallRule::Route(
-        RouteRule::new(name, Utf8PathBuf::from(rule.route.clone()))
+    let target = prefix.join(&rule.route);
+    let new_prefix = prefix.join(&name);
+
+    let root_rule = loadsmith_install::InstallRule::Route(
+        RouteRule::new_with_target(name, target)
             .with_file_extensions(extensions)
             .with_subdir(subdir)
             .with_flatten(flatten)
             .with_mutable(mutable),
     );
 
-    Ok(rule)
+    let sub_rules = rule
+        .sub_routes
+        .iter()
+        .map(|sub_route| rule_to_loadsmith(sub_route, &new_prefix))
+        .collect::<Result<Vec<Vec<_>>>>()?;
+
+    let rules = std::iter::once(root_rule)
+        .chain(sub_rules.into_iter().flatten())
+        .collect();
+
+    Ok(rules)
 }
 
 pub fn distribution_into_platform(distribution: Distribution) -> Result<Option<LoadsmithPlatform>> {
@@ -135,9 +169,7 @@ mod test {
         println!("{response:#?}");
     }
 
-    #[test]
-    fn make_loader_lethal_company() {
-        let json = include_str!("../fixtures/r2modman-lethal-company.json");
+    fn assert_loader_snapshot(name: &'static str, json: &str) {
         let r2config: schema::R2ModmanConfig =
             serde_json::from_str(json).expect("failed to parse loader config");
 
@@ -145,6 +177,24 @@ mod test {
             .expect("failed to make loader")
             .expect("loader is None");
 
-        insta::assert_debug_snapshot!(loader);
+        insta::assert_debug_snapshot!(name, loader);
+    }
+
+    #[test]
+    fn make_loader_lethal_company() {
+        let json = include_str!("../fixtures/r2modman-lethal-company.json");
+        assert_loader_snapshot("lethal-company", json);
+    }
+
+    #[test]
+    fn make_loader_boneworks() {
+        let json = include_str!("../fixtures/r2modman-boneworks.json");
+        assert_loader_snapshot("boneworks", json);
+    }
+
+    #[test]
+    fn make_loader_schedule_i() {
+        let json = include_str!("../fixtures/r2modman-schedule-i.json");
+        assert_loader_snapshot("schedule-i", json);
     }
 }

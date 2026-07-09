@@ -2,17 +2,17 @@ BepInExPack_ROUNDS/BepInEx/config/BepInEx.cfg
 BepInExPack_ROUNDS/BepInEx/core/0Harmony.dll
 BepInExPack_ROUNDS/BepInEx/core/0Harmony.xml
 BepInExPack_ROUNDS/BepInEx/core/0Harmony20.dll
-BepInExPack_ROUNDS/BepInEx/core/BepInEx.dll
 BepInExPack_ROUNDS/BepInEx/core/BepInEx.Harmony.dll
 BepInExPack_ROUNDS/BepInEx/core/BepInEx.Harmony.xml
 BepInExPack_ROUNDS/BepInEx/core/BepInEx.Preloader.dll
 BepInExPack_ROUNDS/BepInEx/core/BepInEx.Preloader.xml
+BepInExPack_ROUNDS/BepInEx/core/BepInEx.dll
 BepInExPack_ROUNDS/BepInEx/core/BepInEx.xml
 BepInExPack_ROUNDS/BepInEx/core/HarmonyXInterop.dll
-BepInExPack_ROUNDS/BepInEx/core/Mono.Cecil.dll
 BepInExPack_ROUNDS/BepInEx/core/Mono.Cecil.Mdb.dll
 BepInExPack_ROUNDS/BepInEx/core/Mono.Cecil.Pdb.dll
 BepInExPack_ROUNDS/BepInEx/core/Mono.Cecil.Rocks.dll
+BepInExPack_ROUNDS/BepInEx/core/Mono.Cecil.dll
 BepInExPack_ROUNDS/BepInEx/core/MonoMod.RuntimeDetour.dll
 BepInExPack_ROUNDS/BepInEx/core/MonoMod.RuntimeDetour.xml
 BepInExPack_ROUNDS/BepInEx/core/MonoMod.Utils.dll
@@ -20,6 +20,6 @@ BepInExPack_ROUNDS/BepInEx/core/MonoMod.Utils.xml
 BepInExPack_ROUNDS/corlibs/mscorlib.dll
 BepInExPack_ROUNDS/doorstop_config.ini
 BepInExPack_ROUNDS/winhttp.dll
+README.md
 icon.png
 manifest.json
-README.md

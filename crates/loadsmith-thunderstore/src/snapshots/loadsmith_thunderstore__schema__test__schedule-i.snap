@@ -1,0 +1,33 @@
+---
+source: crates/loadsmith-thunderstore/src/schema.rs
+expression: loader
+---
+MelonLoader {
+    package_install_ruleset: OwnedInstallRuleset {
+        rules: [
+            Route(
+                RouteRule {
+                    name: "",
+                    target: "Mods",
+                    file_extensions: [],
+                    subdir: true,
+                    flatten: false,
+                    mutable: false,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "UserData",
+                    target: "UserData",
+                    file_extensions: [],
+                    subdir: true,
+                    flatten: true,
+                    mutable: true,
+                },
+            ),
+        ],
+        default_rule: Some(
+            0,
+        ),
+    },
+}

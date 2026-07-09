@@ -1,0 +1,10 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+CHANGELOG.md: UserData/ModManager/UlvakSkillz-RumbleModdingAPI/CHANGELOG.md
+Mods/RumbleModdingAPI.dll: Mods/RumbleModdingAPI.dll
+Mods/RumbleModdingAPI.xml: Mods/RumbleModdingAPI.xml
+README.md: UserData/ModManager/UlvakSkillz-RumbleModdingAPI/README.md
+icon.png: UserData/ModManager/UlvakSkillz-RumbleModdingAPI/icon.png
+manifest.json: UserData/ModManager/UlvakSkillz-RumbleModdingAPI/manifest.json

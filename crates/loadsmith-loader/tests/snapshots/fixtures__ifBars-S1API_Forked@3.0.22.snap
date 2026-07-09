@@ -1,0 +1,10 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+Mods/S1API.Il2Cpp.MelonLoader.dll: Mods/ifBars-S1API_Forked/Mods/S1API.Il2Cpp.MelonLoader.dll
+Mods/S1API.Mono.MelonLoader.dll: Mods/ifBars-S1API_Forked/Mods/S1API.Mono.MelonLoader.dll
+Plugins/S1APILoader.MelonLoader.dll: Mods/ifBars-S1API_Forked/Plugins/S1APILoader.MelonLoader.dll
+README.md: Mods/ifBars-S1API_Forked/README.md
+icon.png: Mods/ifBars-S1API_Forked/icon.png
+manifest.json: Mods/ifBars-S1API_Forked/manifest.json

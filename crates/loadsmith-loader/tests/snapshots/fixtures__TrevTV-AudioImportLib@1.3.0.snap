@@ -1,0 +1,8 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+Mods/AudioImportLib.dll: Mods/AudioImportLib.dll
+README.md: UserData/ModManager/TrevTV-AudioImportLib/README.md
+icon.png: UserData/ModManager/TrevTV-AudioImportLib/icon.png
+manifest.json: UserData/ModManager/TrevTV-AudioImportLib/manifest.json
