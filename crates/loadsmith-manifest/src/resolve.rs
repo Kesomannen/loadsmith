@@ -18,7 +18,8 @@ where
     I: IntoIterator<Item = Dependency>,
 {
     // simple BFS that uses the newest version of each encountered package,
-    // while respecting the exisitng lockfile versions
+    // while respecting the exisitng lockfile versions and version requirements
+    // conflicts are not handled
 
     let mut queue = deps
         .into_iter()
@@ -38,9 +39,9 @@ where
 
         let existing = existing_lockfile
             .and_then(|lockfile| lockfile.package_by_id(&id))
-            .and_then(|locked| {
-                if version_range.matches(&locked.ref_.version) {
-                    Some(locked)
+            .and_then(|existing| {
+                if version_range.matches(&existing.ref_.version) {
+                    Some(existing)
                 } else {
                     None
                 }
@@ -49,7 +50,9 @@ where
         let locked = if let Some(existing) = existing {
             trace!(%id, version = %existing.ref_.version, source, "using locked version of package");
 
-            existing.clone()
+            let mut existing = existing.clone();
+            existing.transitive = transitive;
+            existing
         } else {
             let registry = registries
                 .get(&source)

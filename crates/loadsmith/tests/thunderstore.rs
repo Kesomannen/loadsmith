@@ -1,16 +1,11 @@
 use std::{
-    fs::File,
-    io::{BufReader, Cursor},
+    io::Cursor,
     path::{Path, PathBuf},
 };
 
 use anyhow::{Context, anyhow};
 use bytes::Bytes;
-use loadsmith::{
-    core::{InstalledPackage, PackageRef},
-    install::InstallRuleset,
-    thunderstore::PackageRefExt,
-};
+use loadsmith::{InstallRuleset, InstalledPackage, PackageRef, thunderstore::PackageRefExt};
 use serde::{Deserialize, Serialize};
 use tempfile::TempDir;
 use walkdir::WalkDir;
@@ -18,7 +13,7 @@ use walkdir::WalkDir;
 async fn get_loader(
     client: &thunderstore::Client,
     name: &str,
-) -> anyhow::Result<Box<dyn loadsmith::loader::Loader>> {
+) -> anyhow::Result<Box<dyn loadsmith::Loader>> {
     let schema = client.get_schema("dev").await?;
     let lethal_company = schema
         .games
@@ -50,10 +45,10 @@ fn extract_and_install_package(
     ruleset: InstallRuleset,
 ) -> anyhow::Result<(TempDir, InstalledPackage)> {
     let extract_dir = tempfile::tempdir()?;
-    loadsmith::install::extract(Cursor::new(bytes), &package, ruleset, extract_dir.path())?;
+    loadsmith::extract(Cursor::new(bytes), &package, ruleset, extract_dir.path())?;
 
     let install_dir = tempfile::tempdir()?;
-    let (install_manifest, _overwritten_files) = loadsmith::install::install(
+    let (install_manifest, _overwritten_files) = loadsmith::install(
         package,
         ruleset,
         extract_dir.path(),
@@ -73,16 +68,11 @@ struct ListedFile {
 impl ListedFile {
     fn from_path(path: PathBuf, root: &Path) -> anyhow::Result<Self> {
         let relative_path = path.strip_prefix(root)?.to_path_buf();
-
-        let mut file = File::open(&path).map(BufReader::new)?;
-        let mut hasher = blake3::Hasher::new();
-        std::io::copy(&mut file, &mut hasher)?;
-
-        let hash = hasher.finalize();
+        let hash = loadsmith_util::hash_file_to_string(path)?;
 
         Ok(ListedFile {
             file: relative_path,
-            hash: hash.to_hex().to_string(),
+            hash,
         })
     }
 }
@@ -137,8 +127,7 @@ async fn test_install_flow(
 
     insta::assert_yaml_snapshot!(install_manifest.ref_.to_string(), files);
 
-    loadsmith::install::uninstall(install_manifest, &profile)
-        .context("failed to uninstall package")?;
+    loadsmith::uninstall(install_manifest, &profile).context("failed to uninstall package")?;
 
     let files = list_files(&profile).context("failed to list files after uninstall")?;
 

@@ -1,12 +1,13 @@
 use std::{
     fs,
-    io::{self, Read, Seek},
+    io::{self, Cursor, Read, Seek},
     path::{Path, PathBuf},
     sync::LazyLock,
 };
 
 use camino::{Utf8Path, Utf8PathBuf};
 use globset::{Glob, GlobSet, GlobSetBuilder};
+use loadsmith_util::{hash_file, hash_reader};
 use serde::de::DeserializeOwned;
 use tracing::trace;
 use zip::ZipArchive;
@@ -67,12 +68,25 @@ impl<R: Read + Seek> ImportFile<R> {
             }
 
             let target_path = target.join(&relative_path);
+
+            let mut buf = Vec::new();
+            reader.read_to_end(&mut buf)?;
+
+            if target_path.exists() {
+                if hash_reader(&*buf)? == hash_file(&target_path)? {
+                    trace!(path = %relative_path, "skipping identical file");
+                    return Ok(());
+                }
+            }
+
+            trace!(path = %relative_path, "importing file");
+
             if let Some(parent) = target_path.parent() {
                 fs::create_dir_all(parent)?;
             }
 
             let mut file = fs::File::create(target_path)?;
-            io::copy(reader, &mut file)?;
+            io::copy(&mut Cursor::new(buf), &mut file)?;
 
             Ok(())
         })

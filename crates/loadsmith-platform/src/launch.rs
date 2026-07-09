@@ -65,21 +65,17 @@ fn create_base_steam_command() -> Result<Command> {
 
 #[cfg(target_os = "linux")]
 fn create_flatpak_steam_command() -> Result<Option<Command>> {
-    use std::process::Stdio;
     use tracing::warn;
 
     let mut check_command = Command::new("flatpak");
-    check_command
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .args(["info", "com.valvesoftware.Steam"]);
+    check_command.args(["info", "com.valvesoftware.Steam"]);
 
     debug!(
         command = ?check_command,
         "checking for steam flatpak installation"
     );
 
-    match check_command.status() {
+    match check_command.output().map(|out| out.status) {
         Ok(status) if status.success() => {
             debug!("steam flatpak installation found");
 

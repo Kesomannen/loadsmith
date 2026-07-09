@@ -9,6 +9,7 @@ loadsmith-loader = { path = "../loadsmith-loader" }
 loadsmith-install = { path = "../loadsmith-install" }
 loadsmith-registry = { path = "../loadsmith-registry" }
 loadsmith-platform = { path = "../loadsmith-platform" }
+loadsmith-util = { path = "../loadsmith-util" }
 
 serde = { workspace = true }
 serde_yaml_ng = { workspace = true }

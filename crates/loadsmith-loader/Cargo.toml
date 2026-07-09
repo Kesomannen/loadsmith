@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 loadsmith-core = { path = "../loadsmith-core" }
 loadsmith-install = { path = "../loadsmith-install" }
+loadsmith-util = { path = "../loadsmith-util" }
 
 camino = { workspace = true }
 thiserror = { workspace = true }

@@ -2,6 +2,7 @@ use std::{borrow::Cow, fmt::Debug, fs, path::Path};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use globset::GlobSet;
+use loadsmith_util::hash_file;
 use tracing::trace;
 use walkdir::WalkDir;
 
@@ -71,14 +72,26 @@ impl<'a> LaunchContext<'a> {
         let src = relative_source.as_ref();
         let target = relative_target.as_ref();
 
+        let profile_path = self.profile_path.as_std_path().join(src);
+        let game_path = self.game_path.as_std_path().join(target);
+
+        if game_path.is_file() {
+            if hash_file(&profile_path)? == hash_file(&game_path)? {
+                trace!(
+                    src = %src.display(),
+                    target = %target.display(),
+                    "skipping copy, file already exists and is identical"
+                );
+
+                return Ok(());
+            }
+        }
+
         trace!(
             src = %src.display(),
             target = %target.display(),
             "copy file to game directory"
         );
-
-        let profile_path = self.profile_path.as_std_path().join(src);
-        let game_path = self.game_path.as_std_path().join(target);
 
         if let Some(parent) = game_path.parent() {
             fs::create_dir_all(parent)?;

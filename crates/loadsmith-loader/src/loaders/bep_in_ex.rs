@@ -85,6 +85,7 @@ impl Loader for BepInEx {
                 )
                 .add(glob!("doorstop_libs/*"))
                 .add(glob!("dotnet/*"))
+                .add(glob!("corlibs/*"))
                 .build()
                 .expect("constant globs should be valid")
         });
