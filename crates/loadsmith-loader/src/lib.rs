@@ -1,6 +1,7 @@
-use std::{fmt::Debug, path::PathBuf};
+use std::{fmt::Debug, path::PathBuf, sync::LazyLock};
 
 use camino::Utf8PathBuf;
+use globset::{Glob, GlobBuilder, GlobSet};
 use loadsmith_core::PackageRef;
 use loadsmith_install::InstallRuleset;
 
@@ -22,8 +23,14 @@ pub trait Loader: Debug + Send + Sync {
     fn loader_install_rules(&self) -> InstallRuleset<'_>;
 
     fn prepare_launch(&self, ctx: &LaunchContext) -> Result<()> {
-        let _ = ctx;
-        Ok(())
+        static GLOB_SET: LazyLock<GlobSet> = LazyLock::new(|| {
+            GlobSet::builder()
+                .add(top_level_dll_glob())
+                .build()
+                .expect("constant globs should be valid")
+        });
+
+        ctx.copy_glob_to_game(&GLOB_SET)
     }
     fn generate_launch_args(&self, ctx: &LaunchContext) -> Result<LaunchArgs>;
 
@@ -43,6 +50,13 @@ pub trait Loader: Debug + Send + Sync {
     fn proxy_dll(&self) -> Option<PathBuf> {
         None
     }
+}
+
+fn top_level_dll_glob() -> Glob {
+    GlobBuilder::new("*.dll")
+        .literal_separator(true)
+        .build()
+        .expect("constant glob should be valid")
 }
 
 #[cfg(test)]

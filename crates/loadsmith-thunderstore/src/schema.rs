@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use camino::Utf8Path;
 use globset::{Glob, GlobSet};
 use loadsmith_install::{OwnedInstallRuleset, RouteRule};
-use loadsmith_loader::{BepInEx, MelonLoader, Shimloader};
+use loadsmith_loader::{BepInEx, MelonLoader, ReturnOfModding, Shimloader};
 use loadsmith_platform::Platform as LoadsmithPlatform;
 use thunderstore::models::schema::{self, Distribution};
 use tracing::warn;
@@ -43,6 +43,14 @@ pub fn r2_config_to_loader(
         }
         schema::Loader::Shimloader => {
             let loader = Shimloader::with_rules(convert_ruleset(config)?);
+            Ok(Some(Box::new(loader)))
+        }
+        schema::Loader::ReturnOfModding => {
+            let loader = ReturnOfModding::with_rules(convert_ruleset(config)?);
+            Ok(Some(Box::new(loader)))
+        }
+        schema::Loader::BepisLoader => {
+            let loader = BepInEx::with_rules(convert_ruleset(config)?);
             Ok(Some(Box::new(loader)))
         }
         _ => Ok(None),

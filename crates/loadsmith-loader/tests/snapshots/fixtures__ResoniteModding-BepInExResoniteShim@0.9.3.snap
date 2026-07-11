@@ -1,0 +1,9 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+LICENSE: BepInEx/plugins/ResoniteModding-BepInExResoniteShim/LICENSE
+README.md: BepInEx/plugins/ResoniteModding-BepInExResoniteShim/README.md
+icon.png: BepInEx/plugins/ResoniteModding-BepInExResoniteShim/icon.png
+manifest.json: BepInEx/plugins/ResoniteModding-BepInExResoniteShim/manifest.json
+plugins/BepInExResoniteShim/BepInExResoniteShim.dll: BepInEx/plugins/ResoniteModding-BepInExResoniteShim/BepInExResoniteShim/BepInExResoniteShim.dll

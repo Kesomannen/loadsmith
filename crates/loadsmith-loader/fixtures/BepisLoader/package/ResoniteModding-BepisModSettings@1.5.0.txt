@@ -1,0 +1,7 @@
+LICENSE
+README.md
+icon.png
+manifest.json
+plugins/BepisModSettings/BepisModSettings.dll
+plugins/BepisModSettings/BepisModSettings.pdb
+plugins/BepisModSettings/Locale/en.json

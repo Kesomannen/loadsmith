@@ -186,6 +186,16 @@ impl OwnedInstallRuleset {
         self.rules.push(rule);
     }
 
+    pub fn insert(&mut self, index: usize, rule: InstallRule) {
+        if let Some(default_index) = self.default_rule {
+            if index <= default_index {
+                self.default_rule = Some(default_index + 1);
+            }
+        }
+
+        self.rules.insert(index, rule);
+    }
+
     pub fn set_exclude(&mut self, exclude: GlobSet) {
         self.exclude = Some(exclude);
     }

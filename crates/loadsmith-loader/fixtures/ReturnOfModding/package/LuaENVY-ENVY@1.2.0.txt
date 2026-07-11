@@ -1,0 +1,8 @@
+CHANGELOG.md
+LICENSE
+README.md
+def.lua
+def_auto.lua
+icon.png
+main.lua
+manifest.json

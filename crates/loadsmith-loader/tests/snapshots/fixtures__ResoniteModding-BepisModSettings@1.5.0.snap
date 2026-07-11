@@ -1,0 +1,11 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+LICENSE: BepInEx/plugins/ResoniteModding-BepisModSettings/LICENSE
+README.md: BepInEx/plugins/ResoniteModding-BepisModSettings/README.md
+icon.png: BepInEx/plugins/ResoniteModding-BepisModSettings/icon.png
+manifest.json: BepInEx/plugins/ResoniteModding-BepisModSettings/manifest.json
+plugins/BepisModSettings/BepisModSettings.dll: BepInEx/plugins/ResoniteModding-BepisModSettings/BepisModSettings/BepisModSettings.dll
+plugins/BepisModSettings/BepisModSettings.pdb: BepInEx/plugins/ResoniteModding-BepisModSettings/BepisModSettings/BepisModSettings.pdb
+plugins/BepisModSettings/Locale/en.json: BepInEx/plugins/ResoniteModding-BepisModSettings/BepisModSettings/Locale/en.json

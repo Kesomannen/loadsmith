@@ -80,10 +80,10 @@ impl Loader for MelonLoader {
     fn loader_install_rules(&self) -> InstallRuleset<'_> {
         static RULES: LazyLock<Vec<InstallRule>> = LazyLock::new(|| {
             vec![
-                glob_rule!("{version,dobby}.dll" => ".").into(),
                 glob_rule!("MelonLoader/{Dependencies,Documentation,net*}/*" => ".")
                     .use_links(true)
                     .into(),
+                glob_rule!("{version,dobby}.dll" => ".").into(),
             ]
         });
 
@@ -92,17 +92,6 @@ impl Loader for MelonLoader {
 
     fn package_install_rules(&self) -> InstallRuleset<'_> {
         self.package_install_ruleset.as_ref()
-    }
-
-    fn prepare_launch(&self, ctx: &LaunchContext) -> Result<()> {
-        static GLOB_SET: LazyLock<GlobSet> = LazyLock::new(|| {
-            GlobSet::builder()
-                .add(super::top_level_dll_glob())
-                .build()
-                .expect("constant globs should be valid")
-        });
-
-        ctx.copy_glob_to_game(&GLOB_SET)
     }
 
     fn generate_launch_args(&self, ctx: &LaunchContext) -> Result<LaunchArgs> {
@@ -211,7 +200,7 @@ mod tests {
 
         assert!(
             rules
-                .find_rule_for_mapped_path("MelonLoader/Dependencies/Name/file.dll")
+                .find_rule_for_mapped_path("./MelonLoader/Dependencies/Name/file.dll")
                 .unwrap()
                 .use_links()
         );

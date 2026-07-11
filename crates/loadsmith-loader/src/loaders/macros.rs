@@ -8,6 +8,9 @@ macro_rules! glob {
 #[macro_export]
 macro_rules! glob_rule {
     ($pattern:expr => $destination:expr) => {
-        loadsmith_install::GlobRule::new(crate::glob!($pattern), Utf8Path::new($destination))
+        loadsmith_install::GlobRule::new(
+            crate::glob!($pattern),
+            camino::Utf8Path::new($destination),
+        )
     };
 }

@@ -1,0 +1,17 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+CHANGELOG.md: BepInEx/plugins/Nytra-InterprocessLib/CHANGELOG.md
+LICENSE: BepInEx/plugins/Nytra-InterprocessLib/LICENSE
+README.md: BepInEx/plugins/Nytra-InterprocessLib/README.md
+Renderer/BepInEx/plugins/InterprocessLib.BepInEx/InterprocessLib.BepInEx_Extensions.dll: Renderer/BepInEx/plugins/Nytra-InterprocessLib/BepInEx/plugins/InterprocessLib.BepInEx/InterprocessLib.BepInEx_Extensions.dll
+Renderer/BepInEx/plugins/InterprocessLib.BepInEx/InterprocessLib.BepInEx_Extensions.pdb: Renderer/BepInEx/plugins/Nytra-InterprocessLib/BepInEx/plugins/InterprocessLib.BepInEx/InterprocessLib.BepInEx_Extensions.pdb
+Renderer/BepInEx/plugins/InterprocessLib.BepInEx/InterprocessLib.Unity.dll: Renderer/BepInEx/plugins/Nytra-InterprocessLib/BepInEx/plugins/InterprocessLib.BepInEx/InterprocessLib.Unity.dll
+Renderer/BepInEx/plugins/InterprocessLib.BepInEx/InterprocessLib.Unity.pdb: Renderer/BepInEx/plugins/Nytra-InterprocessLib/BepInEx/plugins/InterprocessLib.BepInEx/InterprocessLib.Unity.pdb
+icon.png: BepInEx/plugins/Nytra-InterprocessLib/icon.png
+manifest.json: BepInEx/plugins/Nytra-InterprocessLib/manifest.json
+plugins/InterprocessLib.BepisLoader/InterprocessLib.BepisLoader_Extensions.dll: BepInEx/plugins/Nytra-InterprocessLib/InterprocessLib.BepisLoader/InterprocessLib.BepisLoader_Extensions.dll
+plugins/InterprocessLib.BepisLoader/InterprocessLib.BepisLoader_Extensions.pdb: BepInEx/plugins/Nytra-InterprocessLib/InterprocessLib.BepisLoader/InterprocessLib.BepisLoader_Extensions.pdb
+plugins/InterprocessLib.BepisLoader/InterprocessLib.FrooxEngine.dll: BepInEx/plugins/Nytra-InterprocessLib/InterprocessLib.BepisLoader/InterprocessLib.FrooxEngine.dll
+plugins/InterprocessLib.BepisLoader/InterprocessLib.FrooxEngine.pdb: BepInEx/plugins/Nytra-InterprocessLib/InterprocessLib.BepisLoader/InterprocessLib.FrooxEngine.pdb

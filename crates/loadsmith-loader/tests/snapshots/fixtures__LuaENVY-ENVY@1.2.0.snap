@@ -1,0 +1,12 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+CHANGELOG.md: ReturnOfModding/plugins/LuaENVY-ENVY/CHANGELOG.md
+LICENSE: ReturnOfModding/plugins/LuaENVY-ENVY/LICENSE
+README.md: ReturnOfModding/plugins/LuaENVY-ENVY/README.md
+def.lua: ReturnOfModding/plugins/LuaENVY-ENVY/def.lua
+def_auto.lua: ReturnOfModding/plugins/LuaENVY-ENVY/def_auto.lua
+icon.png: ReturnOfModding/plugins/LuaENVY-ENVY/icon.png
+main.lua: ReturnOfModding/plugins/LuaENVY-ENVY/main.lua
+manifest.json: ReturnOfModding/plugins/LuaENVY-ENVY/manifest.json

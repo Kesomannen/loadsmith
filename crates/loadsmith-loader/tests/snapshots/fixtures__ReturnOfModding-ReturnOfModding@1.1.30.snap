@@ -1,0 +1,9 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+CHANGELOG.md: ~
+README.md: ~
+ReturnOfModdingPack/version.dll: "./version.dll"
+icon.png: ~
+manifest.json: ~

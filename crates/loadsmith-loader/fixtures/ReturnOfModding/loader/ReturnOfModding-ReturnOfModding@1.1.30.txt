@@ -1,0 +1,5 @@
+CHANGELOG.md
+README.md
+ReturnOfModdingPack/version.dll
+icon.png
+manifest.json

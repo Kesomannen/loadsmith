@@ -28,5 +28,21 @@
   "Shimloader/package": [
     "Gatohost-VoidMod@2.2.0",
     "NynrahGhost-Fusion@0.8108.3"
+  ],
+  "ReturnOfModding/loader": [
+    "Hell2Modding-Hell2Modding@1.0.105",
+    "ReturnOfModding-ReturnOfModding@1.1.30"
+  ],
+  "ReturnOfModding/package": [
+    "ReturnsAPI-ReturnsAPI@0.1.58",
+    "RoRRModdingToolkit-RoRR_Modding_Toolkit@1.2.26",
+    "LuaENVY-ENVY@1.2.0",
+    "RobomandosLab-StarstormReturns@0.1.9"
+  ],
+  "BepisLoader/loader": ["ResoniteModding-BepisLoader@1.6.0"],
+  "BepisLoader/package": [
+    "ResoniteModding-BepisModSettings@1.5.0",
+    "ResoniteModding-BepInExResoniteShim@0.9.3",
+    "Nytra-InterprocessLib@3.0.1"
   ]
 }

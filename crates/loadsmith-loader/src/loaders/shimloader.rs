@@ -1,7 +1,5 @@
-use std::{path::PathBuf, sync::LazyLock};
+use std::{path::PathBuf, sync::LazyLock, vec};
 
-use camino::Utf8Path;
-use globset::GlobSet;
 use loadsmith_install::{InstallRule, InstallRuleset, OwnedInstallRuleset, RouteRule};
 
 use crate::{LaunchArgs, LaunchContext, Loader, Result, glob_rule};
@@ -72,48 +70,38 @@ impl Loader for Shimloader {
         self.package_install_ruleset.as_ref()
     }
 
-    fn prepare_launch(&self, ctx: &LaunchContext) -> Result<()> {
-        static GLOB_SET: LazyLock<GlobSet> = LazyLock::new(|| {
-            GlobSet::builder()
-                .add(super::top_level_dll_glob())
-                .build()
-                .expect("constant globs should be valid")
-        });
-
-        ctx.copy_glob_to_game(&GLOB_SET)
-    }
-
     fn generate_launch_args(&self, ctx: &LaunchContext) -> Result<LaunchArgs> {
-        let mut args = LaunchArgs::new()
-            .arg("--melonloader.basedir")
-            .arg(ctx.profile_path());
+        let path = ctx.profile_path().join("shimloader");
 
-        let mono_assembly_exists = ctx
-            .profile_path()
-            .join("MelonLoader/Managed/Assembly-CSharp.dll")
-            .exists();
-        let il2cpp_assembly_exists = ctx
-            .profile_path()
-            .join("MelonLoader/Il2CppAssemblies/Assembly-CSharp.dll")
-            .exists();
+        let mod_path = path.join("mod");
+        let pak_path = path.join("pak");
+        let cfg_path = path.join("cfg");
 
-        if !mono_assembly_exists && !il2cpp_assembly_exists {
-            args = args.arg("--melonloader.agfregenerate");
-        }
+        let mod_path = ctx.format_proton_path(&mod_path);
+        let pak_path = ctx.format_proton_path(&pak_path);
+        let cfg_path = ctx.format_proton_path(&cfg_path);
+
+        let args = LaunchArgs::new()
+            .arg("--mod-dir")
+            .arg(&*mod_path)
+            .arg("--pak-dir")
+            .arg(&*pak_path)
+            .arg("--cfg-dir")
+            .arg(&*cfg_path);
 
         Ok(args)
     }
 
     fn package_config_dirs(&self) -> Vec<PathBuf> {
-        Vec::new()
+        vec!["shimloader/cfg".into()]
     }
 
     fn log_file(&self) -> Option<PathBuf> {
-        Some("MelonLoader/Latest.log".into())
+        None
     }
 
     fn proxy_dll(&self) -> Option<PathBuf> {
-        None
+        Some("dwmapi.dll".into())
     }
 }
 
@@ -152,11 +140,11 @@ mod tests {
                 false,
             ),
             [
-                "README.md" => "shimloader/mod/README.md",
-                "pak/file" => "shimloader/pak/file",
+                "README.md" => "shimloader/mod/Author-Name/README.md",
+                "pak/file" => "shimloader/pak/Author-Name/file",
                 "cfg/settings.json" => "shimloader/cfg/settings.json",
-                "nested/file.txt" => "shimloader/mod/file.txt",
-                "mypak.pak" => "shimloader/pak/mypak.pak",
+                "nested/file.txt" => "shimloader/mod/Author-Name/file.txt",
+                "mypak.pak" => "shimloader/pak/Author-Name/mypak.pak",
             ]
         );
     }

@@ -1,7 +1,7 @@
 use std::{path::PathBuf, sync::LazyLock};
 
-use camino::{Utf8Path, Utf8PathBuf};
-use globset::GlobSet;
+use camino::Utf8PathBuf;
+use globset::{GlobBuilder, GlobSet};
 use loadsmith_install::{InstallRule, InstallRuleset, OwnedInstallRuleset, RouteRule};
 
 use crate::{Error, LaunchArgs, LaunchContext, Loader, Result, doorstop, glob, glob_rule};
@@ -35,8 +35,12 @@ impl BepInEx {
         .expect("rules are not empty so there should always be a valid default rule index")
     }
 
-    pub fn add_install_rule(&mut self, rule: InstallRule) {
-        self.package_install_ruleset.add(rule);
+    pub fn add_install_rule(&mut self, rule: impl Into<InstallRule>) {
+        self.package_install_ruleset.add(rule.into());
+    }
+
+    pub fn insert_install_rule(&mut self, index: usize, rule: impl Into<InstallRule>) {
+        self.package_install_ruleset.insert(index, rule.into());
     }
 }
 
@@ -65,9 +69,15 @@ impl Loader for BepInEx {
     }
 
     fn prepare_launch(&self, ctx: &LaunchContext) -> Result<()> {
-        static GLOB_SET: LazyLock<GlobSet> = LazyLock::new(|| {
+        static INCLUDE_SET: LazyLock<GlobSet> = LazyLock::new(|| {
             GlobSet::builder()
-                .add(super::top_level_dll_glob())
+                .add(
+                    // copy all loose files
+                    GlobBuilder::new("*")
+                        .literal_separator(true)
+                        .build()
+                        .expect("constant glob should be valid"),
+                )
                 .add(glob!("doorstop_libs/*"))
                 .add(glob!("dotnet/*"))
                 .add(glob!("corlibs/*"))
@@ -75,7 +85,7 @@ impl Loader for BepInEx {
                 .expect("constant globs should be valid")
         });
 
-        ctx.copy_glob_to_game(&GLOB_SET)
+        ctx.copy_glob_to_game(&INCLUDE_SET)
     }
 
     fn generate_launch_args(&self, ctx: &LaunchContext) -> Result<LaunchArgs> {

@@ -1,17 +1,13 @@
 mod bep_in_ex;
+mod bepis_loader;
 mod melon_loader;
+mod return_of_modding;
 mod shimloader;
 
 mod macros;
 
 pub use bep_in_ex::BepInEx;
-use globset::{Glob, GlobBuilder};
+pub use bepis_loader::BepisLoader;
 pub use melon_loader::MelonLoader;
+pub use return_of_modding::ReturnOfModding;
 pub use shimloader::Shimloader;
-
-fn top_level_dll_glob() -> Glob {
-    GlobBuilder::new("*.dll")
-        .literal_separator(true)
-        .build()
-        .expect("constant glob should be valid")
-}

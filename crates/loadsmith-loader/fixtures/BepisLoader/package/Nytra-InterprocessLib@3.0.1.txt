@@ -1,0 +1,13 @@
+CHANGELOG.md
+LICENSE
+README.md
+Renderer/BepInEx/plugins/InterprocessLib.BepInEx/InterprocessLib.BepInEx_Extensions.dll
+Renderer/BepInEx/plugins/InterprocessLib.BepInEx/InterprocessLib.BepInEx_Extensions.pdb
+Renderer/BepInEx/plugins/InterprocessLib.BepInEx/InterprocessLib.Unity.dll
+Renderer/BepInEx/plugins/InterprocessLib.BepInEx/InterprocessLib.Unity.pdb
+icon.png
+manifest.json
+plugins/InterprocessLib.BepisLoader/InterprocessLib.BepisLoader_Extensions.dll
+plugins/InterprocessLib.BepisLoader/InterprocessLib.BepisLoader_Extensions.pdb
+plugins/InterprocessLib.BepisLoader/InterprocessLib.FrooxEngine.dll
+plugins/InterprocessLib.BepisLoader/InterprocessLib.FrooxEngine.pdb

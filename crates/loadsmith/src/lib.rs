@@ -12,7 +12,9 @@ pub mod install {
 }
 pub use loadsmith_loader::{LaunchArgs, LaunchContext, Loader};
 pub mod loader {
-    pub use loadsmith_loader::{BepInEx, Error, MelonLoader, Result};
+    pub use loadsmith_loader::{
+        BepInEx, BepisLoader, Error, MelonLoader, Result, ReturnOfModding, Shimloader,
+    };
 }
 pub use loadsmith_manifest::{LockedPackage, Lockfile, ProfileState, ProfileStateData, resolve};
 pub mod manifest {

@@ -5,7 +5,7 @@ use std::{
 
 use loadsmith_core::PackageRef;
 use loadsmith_install::InstallRuleset;
-use loadsmith_loader::{BepInEx, Loader, MelonLoader, Shimloader};
+use loadsmith_loader::{BepInEx, BepisLoader, Loader, MelonLoader, ReturnOfModding, Shimloader};
 
 fn test_fixture_category(category: &str, rules: &InstallRuleset) {
     let category_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -92,4 +92,28 @@ fixture_test!(
     shimloader_package,
     "Shimloader/package",
     &Shimloader::with_default_rules().package_install_rules()
+);
+
+fixture_test!(
+    return_of_modding_loader,
+    "ReturnOfModding/loader",
+    &ReturnOfModding::with_default_rules().loader_install_rules()
+);
+
+fixture_test!(
+    return_of_modding_package,
+    "ReturnOfModding/package",
+    &ReturnOfModding::with_default_rules().package_install_rules()
+);
+
+fixture_test!(
+    bepis_loader_loader,
+    "BepisLoader/loader",
+    &BepisLoader::with_default_rules().loader_install_rules()
+);
+
+fixture_test!(
+    bepis_loader_package,
+    "BepisLoader/package",
+    &BepisLoader::with_default_rules().package_install_rules()
 );
