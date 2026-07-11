@@ -1,10 +1,10 @@
 use std::{path::PathBuf, sync::LazyLock};
 
 use camino::{Utf8Path, Utf8PathBuf};
-use globset::{Glob, GlobBuilder, GlobSet};
+use globset::GlobSet;
 use loadsmith_install::{InstallRule, InstallRuleset, OwnedInstallRuleset, RouteRule};
 
-use crate::{Error, LaunchArgs, LaunchContext, Loader, Result, doorstop, glob, glob_rules};
+use crate::{Error, LaunchArgs, LaunchContext, Loader, Result, doorstop, glob, glob_rule};
 
 #[derive(Debug, Clone)]
 pub struct BepInEx {
@@ -52,10 +52,12 @@ impl Loader for BepInEx {
     }
 
     fn loader_install_rules(&self) -> InstallRuleset<'_> {
-        static RULES: LazyLock<Vec<InstallRule>> =
-            LazyLock::new(|| glob_rules![("*/**" => ".", true)]);
+        static RULES: LazyLock<Vec<InstallRule>> = LazyLock::new(|| {
+            // extract all non-top-level files into the package root
+            vec![glob_rule!("*/**" => ".").strip_top_level(true).into()]
+        });
 
-        InstallRuleset::new(&RULES, None)
+        InstallRuleset::new(&RULES)
     }
 
     fn package_install_rules(&self) -> InstallRuleset<'_> {
@@ -65,13 +67,7 @@ impl Loader for BepInEx {
     fn prepare_launch(&self, ctx: &LaunchContext) -> Result<()> {
         static GLOB_SET: LazyLock<GlobSet> = LazyLock::new(|| {
             GlobSet::builder()
-                .add(
-                    // copy all top-level files
-                    GlobBuilder::new("*")
-                        .literal_separator(true)
-                        .build()
-                        .expect("constant glob should be valid"),
-                )
+                .add(super::top_level_dll_glob())
                 .add(glob!("doorstop_libs/*"))
                 .add(glob!("dotnet/*"))
                 .add(glob!("corlibs/*"))

@@ -72,13 +72,22 @@ impl RouteRule {
         self
     }
 
-    fn matches_extension(&self, path: impl AsRef<Utf8Path>) -> bool {
+    pub fn matches(&self, path: impl AsRef<Utf8Path>) -> bool {
+        let path = path.as_ref();
+        self.matches_extension(path) || self.matches_path(path)
+    }
+
+    pub fn matches_extension(&self, path: impl AsRef<Utf8Path>) -> bool {
         // check the whole extension, that is everything after the first dot in the file name
         path.as_ref()
             .file_name()
             .and_then(|name| name.split_once('.'))
             .map(|(_, ext)| self.file_extensions.iter().any(|e| e == ext))
             .unwrap_or(false)
+    }
+
+    pub fn matches_path(&self, path: impl AsRef<Utf8Path>) -> bool {
+        self.split_path(path.as_ref()).is_some()
     }
 
     fn split_path(&self, path: &Utf8Path) -> Option<(Utf8PathBuf, Utf8PathBuf)> {
@@ -95,10 +104,6 @@ impl RouteRule {
         let suffix = path.components().skip(route_name_index + 1).collect();
 
         Some((prefix, suffix))
-    }
-
-    pub fn matches(&self, path: impl AsRef<Utf8Path>) -> bool {
-        self.matches_extension(path.as_ref()) || self.split_path(path.as_ref()).is_some()
     }
 
     pub fn map_file(

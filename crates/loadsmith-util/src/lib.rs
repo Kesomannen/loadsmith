@@ -1,7 +1,9 @@
 use std::{
     io::{BufReader, Read},
-    path::Path,
+    path::{Path, PathBuf},
 };
+
+use tracing::{trace, warn};
 
 pub fn hash_reader(mut reader: impl Read) -> std::io::Result<blake3::Hash> {
     let mut hasher = blake3::Hasher::new();
@@ -17,4 +19,33 @@ pub fn hash_file(path: impl AsRef<Path>) -> std::io::Result<blake3::Hash> {
 
 pub fn hash_file_to_string(path: impl AsRef<Path>) -> std::io::Result<String> {
     hash_file(path).map(|hash| hash.to_hex().to_string())
+}
+
+pub fn remove_empty_parents(path: impl Into<PathBuf>) -> std::io::Result<()> {
+    use std::io::ErrorKind;
+
+    let mut path = path.into();
+
+    while path.pop() {
+        match std::fs::remove_dir(&path) {
+            Ok(_) => {
+                trace!(path = %path.display(), "removed empty directory");
+            }
+            Err(err)
+                if matches!(
+                    err.kind(),
+                    ErrorKind::DirectoryNotEmpty | ErrorKind::NotFound
+                ) =>
+            {
+                break;
+            }
+            Err(err) if err.kind() == ErrorKind::PermissionDenied => {
+                warn!(path = %path.display(), "permission denied while removing empty directories");
+                break;
+            }
+            Err(err) => return Err(err.into()),
+        }
+    }
+
+    Ok(())
 }

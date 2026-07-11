@@ -32,8 +32,8 @@ pub enum Error {
     #[error("game not found in Epic Games Launcher installations")]
     EpicGameNotFound,
 
-    #[error("game path could not be determined and no fallback path was provided")]
-    NoFallbackGamePath,
+    #[error("game path could not be determined and no override was provided")]
+    NoGamePathOverride,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

@@ -2,26 +2,14 @@
 source: crates/loadsmith-thunderstore/src/schema.rs
 expression: loader
 ---
-BepInEx {
+Shimloader {
     package_install_ruleset: OwnedInstallRuleset {
         exclude: None,
         rules: [
             Route(
                 RouteRule {
-                    name: "plugins",
-                    target: "BepInEx/plugins",
-                    file_extensions: [
-                        "dll",
-                    ],
-                    subdir: true,
-                    flatten: true,
-                    mutable: false,
-                },
-            ),
-            Route(
-                RouteRule {
-                    name: "core",
-                    target: "BepInEx/core",
+                    name: "mod",
+                    target: "shimloader/mod",
                     file_extensions: [],
                     subdir: true,
                     flatten: true,
@@ -30,8 +18,8 @@ BepInEx {
             ),
             Route(
                 RouteRule {
-                    name: "patchers",
-                    target: "BepInEx/patchers",
+                    name: "pak",
+                    target: "shimloader/pak",
                     file_extensions: [],
                     subdir: true,
                     flatten: true,
@@ -40,24 +28,22 @@ BepInEx {
             ),
             Route(
                 RouteRule {
-                    name: "monomod",
-                    target: "BepInEx/monomod",
-                    file_extensions: [
-                        "mm.dll",
-                    ],
-                    subdir: true,
-                    flatten: true,
-                    mutable: false,
-                },
-            ),
-            Route(
-                RouteRule {
-                    name: "config",
-                    target: "BepInEx/config",
+                    name: "cfg",
+                    target: "shimloader/cfg",
                     file_extensions: [],
                     subdir: false,
                     flatten: false,
                     mutable: true,
+                },
+            ),
+            Route(
+                RouteRule {
+                    name: "overlay",
+                    target: "shimloader/overlay",
+                    file_extensions: [],
+                    subdir: true,
+                    flatten: true,
+                    mutable: false,
                 },
             ),
         ],

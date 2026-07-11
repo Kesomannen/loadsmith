@@ -5,7 +5,7 @@ use std::{
 
 use loadsmith_core::PackageRef;
 use loadsmith_install::InstallRuleset;
-use loadsmith_loader::{BepInEx, Loader, MelonLoader};
+use loadsmith_loader::{BepInEx, Loader, MelonLoader, Shimloader};
 
 fn test_fixture_category(category: &str, rules: &InstallRuleset) {
     let category_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -43,42 +43,53 @@ fn test_fixture(path: &Path, package: &PackageRef, rules: &InstallRuleset) {
     insta::assert_yaml_snapshot!(package.to_string(), mapped)
 }
 
-#[test]
-fn bep_in_ex_loader() {
-    test_fixture_category(
-        "BepInEx/loader",
-        &BepInEx::with_default_rules().loader_install_rules(),
-    );
+macro_rules! fixture_test {
+    ($name:ident, $category:expr, $rules:expr) => {
+        #[test]
+        fn $name() {
+            test_fixture_category($category, $rules);
+        }
+    };
 }
 
-#[test]
-fn bep_in_ex_package() {
-    test_fixture_category(
-        "BepInEx/package",
-        &BepInEx::with_default_rules().package_install_rules(),
-    );
-}
+fixture_test!(
+    bep_in_ex_loader,
+    "BepInEx/loader",
+    &BepInEx::with_default_rules().loader_install_rules()
+);
 
-#[test]
-fn melon_loader_loader() {
-    test_fixture_category(
-        "MelonLoader/loader",
-        &MelonLoader::with_default_legacy_rules().loader_install_rules(),
-    );
-}
+fixture_test!(
+    bep_in_ex_package,
+    "BepInEx/package",
+    &BepInEx::with_default_rules().package_install_rules()
+);
 
-#[test]
-fn melon_loader_package_legacy() {
-    test_fixture_category(
-        "MelonLoader/package_legacy",
-        &MelonLoader::with_default_legacy_rules().package_install_rules(),
-    );
-}
+fixture_test!(
+    melon_loader_loader,
+    "MelonLoader/loader",
+    &MelonLoader::with_default_legacy_rules().loader_install_rules()
+);
 
-#[test]
-fn melon_loader_package_recursive() {
-    test_fixture_category(
-        "MelonLoader/package_recursive",
-        &MelonLoader::with_default_recursive_rules().package_install_rules(),
-    );
-}
+fixture_test!(
+    melon_loader_package_legacy,
+    "MelonLoader/package_legacy",
+    &MelonLoader::with_default_legacy_rules().package_install_rules()
+);
+
+fixture_test!(
+    melon_loader_package_recursive,
+    "MelonLoader/package_recursive",
+    &MelonLoader::with_default_recursive_rules().package_install_rules()
+);
+
+fixture_test!(
+    shimloader_loader,
+    "Shimloader/loader",
+    &Shimloader::with_default_rules().loader_install_rules()
+);
+
+fixture_test!(
+    shimloader_package,
+    "Shimloader/package",
+    &Shimloader::with_default_rules().package_install_rules()
+);

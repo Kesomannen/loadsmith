@@ -23,5 +23,10 @@
     "Universal-MoreGuns@1.3.0",
     "k0Mods-ModsApp@1.2.3",
     "Pixelomega-TangySpongeSauceForScheduleIIL2CPP@1.1.0"
+  ],
+  "Shimloader/loader": ["Thunderstore-unreal_shimloader@1.1.7"],
+  "Shimloader/package": [
+    "Gatohost-VoidMod@2.2.0",
+    "NynrahGhost-Fusion@0.8108.3"
   ]
 }

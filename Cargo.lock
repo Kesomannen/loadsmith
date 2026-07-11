@@ -1218,6 +1218,7 @@ dependencies = [
  "camino",
  "globset",
  "loadsmith-core",
+ "loadsmith-util",
  "serde",
  "tempfile",
  "thiserror 2.0.18",
@@ -1348,6 +1349,7 @@ name = "loadsmith-util"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "tracing",
 ]
 
 [[package]]

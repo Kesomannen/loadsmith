@@ -47,11 +47,14 @@ impl Platform {
     pub fn create_launch_context<'a>(
         &'a self,
         profile_path: impl Into<Cow<'a, Utf8Path>>,
-        fallback_game_path: Option<Utf8PathBuf>,
+        override_game_path: Option<Utf8PathBuf>,
     ) -> Result<LaunchContext<'a>> {
-        let game_path = match self.locate_game()? {
+        let game_path = match override_game_path {
             Some(path) => path,
-            None => fallback_game_path.ok_or(Error::NoFallbackGamePath)?,
+            None => match self.locate_game()? {
+                Some(path) => path,
+                None => return Err(Error::NoGamePathOverride),
+            },
         };
 
         let is_proton = crate::try_guess_proton(&*game_path)?;
@@ -79,15 +82,15 @@ pub fn try_guess_proton(game_path: impl AsRef<Path>) -> Result<bool> {
 
     #[cfg(target_os = "linux")]
     {
-        use tracing::debug;
+        use tracing::{debug, trace};
 
         let game_path = game_path.as_ref();
+
+        trace!("checking for .forceproton file in game directory");
 
         if game_path.join(".forceproton").exists() {
             debug!(".forceproton file found");
             return Ok(true);
-        } else {
-            debug!(".forceproton file not found");
         }
 
         let exe = find_executables(game_path).map(|mut executable| {

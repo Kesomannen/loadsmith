@@ -17,6 +17,9 @@ pub enum Error {
     #[error(transparent)]
     Sqlite(#[from] rusqlite::Error),
 
+    #[error(transparent)]
+    Glob(#[from] globset::Error),
+
     #[error("thunderstore client error")]
     Thunderstore(#[from] thunderstore::Error),
 

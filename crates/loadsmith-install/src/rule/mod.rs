@@ -1,4 +1,7 @@
+use std::path::Path;
+
 use camino::{Utf8Path, Utf8PathBuf};
+use globset::GlobSet;
 use loadsmith_core::PackageRef;
 use serde::{Deserialize, Serialize};
 
@@ -16,23 +19,39 @@ pub enum InstallRule {
     Route(RouteRule),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy)]
 pub struct InstallRuleset<'a> {
+    pub exclude: Option<&'a GlobSet>,
     pub rules: &'a [InstallRule],
     pub default_rule: Option<&'a InstallRule>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct OwnedInstallRuleset {
+    exclude: Option<GlobSet>,
     rules: Vec<InstallRule>,
     default_rule: Option<usize>,
 }
 
 impl InstallRule {
     pub fn matches(&self, path: impl AsRef<Utf8Path>) -> bool {
+        let path = path.as_ref();
+        self.matches_path(path) || self.matches_extension(path)
+    }
+
+    pub fn matches_path(&self, path: impl AsRef<Utf8Path>) -> bool {
+        let path = path.as_ref();
         match self {
             InstallRule::Glob(glob) => glob.matches(path),
-            InstallRule::Route(route) => route.matches(path),
+            InstallRule::Route(route) => route.matches_path(path),
+        }
+    }
+
+    pub fn matches_extension(&self, path: impl AsRef<Utf8Path>) -> bool {
+        let path = path.as_ref();
+        match self {
+            InstallRule::Glob(glob) => glob.matches(path),
+            InstallRule::Route(route) => route.matches_extension(path),
         }
     }
 
@@ -42,21 +61,22 @@ impl InstallRule {
         package: &PackageRef,
     ) -> Option<Utf8PathBuf> {
         match self {
-            InstallRule::Glob(glob) => Some(glob.map_file(path, package)),
+            InstallRule::Glob(glob) => glob.map_file(path, package),
             InstallRule::Route(route) => route.map_file(path, package),
         }
     }
 
     pub fn matches_mapped(&self, path: impl AsRef<Utf8Path>) -> bool {
+        let path = path.as_ref();
         match self {
-            InstallRule::Glob(glob) => path.as_ref().starts_with(&*glob.target),
-            InstallRule::Route(route) => path.as_ref().starts_with(&*route.target),
+            InstallRule::Glob(glob) => path.starts_with(&*glob.target),
+            InstallRule::Route(route) => path.starts_with(&*route.target),
         }
     }
 
     pub fn use_links(&self) -> bool {
         match self {
-            InstallRule::Glob(_) => false,
+            InstallRule::Glob(glob) => glob.use_links,
             InstallRule::Route(route) => route.use_links(),
         }
     }
@@ -82,18 +102,30 @@ impl From<RouteRule> for InstallRule {
 }
 
 impl<'a> InstallRuleset<'a> {
-    pub const fn new(rules: &'a [InstallRule], default_rule: Option<&'a InstallRule>) -> Self {
+    pub const fn new(rules: &'a [InstallRule]) -> Self {
         Self {
             rules,
-            default_rule,
+            default_rule: None,
+            exclude: None,
         }
+    }
+
+    pub fn with_default_rule(mut self, default_rule: &'a InstallRule) -> Self {
+        self.default_rule = Some(default_rule);
+        self
+    }
+
+    pub fn with_exclude(mut self, exclude: &'a GlobSet) -> Self {
+        self.exclude = Some(exclude);
+        self
     }
 
     pub fn find_rule_for_path(&self, path: impl AsRef<Utf8Path>) -> Option<&'a InstallRule> {
         let path = path.as_ref();
         self.rules
             .iter()
-            .find(|rule| rule.matches(path))
+            .find(|rule| rule.matches_path(path))
+            .or_else(|| self.rules.iter().find(|rule| rule.matches_extension(path)))
             .or(self.default_rule)
     }
 
@@ -107,8 +139,19 @@ impl<'a> InstallRuleset<'a> {
         path: impl AsRef<Utf8Path>,
         package: &PackageRef,
     ) -> Option<Utf8PathBuf> {
-        self.find_rule_for_path(&path)
+        let path = path.as_ref();
+        if self.is_excluded(path) {
+            return None;
+        }
+
+        self.find_rule_for_path(path)
             .and_then(|rule| rule.map_file(path, package))
+    }
+
+    pub fn is_excluded(&self, path: impl AsRef<Path>) -> bool {
+        self.exclude
+            .as_ref()
+            .map_or(false, |exclude| exclude.is_match(path))
     }
 }
 
@@ -130,19 +173,29 @@ impl OwnedInstallRuleset {
         Some(Self {
             rules,
             default_rule: default_rule_index,
+            exclude: None,
         })
+    }
+
+    pub fn with_exclude(mut self, exclude: GlobSet) -> Self {
+        self.exclude = Some(exclude);
+        self
     }
 
     pub fn add(&mut self, rule: InstallRule) {
         self.rules.push(rule);
     }
 
+    pub fn set_exclude(&mut self, exclude: GlobSet) {
+        self.exclude = Some(exclude);
+    }
+
     pub fn rules(&self) -> &[InstallRule] {
         &self.rules
     }
 
-    pub fn into_rules(self) -> Vec<InstallRule> {
-        self.rules
+    pub fn into_parts(self) -> (Vec<InstallRule>, Option<usize>, Option<GlobSet>) {
+        (self.rules, self.default_rule, self.exclude)
     }
 
     pub fn default_rule(&self) -> Option<&InstallRule> {
@@ -150,6 +203,34 @@ impl OwnedInstallRuleset {
     }
 
     pub fn as_ref(&self) -> InstallRuleset<'_> {
-        InstallRuleset::new(&self.rules, self.default_rule())
+        InstallRuleset {
+            rules: &self.rules,
+            default_rule: self.default_rule.map(|index| &self.rules[index]),
+            exclude: self.exclude.as_ref(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ruleset_matches_path_over_extension() {
+        let rules = vec![
+            InstallRule::Route(RouteRule::new_static("Mods").with_file_extension("dll")),
+            InstallRule::Route(RouteRule::new_static("Plugins")),
+        ];
+
+        let ruleset = InstallRuleset::new(&rules);
+
+        let pkg = PackageRef::new("test".to_string(), (1, 0, 0));
+
+        // The path takes precedence over file extension, so the "Plugins" rule
+        // should match even though the file has a .dll extension.
+        assert_eq!(
+            ruleset.map_file("Plugins/Plugin.dll", &pkg),
+            Some(Utf8PathBuf::from("Plugins/test/Plugin.dll"))
+        );
     }
 }

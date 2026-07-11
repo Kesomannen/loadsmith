@@ -1,0 +1,4 @@
+README.md
+icon.png
+manifest.json
+pak/VoidMod2.pak

@@ -1,0 +1,8 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+README.md: shimloader/mod/Gatohost-VoidMod/README.md
+icon.png: shimloader/mod/Gatohost-VoidMod/icon.png
+manifest.json: shimloader/mod/Gatohost-VoidMod/manifest.json
+pak/VoidMod2.pak: shimloader/pak/Gatohost-VoidMod/VoidMod2.pak

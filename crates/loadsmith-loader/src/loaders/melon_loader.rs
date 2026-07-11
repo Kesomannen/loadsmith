@@ -1,10 +1,10 @@
 use std::{path::PathBuf, sync::LazyLock};
 
 use camino::Utf8Path;
-use globset::{Glob, GlobBuilder, GlobSet};
+use globset::GlobSet;
 use loadsmith_install::{InstallRule, InstallRuleset, OwnedInstallRuleset, RouteRule};
 
-use crate::{LaunchArgs, LaunchContext, Loader, Result, glob_rules};
+use crate::{LaunchArgs, LaunchContext, Loader, Result, glob_rule};
 
 #[derive(Debug, Clone)]
 pub struct MelonLoader {
@@ -57,6 +57,10 @@ impl MelonLoader {
         .expect("rules are not empty so there should always be a valid default rule index")
     }
 
+    pub fn set_exclude(&mut self, exclude: GlobSet) {
+        self.package_install_ruleset.set_exclude(exclude);
+    }
+
     pub fn add_install_rule(&mut self, rule: InstallRule) {
         self.package_install_ruleset.add(rule);
     }
@@ -75,14 +79,15 @@ impl Loader for MelonLoader {
 
     fn loader_install_rules(&self) -> InstallRuleset<'_> {
         static RULES: LazyLock<Vec<InstallRule>> = LazyLock::new(|| {
-            glob_rules![
-                ("dobby.dll" => ".", false),
-                ("version.dll" => ".", false),
-                ("MelonLoader/{Dependencies,Documentation,net*}/*" => ".", false),
+            vec![
+                glob_rule!("{version,dobby}.dll" => ".").into(),
+                glob_rule!("MelonLoader/{Dependencies,Documentation,net*}/*" => ".")
+                    .use_links(true)
+                    .into(),
             ]
         });
 
-        InstallRuleset::new(&RULES, None)
+        InstallRuleset::new(&RULES)
     }
 
     fn package_install_rules(&self) -> InstallRuleset<'_> {
@@ -92,13 +97,7 @@ impl Loader for MelonLoader {
     fn prepare_launch(&self, ctx: &LaunchContext) -> Result<()> {
         static GLOB_SET: LazyLock<GlobSet> = LazyLock::new(|| {
             GlobSet::builder()
-                .add(
-                    // copy all top-level dlls
-                    GlobBuilder::new("*.dll")
-                        .literal_separator(true)
-                        .build()
-                        .expect("constant glob should be valid"),
-                )
+                .add(super::top_level_dll_glob())
                 .build()
                 .expect("constant globs should be valid")
         });
@@ -152,7 +151,7 @@ mod tests {
     fn map_loader_files() {
         assert_maps!(MapFileTester::new(
             MelonLoader::with_default_legacy_rules(),
-            PackageRef::new("BepInEx-BepInExPack".to_string(), (5, 4, 2100)),
+            PackageRef::new("LavaGang-MelonLoader".to_string(), (1, 0, 0)),
             true,
         ), [
             "README.md" => None,
@@ -202,6 +201,19 @@ mod tests {
         assert_eq!(
             package_dir,
             Some(PathBuf::from("UserData/ModManager/Author-Name"))
+        );
+    }
+
+    #[test]
+    fn loader_files_should_link() {
+        let loader = MelonLoader::with_default_legacy_rules();
+        let rules = loader.loader_install_rules();
+
+        assert!(
+            rules
+                .find_rule_for_mapped_path("MelonLoader/Dependencies/Name/file.dll")
+                .unwrap()
+                .use_links()
         );
     }
 }

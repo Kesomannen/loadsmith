@@ -87,6 +87,7 @@ fn set_unix_mode<F: ZipFile>(file: &F, path: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use camino::Utf8Path;
+    use globset::{Glob, GlobSet};
 
     use crate::{GlobRule, InstallRule, zip::mock::MockZip};
 
@@ -107,17 +108,22 @@ mod tests {
     fn simple_glob() {
         let mut zip = MockZip::default()
             .with_empty_file("file1")
-            .with_empty_file("file2");
+            .with_empty_file("file2")
+            .with_empty_file("file3");
 
-        let rules = [InstallRule::Glob(
-            GlobRule::try_from_pattern("file1", Utf8Path::new(".")).unwrap(),
-        )];
+        let rules = [
+            InstallRule::Glob(GlobRule::try_from_pattern("file1", Utf8Path::new(".")).unwrap()),
+            InstallRule::Glob(GlobRule::try_from_pattern("file3", Utf8Path::new(".")).unwrap()),
+        ];
 
-        let ruleset = InstallRuleset::new(&rules, None);
+        let exclude = GlobSet::new([Glob::new("file3").unwrap()]).unwrap();
+
+        let ruleset = InstallRuleset::new(&rules).with_exclude(&exclude);
 
         let dir = test_extract(&mut zip, ruleset);
 
         assert!(dir.path().join("file1").exists());
         assert!(!dir.path().join("file2").exists());
+        assert!(!dir.path().join("file3").exists()); // excluded by the exclude glob
     }
 }

@@ -4,6 +4,7 @@ expression: loader
 ---
 MelonLoader {
     package_install_ruleset: OwnedInstallRuleset {
+        exclude: None,
         rules: [
             Route(
                 RouteRule {

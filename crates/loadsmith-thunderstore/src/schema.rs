@@ -1,10 +1,12 @@
 use std::borrow::Cow;
 
 use camino::Utf8Path;
+use globset::{Glob, GlobSet};
 use loadsmith_install::{OwnedInstallRuleset, RouteRule};
-use loadsmith_loader::{BepInEx, MelonLoader};
+use loadsmith_loader::{BepInEx, MelonLoader, Shimloader};
 use loadsmith_platform::Platform as LoadsmithPlatform;
 use thunderstore::models::schema::{self, Distribution};
+use tracing::warn;
 
 use crate::{Error, Result};
 
@@ -13,32 +15,48 @@ pub fn r2_config_to_loader(
 ) -> Result<Option<Box<dyn loadsmith_loader::Loader>>> {
     match config.package_loader {
         schema::Loader::BepInEx => {
-            let loader = BepInEx::with_rules(convert_ruleset(&config.install_rules)?);
-
+            let loader = BepInEx::with_rules(convert_ruleset(config)?);
             Ok(Some(Box::new(loader)))
         }
         schema::Loader::MelonLoader => {
-            let loader = MelonLoader::with_rules(convert_ruleset(&config.install_rules)?);
-
+            let loader = MelonLoader::with_rules(convert_ruleset(config)?);
             Ok(Some(Box::new(loader)))
         }
         schema::Loader::RecursiveMelonLoader => {
             let mut loader = MelonLoader::with_default_recursive_rules();
-            let ruleset = convert_ruleset(&config.install_rules)?;
 
-            for rule in ruleset.into_rules() {
+            let (rules, default, exclude) = convert_ruleset(config)?.into_parts();
+
+            if let Some(exclude) = exclude {
+                loader.set_exclude(exclude);
+            }
+            if let Some(default) = default {
+                warn!(
+                    "loader config specifies a default rule index, but the recursive melon loader does not support default rules; ignoring default rule index {default}"
+                );
+            }
+            for rule in rules {
                 loader.add_install_rule(rule);
             }
 
+            Ok(Some(Box::new(loader)))
+        }
+        schema::Loader::Shimloader => {
+            let loader = Shimloader::with_rules(convert_ruleset(config)?);
             Ok(Some(Box::new(loader)))
         }
         _ => Ok(None),
     }
 }
 
-fn convert_ruleset(rules: &[schema::InstallRule]) -> Result<OwnedInstallRuleset> {
-    let default_rule_index = rules.iter().position(|rule| rule.is_default_location);
-    let converted = rules
+fn convert_ruleset(config: &schema::R2ModmanConfig) -> Result<OwnedInstallRuleset> {
+    let default_rule_index = config
+        .install_rules
+        .iter()
+        .position(|rule| rule.is_default_location);
+
+    let converted_rules = config
+        .install_rules
         .iter()
         .map(|rule| rule_to_loadsmith(rule, Utf8Path::new("")))
         .collect::<Result<Vec<_>>>()?
@@ -46,10 +64,26 @@ fn convert_ruleset(rules: &[schema::InstallRule]) -> Result<OwnedInstallRuleset>
         .flatten()
         .collect();
 
-    Ok(
-        OwnedInstallRuleset::with_rules(converted, default_rule_index)
-            .expect("default index should be in range"),
-    )
+    let exclude_glob_set = match &config.relative_file_exclusions {
+        Some(exclusions) => {
+            let globs = exclusions
+                .iter()
+                .map(|glob| Glob::new(glob).map_err(Error::Glob))
+                .collect::<Result<Vec<_>>>()?;
+
+            Some(GlobSet::new(globs)?)
+        }
+        None => None,
+    };
+
+    let mut ruleset = OwnedInstallRuleset::with_rules(converted_rules, default_rule_index)
+        .expect("default index should be in range");
+
+    if let Some(exclude) = exclude_glob_set {
+        ruleset.set_exclude(exclude);
+    }
+
+    Ok(ruleset)
 }
 
 fn rule_to_loadsmith(
@@ -196,5 +230,11 @@ mod test {
     fn make_loader_schedule_i() {
         let json = include_str!("../fixtures/r2modman-schedule-i.json");
         assert_loader_snapshot("schedule-i", json);
+    }
+
+    #[test]
+    fn make_loader_voices_of_the_void() {
+        let json = include_str!("../fixtures/r2modman-voices-of-the-void.json");
+        assert_loader_snapshot("voices-of-the-void", json);
     }
 }

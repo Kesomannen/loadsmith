@@ -1,0 +1,27 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+README.md: ~
+UE4SS/LICENSE: ~
+UE4SS/Mods/BPML_GenericFunctions/Scripts/main.lua: shimloader/mod/BPML_GenericFunctions/Scripts/main.lua
+UE4SS/Mods/BPModLoaderMod/Scripts/main.lua: shimloader/mod/BPModLoaderMod/Scripts/main.lua
+UE4SS/Mods/BPModLoaderMod/load_order.txt: shimloader/mod/BPModLoaderMod/load_order.txt
+UE4SS/Mods/CheatManagerEnablerMod/Scripts/main.lua: shimloader/mod/CheatManagerEnablerMod/Scripts/main.lua
+UE4SS/Mods/ConsoleCommandsMod/Scripts/dump_object.lua: shimloader/mod/ConsoleCommandsMod/Scripts/dump_object.lua
+UE4SS/Mods/ConsoleCommandsMod/Scripts/main.lua: shimloader/mod/ConsoleCommandsMod/Scripts/main.lua
+UE4SS/Mods/ConsoleCommandsMod/Scripts/set.lua: shimloader/mod/ConsoleCommandsMod/Scripts/set.lua
+UE4SS/Mods/ConsoleCommandsMod/Scripts/summon_unloaded_assets.lua: shimloader/mod/ConsoleCommandsMod/Scripts/summon_unloaded_assets.lua
+UE4SS/Mods/ConsoleEnablerMod/Scripts/main.lua: shimloader/mod/ConsoleEnablerMod/Scripts/main.lua
+UE4SS/Mods/Keybinds/Scripts/main.lua: shimloader/mod/Keybinds/Scripts/main.lua
+UE4SS/Mods/LineTraceMod/Scripts/main.lua: shimloader/mod/LineTraceMod/Scripts/main.lua
+UE4SS/Mods/SplitScreenMod/Scripts/main.lua: shimloader/mod/SplitScreenMod/Scripts/main.lua
+UE4SS/Mods/mods.json: shimloader/mod/mods.json
+UE4SS/Mods/mods.txt: shimloader/mod/mods.txt
+UE4SS/Mods/shared/UEHelpers/UEHelpers.lua: shimloader/mod/shared/UEHelpers/UEHelpers.lua
+UE4SS/UE4SS-settings.ini: "./UE4SS-settings.ini"
+UE4SS/UE4SS.dll: "./UE4SS.dll"
+UE4SS/dwmapi.dll: ~
+dwmapi.dll: "./dwmapi.dll"
+icon.png: ~
+manifest.json: ~

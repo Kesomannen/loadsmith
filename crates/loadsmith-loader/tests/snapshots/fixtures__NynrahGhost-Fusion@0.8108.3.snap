@@ -1,0 +1,23 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+Fusion.exe: shimloader/mod/NynrahGhost-Fusion/Fusion.exe
+README.md: shimloader/mod/NynrahGhost-Fusion/README.md
+cfg/Fusion-config.ini: shimloader/cfg/Fusion-config.ini
+icon.png: shimloader/mod/NynrahGhost-Fusion/icon.png
+manifest.json: shimloader/mod/NynrahGhost-Fusion/manifest.json
+mod/enabled.txt: shimloader/mod/NynrahGhost-Fusion/enabled.txt
+mod/scripts/main.lua: shimloader/mod/NynrahGhost-Fusion/scripts/main.lua
+oo2core_9_win64.dll: shimloader/mod/NynrahGhost-Fusion/oo2core_9_win64.dll
+repak.exe: shimloader/mod/NynrahGhost-Fusion/repak.exe
+samples/Fusion/ModActor.uasset: shimloader/mod/NynrahGhost-Fusion/ModActor.uasset
+samples/Fusion/ModActor.uexp: shimloader/mod/NynrahGhost-Fusion/ModActor.uexp
+samples/Fusion/icon.uasset: shimloader/mod/NynrahGhost-Fusion/icon.uasset
+samples/Fusion/icon.ubulk: shimloader/mod/NynrahGhost-Fusion/icon.ubulk
+samples/Fusion/icon.uexp: shimloader/mod/NynrahGhost-Fusion/icon.uexp
+samples/sound_unclassed.uasset: shimloader/mod/NynrahGhost-Fusion/sound_unclassed.uasset
+samples/sound_unclassed.uexp: shimloader/mod/NynrahGhost-Fusion/sound_unclassed.uexp
+samples/tex.uasset: shimloader/mod/NynrahGhost-Fusion/tex.uasset
+samples/tex.ubulk: shimloader/mod/NynrahGhost-Fusion/tex.ubulk
+samples/tex.uexp: shimloader/mod/NynrahGhost-Fusion/tex.uexp

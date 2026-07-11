@@ -129,25 +129,9 @@ pub fn uninstall(package: InstalledPackage, profile: impl AsRef<Path> + Debug) -
             fs::remove_file(&target_path)?;
             trace!(?file, "remove file");
 
-            remove_empty_parents(target_path)?;
+            loadsmith_util::remove_empty_parents(target_path)?;
         } else {
             debug!(?file, "file does not exist, skipping");
-        }
-    }
-
-    Ok(())
-}
-
-fn remove_empty_parents(mut path: PathBuf) -> Result<()> {
-    while path.pop() {
-        match fs::remove_dir(&path) {
-            Ok(_) => {
-                trace!(path = %path.display(), "removed empty directory");
-            }
-            Err(err) if err.kind() == std::io::ErrorKind::DirectoryNotEmpty => {
-                break;
-            }
-            Err(err) => return Err(err.into()),
         }
     }
 

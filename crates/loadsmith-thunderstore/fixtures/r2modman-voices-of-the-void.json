@@ -1,0 +1,53 @@
+{
+  "meta": {
+    "displayName": "Voices of the Void",
+    "iconUrl": "voices-of-the-void/voices-of-the-void-cover-360x480.webp"
+  },
+  "internalFolderName": "VotV",
+  "dataFolderName": "VotV",
+  "distributions": [
+    {
+      "platform": "other",
+      "identifier": null
+    }
+  ],
+  "settingsIdentifier": "VotV",
+  "packageIndex": "https://thunderstore.io/c/voices-of-the-void/api/v1/package-listing-index/",
+  "steamFolderName": "",
+  "exeNames": ["VotV.exe"],
+  "gameInstanceType": "game",
+  "gameSelectionDisplayMode": "visible",
+  "additionalSearchStrings": ["votv", "虚空之声"],
+  "packageLoader": "shimloader",
+  "installRules": [
+    {
+      "route": "shimloader/mod",
+      "isDefaultLocation": true,
+      "defaultFileExtensions": [],
+      "trackingMethod": "subdir",
+      "subRoutes": []
+    },
+    {
+      "route": "shimloader/pak",
+      "isDefaultLocation": false,
+      "defaultFileExtensions": [],
+      "trackingMethod": "subdir",
+      "subRoutes": []
+    },
+    {
+      "route": "shimloader/cfg",
+      "isDefaultLocation": false,
+      "defaultFileExtensions": [],
+      "trackingMethod": "none",
+      "subRoutes": []
+    },
+    {
+      "route": "shimloader/overlay",
+      "isDefaultLocation": false,
+      "defaultFileExtensions": [],
+      "trackingMethod": "subdir",
+      "subRoutes": []
+    }
+  ],
+  "relativeFileExclusions": null
+}
