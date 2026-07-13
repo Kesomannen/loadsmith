@@ -8,8 +8,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GlobRule {
     pattern: Glob,
-    pub(super) target: Cow<'static, Utf8Path>,
+    pub(crate) target: Cow<'static, Utf8Path>,
     strip_levels: usize,
+    subdir: bool,
     pub(super) use_links: bool,
 }
 
@@ -19,6 +20,7 @@ impl GlobRule {
             pattern,
             target: target.into(),
             strip_levels: 0,
+            subdir: false,
             use_links: false,
         }
     }
@@ -46,6 +48,11 @@ impl GlobRule {
         self
     }
 
+    pub fn with_subdir(mut self, subdir: bool) -> Self {
+        self.subdir = subdir;
+        self
+    }
+
     pub fn matches(&self, path: impl AsRef<Utf8Path>) -> bool {
         self.pattern.compile_matcher().is_match(path.as_ref())
     }
@@ -53,7 +60,7 @@ impl GlobRule {
     pub fn map_file(
         &self,
         path: impl AsRef<Utf8Path>,
-        _package: &PackageRef,
+        package: &PackageRef,
     ) -> Option<Utf8PathBuf> {
         let path = path.as_ref();
 
@@ -70,7 +77,13 @@ impl GlobRule {
             }
         };
 
-        Some(self.target.as_ref().join(suffix))
+        let mut target = self.target.to_path_buf();
+        if self.subdir {
+            target.push(package.id.as_str());
+        }
+        target.push(suffix);
+
+        Some(target)
     }
 }
 

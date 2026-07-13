@@ -1,0 +1,8 @@
+LICENSE
+README.md
+icon.png
+injection.lua
+json5.dll
+json5.dylib
+lovely.toml
+manifest.json

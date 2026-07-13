@@ -32,6 +32,7 @@ pub trait Loader: Debug + Send + Sync {
 
         ctx.copy_glob_to_game(&GLOB_SET)
     }
+
     fn generate_launch_args(&self, ctx: &LaunchContext) -> Result<LaunchArgs>;
 
     fn package_dir(&self, package: &PackageRef) -> Option<PathBuf> {

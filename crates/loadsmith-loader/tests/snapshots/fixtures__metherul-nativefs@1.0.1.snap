@@ -1,0 +1,11 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+LICENSE: mods/metherul-nativefs/LICENSE
+README.md: mods/metherul-nativefs/README.md
+icon.png: mods/metherul-nativefs/icon.png
+init.lua: mods/metherul-nativefs/init.lua
+lovely.toml: mods/metherul-nativefs/lovely.toml
+manifest.json: mods/metherul-nativefs/manifest.json
+nativefs.lua: mods/metherul-nativefs/nativefs.lua

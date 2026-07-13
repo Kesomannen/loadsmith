@@ -1,0 +1,9 @@
+GDWeave/mods/TackleBox/TackleBox.deps.json
+GDWeave/mods/TackleBox/TackleBox.dll
+GDWeave/mods/TackleBox/TackleBox.pck
+GDWeave/mods/TackleBox/TackleBox.pdb
+GDWeave/mods/TackleBox/icon.png
+GDWeave/mods/TackleBox/manifest.json
+README.md
+icon.png
+manifest.json

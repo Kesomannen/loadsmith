@@ -1,0 +1,4 @@
+README.md
+SM-LuaDebugger.dll
+icon.png
+manifest.json

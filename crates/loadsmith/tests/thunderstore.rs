@@ -24,8 +24,8 @@ async fn get_loader(
         .as_ref()
         .and_then(|vec| vec.first())
         .ok_or_else(|| anyhow!("r2modman config not found in schema"))?;
-    let loader = loadsmith::thunderstore::r2_config_to_loader(r2_config)?
-        .ok_or_else(|| anyhow!("loader couldn't be created"))?;
+    let loader = loadsmith::thunderstore::r2_config_to_loader(r2_config)
+        .context("failed to create loader")?;
 
     Ok(loader)
 }

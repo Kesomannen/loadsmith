@@ -1,0 +1,12 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+LICENSE: mods/JoStro-json5/LICENSE
+README.md: mods/JoStro-json5/README.md
+icon.png: mods/JoStro-json5/icon.png
+injection.lua: mods/JoStro-json5/injection.lua
+json5.dll: mods/JoStro-json5/json5.dll
+json5.dylib: mods/JoStro-json5/json5.dylib
+lovely.toml: mods/JoStro-json5/lovely.toml
+manifest.json: mods/JoStro-json5/manifest.json

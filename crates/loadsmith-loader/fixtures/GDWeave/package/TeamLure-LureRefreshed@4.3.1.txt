@@ -1,0 +1,7 @@
+GDWeave/mods/Sulayre.Lure/Sulayre.Lure.dll
+GDWeave/mods/Sulayre.Lure/Sulayre.Lure.pck
+GDWeave/mods/Sulayre.Lure/icon.png
+GDWeave/mods/Sulayre.Lure/manifest.json
+README.md
+icon.png
+manifest.json

@@ -1,0 +1,11 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+GDWeave/mods/Sulayre.Lure/Sulayre.Lure.dll: GDWeave/mods/TeamLure-LureRefreshed/Sulayre.Lure.dll
+GDWeave/mods/Sulayre.Lure/Sulayre.Lure.pck: GDWeave/mods/TeamLure-LureRefreshed/Sulayre.Lure.pck
+GDWeave/mods/Sulayre.Lure/icon.png: GDWeave/mods/TeamLure-LureRefreshed/icon.png
+GDWeave/mods/Sulayre.Lure/manifest.json: GDWeave/mods/TeamLure-LureRefreshed/manifest.json
+README.md: ~
+icon.png: ~
+manifest.json: ~

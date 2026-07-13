@@ -55,12 +55,12 @@ impl<'a> LaunchContext<'a> {
         Ok(Self::new(profile, game, is_proton))
     }
 
-    pub fn format_proton_path<'b>(&self, path: &'b Utf8Path) -> Cow<'b, Utf8Path> {
+    pub fn format_proton_path(&self, path: impl Into<Utf8PathBuf>) -> Utf8PathBuf {
         if self.is_proton {
-            let path = format!("Z:{path}");
-            Cow::Owned(Utf8PathBuf::from(path))
+            let path = format!("Z:{}", path.into());
+            Utf8PathBuf::from(path)
         } else {
-            Cow::Borrowed(path)
+            path.into()
         }
     }
 

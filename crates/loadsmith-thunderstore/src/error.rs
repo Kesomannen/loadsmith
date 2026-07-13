@@ -43,6 +43,15 @@ pub enum Error {
 
     #[error("invalid steam id")]
     InvalidSteamId(#[source] std::num::ParseIntError),
+
+    #[error("unsupported tracking method: {0:?}")]
+    UnsupportedTrackingMethod(thunderstore::models::schema::TrackingMethod),
+
+    #[error("unsupported loader: {0:?}")]
+    UnsupportedLoader(thunderstore::models::schema::Loader),
+
+    #[error("unsupported platform: {0:?}")]
+    UnsupportedPlatform(thunderstore::models::schema::Platform),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

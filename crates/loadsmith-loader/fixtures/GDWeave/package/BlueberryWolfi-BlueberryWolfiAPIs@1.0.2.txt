@@ -1,0 +1,6 @@
+GDWeave/mods/BlueberryWolfi.APIs/APIs.pck
+GDWeave/mods/BlueberryWolfi.APIs/icon.png
+GDWeave/mods/BlueberryWolfi.APIs/manifest.json
+README.md
+icon.png
+manifest.json

@@ -1,0 +1,6 @@
+CHANGELOG.md
+README.md
+icon.png
+lovely/config.toml
+manifest.json
+version.dll

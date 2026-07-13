@@ -1,0 +1,7 @@
+LICENSE
+README.md
+icon.png
+init.lua
+lovely.toml
+manifest.json
+nativefs.lua

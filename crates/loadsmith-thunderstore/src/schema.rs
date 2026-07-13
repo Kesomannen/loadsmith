@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use camino::Utf8Path;
 use globset::{Glob, GlobSet};
 use loadsmith_install::{OwnedInstallRuleset, RouteRule};
-use loadsmith_loader::{BepInEx, MelonLoader, ReturnOfModding, Shimloader};
+use loadsmith_loader::{BepInEx, GDWeave, Lovely, MelonLoader, ReturnOfModding, Rivet, Shimloader};
 use loadsmith_platform::Platform as LoadsmithPlatform;
 use thunderstore::models::schema::{self, Distribution};
 use tracing::warn;
@@ -12,15 +12,15 @@ use crate::{Error, Result};
 
 pub fn r2_config_to_loader(
     config: &schema::R2ModmanConfig,
-) -> Result<Option<Box<dyn loadsmith_loader::Loader>>> {
+) -> Result<Box<dyn loadsmith_loader::Loader>> {
     match config.package_loader {
         schema::Loader::BepInEx => {
             let loader = BepInEx::with_rules(convert_ruleset(config)?);
-            Ok(Some(Box::new(loader)))
+            Ok(Box::new(loader))
         }
         schema::Loader::MelonLoader => {
             let loader = MelonLoader::with_rules(convert_ruleset(config)?);
-            Ok(Some(Box::new(loader)))
+            Ok(Box::new(loader))
         }
         schema::Loader::RecursiveMelonLoader => {
             let mut loader = MelonLoader::with_default_recursive_rules();
@@ -39,21 +39,44 @@ pub fn r2_config_to_loader(
                 loader.add_install_rule(rule);
             }
 
-            Ok(Some(Box::new(loader)))
+            Ok(Box::new(loader))
         }
         schema::Loader::Shimloader => {
             let loader = Shimloader::with_rules(convert_ruleset(config)?);
-            Ok(Some(Box::new(loader)))
+            Ok(Box::new(loader))
         }
         schema::Loader::ReturnOfModding => {
             let loader = ReturnOfModding::with_rules(convert_ruleset(config)?);
-            Ok(Some(Box::new(loader)))
+            Ok(Box::new(loader))
         }
         schema::Loader::BepisLoader => {
             let loader = BepInEx::with_rules(convert_ruleset(config)?);
-            Ok(Some(Box::new(loader)))
+            Ok(Box::new(loader))
         }
-        _ => Ok(None),
+        schema::Loader::GDWeave => {
+            warn_install_rules_not_supported("GDWeave", &config.install_rules);
+
+            Ok(Box::new(GDWeave::new()))
+        }
+        schema::Loader::Lovely => {
+            warn_install_rules_not_supported("Lovely", &config.install_rules);
+
+            Ok(Box::new(Lovely::new()))
+        }
+        schema::Loader::Rivet => {
+            warn_install_rules_not_supported("Rivet", &config.install_rules);
+
+            Ok(Box::new(Rivet::new()))
+        }
+        loader => Err(Error::UnsupportedLoader(loader)),
+    }
+}
+
+fn warn_install_rules_not_supported(loader_name: &str, install_rules: &[schema::InstallRule]) {
+    if !install_rules.is_empty() {
+        warn!(
+            "loader config specifies install rules, but {loader_name} does not support custom install rules; ignoring rules"
+        );
     }
 }
 
@@ -99,6 +122,10 @@ fn rule_to_loadsmith(
     prefix: &Utf8Path,
 ) -> Result<Vec<loadsmith_install::InstallRule>> {
     use schema::TrackingMethod;
+
+    if rule.tracking_method == TrackingMethod::PackageZip {
+        return Err(Error::UnsupportedTrackingMethod(rule.tracking_method));
+    }
 
     let name = rule
         .route
@@ -158,7 +185,7 @@ fn rule_to_loadsmith(
     Ok(rules)
 }
 
-pub fn distribution_into_platform(distribution: Distribution) -> Result<Option<LoadsmithPlatform>> {
+pub fn distribution_into_platform(distribution: Distribution) -> Result<LoadsmithPlatform> {
     let identifier = distribution
         .identifier
         .ok_or_else(|| Error::DistributionIsMissingIdentifier);
@@ -178,10 +205,10 @@ pub fn distribution_into_platform(distribution: Distribution) -> Result<Option<L
         schema::Platform::Other => Ok(LoadsmithPlatform::Other),
         schema::Platform::OculusStore => Ok(LoadsmithPlatform::Oculus),
         schema::Platform::Origin => Ok(LoadsmithPlatform::Origin),
-        schema::Platform::SteamDirect => return Ok(None),
+        platform => return Err(Error::UnsupportedPlatform(platform)),
     }?;
 
-    Ok(Some(platform))
+    Ok(platform)
 }
 
 #[cfg(test)]
@@ -215,9 +242,7 @@ mod test {
         let r2config: schema::R2ModmanConfig =
             serde_json::from_str(json).expect("failed to parse loader config");
 
-        let loader = r2_config_to_loader(&r2config)
-            .expect("failed to make loader")
-            .expect("loader is None");
+        let loader = r2_config_to_loader(&r2config).expect("failed to make loader");
 
         insta::assert_debug_snapshot!(name, loader);
     }

@@ -1,0 +1,8 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+README.md: Rivet/Mods/BenMcAvoy-SM_LuaDebugger/README.md
+SM-LuaDebugger.dll: Rivet/Mods/BenMcAvoy-SM_LuaDebugger/SM-LuaDebugger.dll
+icon.png: Rivet/Mods/BenMcAvoy-SM_LuaDebugger/icon.png
+manifest.json: Rivet/Mods/BenMcAvoy-SM_LuaDebugger/manifest.json

@@ -1,0 +1,27 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+CHANGELOG.md: mods/DeckCreator-Deck_Creator/CHANGELOG.md
+Deck Creator/ADeckCreatorModule.lua: mods/DeckCreator-Deck_Creator/Deck Creator/ADeckCreatorModule.lua
+Deck Creator/CardUtils.lua: mods/DeckCreator-Deck_Creator/Deck Creator/CardUtils.lua
+Deck Creator/Custom Decks/.gitkeep: mods/DeckCreator-Deck_Creator/Deck Creator/Custom Decks/.gitkeep
+Deck Creator/CustomDeck.lua: mods/DeckCreator-Deck_Creator/Deck Creator/CustomDeck.lua
+Deck Creator/DeckCreator.lua: mods/DeckCreator-Deck_Creator/Deck Creator/DeckCreator.lua
+Deck Creator/GUI.lua: mods/DeckCreator-Deck_Creator/Deck Creator/GUI.lua
+Deck Creator/GuiElementHelper.lua: mods/DeckCreator-Deck_Creator/Deck Creator/GuiElementHelper.lua
+Deck Creator/ModloaderHelper.lua: mods/DeckCreator-Deck_Creator/Deck Creator/ModloaderHelper.lua
+Deck Creator/Persistence.lua: mods/DeckCreator-Deck_Creator/Deck Creator/Persistence.lua
+Deck Creator/StaticMod.lua: mods/DeckCreator-Deck_Creator/Deck Creator/StaticMod.lua
+Deck Creator/Utils.lua: mods/DeckCreator-Deck_Creator/Deck Creator/Utils.lua
+Deck Creator/assets/1x/InvertEnhancers.png: mods/DeckCreator-Deck_Creator/Deck Creator/assets/1x/InvertEnhancers.png
+Deck Creator/assets/1x/ItemIcons.png: mods/DeckCreator-Deck_Creator/Deck Creator/assets/1x/ItemIcons.png
+Deck Creator/assets/1x/ItemIconsMod.png: mods/DeckCreator-Deck_Creator/Deck Creator/assets/1x/ItemIconsMod.png
+Deck Creator/assets/2x/InvertEnhancers.png: mods/DeckCreator-Deck_Creator/Deck Creator/assets/2x/InvertEnhancers.png
+Deck Creator/assets/2x/ItemIcons.png: mods/DeckCreator-Deck_Creator/Deck Creator/assets/2x/ItemIcons.png
+Deck Creator/assets/2x/ItemIconsMod.png: mods/DeckCreator-Deck_Creator/Deck Creator/assets/2x/ItemIconsMod.png
+Deck Creator/assets/Red_Seal_Messages.txt: mods/DeckCreator-Deck_Creator/Deck Creator/assets/Red_Seal_Messages.txt
+README.md: mods/DeckCreator-Deck_Creator/README.md
+icon.png: mods/DeckCreator-Deck_Creator/icon.png
+manifest.json: mods/DeckCreator-Deck_Creator/manifest.json
+manifest.json.bak: mods/DeckCreator-Deck_Creator/manifest.json.bak

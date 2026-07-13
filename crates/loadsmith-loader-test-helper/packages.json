@@ -44,5 +44,22 @@
     "ResoniteModding-BepisModSettings@1.5.0",
     "ResoniteModding-BepInExResoniteShim@0.9.3",
     "Nytra-InterprocessLib@3.0.1"
-  ]
+  ],
+  "GDWeave/loader": ["NotNet-GDWeave@2.0.14"],
+  "GDWeave/package": [
+    "TeamLure-LureRefreshed@4.3.1",
+    "PuppyGirl-TackleBox@0.5.2",
+    "yeeterfisher-FishingPlus@1.5.7",
+    "BlueberryWolfi-BlueberryWolfiAPIs@1.0.2"
+  ],
+  "Lovely/loader": ["Thunderstore-lovely@0.9.0"],
+  "Lovely/package": [
+    "metherul-nativefs@1.0.1",
+    "Steamopollys-MoreSpeed@0.8.2",
+    "Mikadoe-MikasModCollection@0.13.3",
+    "JoStro-json5@0.1.1",
+    "DeckCreator-Deck_Creator@1.2.2"
+  ],
+  "Rivet/loader": ["ReDoIngMods-Rivet@0.1.9"],
+  "Rivet/package": ["BenMcAvoy-SM_LuaDebugger@1.0.2"]
 }

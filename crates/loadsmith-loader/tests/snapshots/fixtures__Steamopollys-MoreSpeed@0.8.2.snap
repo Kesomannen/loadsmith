@@ -1,0 +1,8 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+MoreSpeeds.lua: mods/Steamopollys-MoreSpeed/MoreSpeeds.lua
+README.md: mods/Steamopollys-MoreSpeed/README.md
+icon.png: mods/Steamopollys-MoreSpeed/icon.png
+manifest.json: mods/Steamopollys-MoreSpeed/manifest.json

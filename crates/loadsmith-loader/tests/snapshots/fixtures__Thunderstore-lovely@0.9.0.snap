@@ -1,0 +1,10 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+CHANGELOG.md: ~
+README.md: ~
+icon.png: ~
+lovely/config.toml: mods/lovely/config.toml
+manifest.json: ~
+version.dll: "./version.dll"

@@ -1,0 +1,10 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+GDWeave/mods/BlueberryWolfi.APIs/APIs.pck: GDWeave/mods/BlueberryWolfi-BlueberryWolfiAPIs/APIs.pck
+GDWeave/mods/BlueberryWolfi.APIs/icon.png: GDWeave/mods/BlueberryWolfi-BlueberryWolfiAPIs/icon.png
+GDWeave/mods/BlueberryWolfi.APIs/manifest.json: GDWeave/mods/BlueberryWolfi-BlueberryWolfiAPIs/manifest.json
+README.md: ~
+icon.png: ~
+manifest.json: ~

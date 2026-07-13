@@ -1,0 +1,13 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+GDWeave/mods/TackleBox/TackleBox.deps.json: GDWeave/mods/PuppyGirl-TackleBox/TackleBox.deps.json
+GDWeave/mods/TackleBox/TackleBox.dll: GDWeave/mods/PuppyGirl-TackleBox/TackleBox.dll
+GDWeave/mods/TackleBox/TackleBox.pck: GDWeave/mods/PuppyGirl-TackleBox/TackleBox.pck
+GDWeave/mods/TackleBox/TackleBox.pdb: GDWeave/mods/PuppyGirl-TackleBox/TackleBox.pdb
+GDWeave/mods/TackleBox/icon.png: GDWeave/mods/PuppyGirl-TackleBox/icon.png
+GDWeave/mods/TackleBox/manifest.json: GDWeave/mods/PuppyGirl-TackleBox/manifest.json
+README.md: ~
+icon.png: ~
+manifest.json: ~

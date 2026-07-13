@@ -1,0 +1,7 @@
+README.md
+RivetPack/Rivet.ini
+RivetPack/Rivet/Loader.dll
+RivetPack/Rivet/Rivet.log
+RivetPack/version.dll
+icon.png
+manifest.json

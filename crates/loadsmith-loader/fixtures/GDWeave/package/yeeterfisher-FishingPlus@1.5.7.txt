@@ -1,0 +1,6 @@
+GDWeave/mods/FishingPlus/FishingPlus.dll
+GDWeave/mods/FishingPlus/FishingPlus.pck
+GDWeave/mods/FishingPlus/manifest.json
+README.md
+icon.png
+manifest.json

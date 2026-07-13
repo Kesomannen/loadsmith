@@ -1,0 +1,11 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+README.md: ~
+RivetPack/Rivet.ini: "./Rivet.ini"
+RivetPack/Rivet/Loader.dll: "./Rivet/Loader.dll"
+RivetPack/Rivet/Rivet.log: "./Rivet/Rivet.log"
+RivetPack/version.dll: "./version.dll"
+icon.png: ~
+manifest.json: ~

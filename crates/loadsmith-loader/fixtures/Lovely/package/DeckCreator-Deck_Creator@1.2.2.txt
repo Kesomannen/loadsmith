@@ -1,0 +1,23 @@
+CHANGELOG.md
+Deck Creator/ADeckCreatorModule.lua
+Deck Creator/CardUtils.lua
+Deck Creator/Custom Decks/.gitkeep
+Deck Creator/CustomDeck.lua
+Deck Creator/DeckCreator.lua
+Deck Creator/GUI.lua
+Deck Creator/GuiElementHelper.lua
+Deck Creator/ModloaderHelper.lua
+Deck Creator/Persistence.lua
+Deck Creator/StaticMod.lua
+Deck Creator/Utils.lua
+Deck Creator/assets/1x/InvertEnhancers.png
+Deck Creator/assets/1x/ItemIcons.png
+Deck Creator/assets/1x/ItemIconsMod.png
+Deck Creator/assets/2x/InvertEnhancers.png
+Deck Creator/assets/2x/ItemIcons.png
+Deck Creator/assets/2x/ItemIconsMod.png
+Deck Creator/assets/Red_Seal_Messages.txt
+README.md
+icon.png
+manifest.json
+manifest.json.bak

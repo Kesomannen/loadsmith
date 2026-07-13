@@ -5,7 +5,9 @@ use std::{
 
 use loadsmith_core::PackageRef;
 use loadsmith_install::InstallRuleset;
-use loadsmith_loader::{BepInEx, BepisLoader, Loader, MelonLoader, ReturnOfModding, Shimloader};
+use loadsmith_loader::{
+    BepInEx, BepisLoader, GDWeave, Loader, Lovely, MelonLoader, ReturnOfModding, Rivet, Shimloader,
+};
 
 fn test_fixture_category(category: &str, rules: &InstallRuleset) {
     let category_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -116,4 +118,40 @@ fixture_test!(
     bepis_loader_package,
     "BepisLoader/package",
     &BepisLoader::with_default_rules().package_install_rules()
+);
+
+fixture_test!(
+    gd_weave_loader,
+    "GDWeave/loader",
+    &GDWeave::new().loader_install_rules()
+);
+
+fixture_test!(
+    gd_weave_package,
+    "GDWeave/package",
+    &GDWeave::new().package_install_rules()
+);
+
+fixture_test!(
+    lovely_loader,
+    "Lovely/loader",
+    &Lovely::new().loader_install_rules()
+);
+
+fixture_test!(
+    lovely_package,
+    "Lovely/package",
+    &Lovely::new().package_install_rules()
+);
+
+fixture_test!(
+    rivet_loader,
+    "Rivet/loader",
+    &Rivet::new().loader_install_rules()
+);
+
+fixture_test!(
+    rivet_package,
+    "Rivet/package",
+    &Rivet::new().package_install_rules()
 );
