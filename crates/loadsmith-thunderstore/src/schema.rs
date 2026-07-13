@@ -3,7 +3,9 @@ use std::borrow::Cow;
 use camino::Utf8Path;
 use globset::{Glob, GlobSet};
 use loadsmith_install::{OwnedInstallRuleset, RouteRule};
-use loadsmith_loader::{BepInEx, GDWeave, Lovely, MelonLoader, ReturnOfModding, Rivet, Shimloader};
+use loadsmith_loader::{
+    BepInEx, GDWeave, Lovely, MelonLoader, Northstar, ReturnOfModding, Rivet, Shimloader,
+};
 use loadsmith_platform::Platform as LoadsmithPlatform;
 use thunderstore::models::schema::{self, Distribution};
 use tracing::warn;
@@ -67,6 +69,11 @@ pub fn r2_config_to_loader(
             warn_install_rules_not_supported("Rivet", &config.install_rules);
 
             Ok(Box::new(Rivet::new()))
+        }
+        schema::Loader::Northstar => {
+            let loader = Northstar::with_rules(convert_ruleset(config)?);
+
+            Ok(Box::new(loader))
         }
         loader => Err(Error::UnsupportedLoader(loader)),
     }

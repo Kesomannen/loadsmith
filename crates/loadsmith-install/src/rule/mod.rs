@@ -21,9 +21,9 @@ pub enum InstallRule {
 
 #[derive(Debug, Clone, Copy)]
 pub struct InstallRuleset<'a> {
-    pub exclude: Option<&'a GlobSet>,
-    pub rules: &'a [InstallRule],
-    pub default_rule: Option<&'a InstallRule>,
+    exclude: Option<&'a GlobSet>,
+    rules: &'a [InstallRule],
+    default_rule: Option<&'a InstallRule>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -120,6 +120,18 @@ impl<'a> InstallRuleset<'a> {
         self
     }
 
+    pub fn rules(&self) -> &[InstallRule] {
+        self.rules
+    }
+
+    pub fn default_rule(&self) -> Option<&InstallRule> {
+        self.default_rule
+    }
+
+    pub fn exclude(&self) -> Option<&GlobSet> {
+        self.exclude
+    }
+
     pub fn find_rule_for_path(&self, path: impl AsRef<Utf8Path>) -> Option<&'a InstallRule> {
         let path = path.as_ref();
         self.rules
@@ -182,11 +194,11 @@ impl OwnedInstallRuleset {
         self
     }
 
-    pub fn add(&mut self, rule: InstallRule) {
+    pub fn add_rule(&mut self, rule: InstallRule) {
         self.rules.push(rule);
     }
 
-    pub fn insert(&mut self, index: usize, rule: InstallRule) {
+    pub fn insert_rule(&mut self, index: usize, rule: InstallRule) {
         if let Some(default_index) = self.default_rule {
             if index <= default_index {
                 self.default_rule = Some(default_index + 1);
@@ -204,12 +216,16 @@ impl OwnedInstallRuleset {
         &self.rules
     }
 
-    pub fn into_parts(self) -> (Vec<InstallRule>, Option<usize>, Option<GlobSet>) {
-        (self.rules, self.default_rule, self.exclude)
-    }
-
     pub fn default_rule(&self) -> Option<&InstallRule> {
         self.default_rule.map(|index| &self.rules[index])
+    }
+
+    pub fn exclude(&self) -> Option<&GlobSet> {
+        self.exclude.as_ref()
+    }
+
+    pub fn into_parts(self) -> (Vec<InstallRule>, Option<usize>, Option<GlobSet>) {
+        (self.rules, self.default_rule, self.exclude)
     }
 
     pub fn as_ref(&self) -> InstallRuleset<'_> {

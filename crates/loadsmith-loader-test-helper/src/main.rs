@@ -1,12 +1,12 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result, anyhow, bail};
 use bytes::Bytes;
 use loadsmith_core::PackageRef;
 use loadsmith_thunderstore::PackageRefExt;
 use serde::Deserialize;
 use tokio::fs;
-use tracing::{Level, debug, info};
+use tracing::{Level, debug, info, warn};
 
 #[derive(Debug, Deserialize)]
 struct Packages(HashMap<String, Vec<PackageRef>>);
@@ -70,8 +70,21 @@ pub async fn download_package(http: &reqwest::Client, pkg: &PackageRef) -> Resul
 
     debug!(%pkg, %url, "downloading package");
 
+    for _ in 0..3 {
+        match try_download(http, &url).await {
+            Ok(bytes) => return Ok(bytes),
+            Err(err) => {
+                warn!(%pkg, %url, error = %err, "failed to download package, retrying");
+            }
+        }
+    }
+
+    bail!("failed to download package {pkg} after 3 attempts");
+}
+
+async fn try_download(http: &reqwest::Client, url: &str) -> Result<Bytes> {
     let response = http
-        .get(&url)
+        .get(url)
         .send()
         .await?
         .error_for_status()?

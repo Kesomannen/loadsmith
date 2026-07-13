@@ -6,7 +6,8 @@ use std::{
 use loadsmith_core::PackageRef;
 use loadsmith_install::InstallRuleset;
 use loadsmith_loader::{
-    BepInEx, BepisLoader, GDWeave, Loader, Lovely, MelonLoader, ReturnOfModding, Rivet, Shimloader,
+    BepInEx, BepisLoader, GDWeave, Loader, Lovely, MelonLoader, Northstar, ReturnOfModding, Rivet,
+    Shimloader,
 };
 
 fn test_fixture_category(category: &str, rules: &InstallRuleset) {
@@ -154,4 +155,16 @@ fixture_test!(
     rivet_package,
     "Rivet/package",
     &Rivet::new().package_install_rules()
+);
+
+fixture_test!(
+    northstar_loader,
+    "Northstar/loader",
+    &Northstar::with_default_rules().loader_install_rules()
+);
+
+fixture_test!(
+    northstar_package,
+    "Northstar/package",
+    &Northstar::with_default_rules().package_install_rules()
 );

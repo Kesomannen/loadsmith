@@ -37,7 +37,7 @@ pub trait Loader: Debug + Send + Sync {
 
     fn package_dir(&self, package: &PackageRef) -> Option<PathBuf> {
         self.package_install_rules()
-            .default_rule
+            .default_rule()
             .and_then(|default_rule| default_rule.map_file("", package))
             .map(Utf8PathBuf::into_std_path_buf)
     }

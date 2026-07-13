@@ -1,0 +1,9 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+README.md: ~
+icon.png: ~
+manifest.json: ~
+mods/S2.SpeedometerV2/mod.json: R2Northstar/mods/S2.SpeedometerV2/mod.json
+mods/S2.SpeedometerV2/mod/scripts/vscripts/s2_speedometer.nut: R2Northstar/mods/S2.SpeedometerV2/mod/scripts/vscripts/s2_speedometer.nut

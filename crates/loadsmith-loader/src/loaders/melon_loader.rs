@@ -62,7 +62,7 @@ impl MelonLoader {
     }
 
     pub fn add_install_rule(&mut self, rule: InstallRule) {
-        self.package_install_ruleset.add(rule);
+        self.package_install_ruleset.add_rule(rule);
     }
 }
 

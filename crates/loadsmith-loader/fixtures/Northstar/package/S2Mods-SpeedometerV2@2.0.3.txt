@@ -1,0 +1,5 @@
+README.md
+icon.png
+manifest.json
+mods/S2.SpeedometerV2/mod.json
+mods/S2.SpeedometerV2/mod/scripts/vscripts/s2_speedometer.nut

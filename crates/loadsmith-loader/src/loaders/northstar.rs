@@ -3,7 +3,7 @@ use std::{path::PathBuf, sync::LazyLock};
 use globset::{GlobBuilder, GlobSet};
 use loadsmith_install::{InstallRule, InstallRuleset, OwnedInstallRuleset, RouteRule};
 
-use crate::{LaunchArgs, LaunchContext, Loader, Result, glob_rule};
+use crate::{LaunchArgs, LaunchContext, Loader, Result, glob, glob_rule};
 
 #[derive(Debug, Clone)]
 pub struct Northstar {
@@ -18,20 +18,34 @@ impl Northstar {
     }
 
     pub fn with_default_rules() -> Self {
-        OwnedInstallRuleset::from_rule_iter(
-            vec![RouteRule::new_static("R2Northstar/mods").with_subdir(false)],
+        let exclude = GlobSet::builder()
+            .add(glob!("manifest.json"))
+            .add(glob!("README.md"))
+            .add(glob!("icon.png"))
+            .add(glob!("LICENSE"))
+            .build()
+            .expect("constant globs should be valid");
+
+        let ruleset = OwnedInstallRuleset::from_rule_iter(
+            vec![
+                RouteRule::new_static("R2Northstar/mods")
+                    .with_subdir(false)
+                    .with_flatten(false),
+            ],
             None,
         )
-        .map(Self::with_rules)
         .expect("rules are not empty so there should always be a valid default rule index")
+        .with_exclude(exclude);
+
+        Self::with_rules(ruleset)
     }
 
     pub fn add_install_rule(&mut self, rule: impl Into<InstallRule>) {
-        self.package_install_ruleset.add(rule.into());
+        self.package_install_ruleset.add_rule(rule.into());
     }
 
     pub fn insert_install_rule(&mut self, index: usize, rule: impl Into<InstallRule>) {
-        self.package_install_ruleset.insert(index, rule.into());
+        self.package_install_ruleset.insert_rule(index, rule.into());
     }
 }
 
@@ -125,25 +139,23 @@ mod tests {
         ])
     }
 
-    // #[test]
-    // fn map_package_files() {
-    //     assert_maps!(MapFileTester::new(
-    //         Northstar::with_default_rules(),
-    //         PackageRef::new("Author-Name".to_string(), (1, 0, 0)),
-    //         false,
-    //     ), [
-    //         "README.md" => "BepInEx/plugins/Author-Name/README.md",
-    //         "nested/file.txt" => "BepInEx/plugins/Author-Name/file.txt",
-    //         "plugins/nested/file.txt" => "BepInEx/plugins/Author-Name/nested/file.txt",
-    //         "config/settings.json" => "BepInEx/config/settings.json",
-    //         "patchers/patcher.dll" => "BepInEx/patchers/Author-Name/patcher.dll",
-    //         "core/core.dll" => "BepInEx/core/Author-Name/core.dll",
-    //         "patch.mm.dll" => "BepInEx/monomod/Author-Name/patch.mm.dll",
-    //         "nested/patch.mm.dll" => "BepInEx/monomod/Author-Name/patch.mm.dll",
-    //         "monomod/patch.dll" => "BepInEx/monomod/Author-Name/patch.dll",
-    //         "monomod/nested/patch.dll" => "BepInEx/monomod/Author-Name/nested/patch.dll"
-    //     ]);
-    // }
+    #[test]
+    fn map_package_files() {
+        assert_maps!(MapFileTester::new(
+            Northstar::with_default_rules(),
+            PackageRef::new("Author-Name".to_string(), (1, 0, 0)),
+            false,
+        ), [
+            "manifest.json" => None,
+            "README.md" => None,
+            "icon.png" => None,
+            "LICENSE" => None,
+            "file.txt" => None,
+            "mods/file.txt" => "R2Northstar/mods/file.txt",
+            "mods/nested/file.txt" => "R2Northstar/mods/nested/file.txt",
+            "nested/mods/file.txt" => "R2Northstar/mods/nested/file.txt",
+        ]);
+    }
 
     #[test]
     fn package_dir_works() {

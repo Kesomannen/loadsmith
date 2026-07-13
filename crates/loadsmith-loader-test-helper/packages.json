@@ -61,5 +61,11 @@
     "DeckCreator-Deck_Creator@1.2.2"
   ],
   "Rivet/loader": ["ReDoIngMods-Rivet@0.1.9"],
-  "Rivet/package": ["BenMcAvoy-SM_LuaDebugger@1.0.2"]
+  "Rivet/package": ["BenMcAvoy-SM_LuaDebugger@1.0.2"],
+  "Northstar/loader": ["northstar-Northstar@1.31.10"],
+  "Northstar/package": [
+    "EladNLG-HUDRevamp@2.0.0",
+    "S2Mods-SpeedometerV2@2.0.3",
+    "Northstar_Archive-Cat_Ears_Grapple_Pilot_Female@1.0.0"
+  ]
 }

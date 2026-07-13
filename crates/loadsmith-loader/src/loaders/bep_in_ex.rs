@@ -36,11 +36,11 @@ impl BepInEx {
     }
 
     pub fn add_install_rule(&mut self, rule: impl Into<InstallRule>) {
-        self.package_install_ruleset.add(rule.into());
+        self.package_install_ruleset.add_rule(rule.into());
     }
 
     pub fn insert_install_rule(&mut self, index: usize, rule: impl Into<InstallRule>) {
-        self.package_install_ruleset.insert(index, rule.into());
+        self.package_install_ruleset.insert_rule(index, rule.into());
     }
 }
 

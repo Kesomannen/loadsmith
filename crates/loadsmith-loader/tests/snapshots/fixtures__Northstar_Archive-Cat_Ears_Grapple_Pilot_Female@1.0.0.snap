@@ -1,0 +1,10 @@
+---
+source: crates/loadsmith-loader/tests/fixtures.rs
+expression: mapped
+---
+README.md: ~
+icon.png: ~
+manifest.json: ~
+mods/grapple_cat_ears_female/mod.json: R2Northstar/mods/grapple_cat_ears_female/mod.json
+mods/grapple_cat_ears_female/vpk/client_mp_common.bsp.pak000_000.vpk: R2Northstar/mods/grapple_cat_ears_female/vpk/client_mp_common.bsp.pak000_000.vpk
+mods/grapple_cat_ears_female/vpk/englishclient_mp_common.bsp.pak000_dir.vpk: R2Northstar/mods/grapple_cat_ears_female/vpk/englishclient_mp_common.bsp.pak000_dir.vpk
