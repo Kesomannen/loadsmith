@@ -151,13 +151,22 @@ impl<'a> InstallRuleset<'a> {
         path: impl AsRef<Utf8Path>,
         package: &PackageRef,
     ) -> Option<Utf8PathBuf> {
+        self.map_file_and_return_rule(path, package)
+            .map(|(mapped, _rule)| mapped)
+    }
+
+    pub fn map_file_and_return_rule(
+        &self,
+        path: impl AsRef<Utf8Path>,
+        package: &PackageRef,
+    ) -> Option<(Utf8PathBuf, &InstallRule)> {
         let path = path.as_ref();
         if self.is_excluded(path) {
             return None;
         }
 
         self.find_rule_for_path(path)
-            .and_then(|rule| rule.map_file(path, package))
+            .and_then(|rule| rule.map_file(path, package).map(|path| (path, rule)))
     }
 
     pub fn is_excluded(&self, path: impl AsRef<Path>) -> bool {

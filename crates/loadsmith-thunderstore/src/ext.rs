@@ -10,11 +10,11 @@ pub trait PackageIdExt {
 
 impl PackageIdExt for PackageId {
     fn into_ts_ident(self) -> Result<PackageIdent> {
-        PackageIdent::try_from(self.0).map_err(Error::InvalidIdent)
+        PackageIdent::try_from(self.into_string()).map_err(Error::InvalidIdent)
     }
 
     fn from_ts_ident(ident: PackageIdent) -> Self {
-        PackageId(ident.into_string())
+        PackageId::from(ident.into_string())
     }
 }
 
@@ -25,16 +25,17 @@ pub trait PackageRefExt {
 
 impl PackageRefExt for loadsmith_core::PackageRef {
     fn into_ts_ident(self) -> Result<VersionIdent> {
-        self.id
-            .into_ts_ident()
-            .map(|package| package.with_version(self.version.to_string()))
+        let (id, version) = self.into_split();
+
+        id.into_ts_ident()
+            .map(|package| package.with_version(version.to_string()))
     }
 
     fn from_ts_ident(ident: VersionIdent) -> Self {
-        Self {
-            id: PackageId::from_ts_ident(ident.package_id()),
-            version: ident.parsed_version().into(),
-        }
+        Self::new(
+            PackageId::from_ts_ident(ident.package_id()),
+            ident.parsed_version(),
+        )
     }
 }
 
@@ -44,7 +45,7 @@ mod tests {
 
     #[test]
     fn package_id_into_ts_ident() {
-        let package_id = PackageId("Author-Name".to_string());
+        let package_id = PackageId::new("Author-Name");
         let ts_ident = package_id.into_ts_ident().unwrap();
         assert_eq!(ts_ident.namespace(), "Author");
         assert_eq!(ts_ident.name(), "Name");
@@ -53,7 +54,7 @@ mod tests {
 
     #[test]
     fn package_id_into_ts_ident_hyphen_in_namespace() {
-        let package_id = PackageId("Author-Name-Hyphen".to_string());
+        let package_id = PackageId::new("Author-Name-Hyphen");
         let ts_ident = package_id.into_ts_ident().unwrap();
         assert_eq!(ts_ident.namespace(), "Author-Name");
         assert_eq!(ts_ident.name(), "Hyphen");
@@ -64,6 +65,6 @@ mod tests {
     fn package_id_from_ts_ident() {
         let ts_ident = PackageIdent::new("Author", "Name");
         let package_id = PackageId::from_ts_ident(ts_ident);
-        assert_eq!(package_id.0, "Author-Name");
+        assert_eq!(package_id.as_str(), "Author-Name");
     }
 }

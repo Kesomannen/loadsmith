@@ -126,7 +126,7 @@ impl RouteRule {
         let mut target_path = Utf8PathBuf::from(self.target.as_ref());
 
         if self.subdir {
-            target_path.push(package.id.as_str());
+            target_path.push(package.id().as_str());
         }
 
         if !self.flatten {

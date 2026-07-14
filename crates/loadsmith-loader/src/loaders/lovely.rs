@@ -61,7 +61,7 @@ impl Loader for Lovely {
     }
 
     fn package_dir(&self, package: &PackageRef) -> Option<PathBuf> {
-        Some(PathBuf::from("mods").join(package.id.as_str()))
+        Some(PathBuf::from("mods").join(package.id().as_str()))
     }
 
     fn package_config_dirs(&self) -> Vec<PathBuf> {

@@ -12,6 +12,7 @@ loadsmith-thunderstore = { path = "../loadsmith-thunderstore" }
 loadsmith-registry = { path = "../loadsmith-registry" }
 loadsmith-platform = { path = "../loadsmith-platform" }
 loadsmith-util = { path = "../loadsmith-util" }
+loadsmith-github = { path = "../loadsmith-github" }
 
 [dev-dependencies]
 thunderstore = { workspace = true }

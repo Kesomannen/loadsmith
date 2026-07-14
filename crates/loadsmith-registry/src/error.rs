@@ -25,8 +25,8 @@ pub enum Error {
     #[error("registry requires metadata, but none was provided")]
     MissingMetadata,
 
-    #[error("registry got invalid metadata: {error}")]
-    InvalidMetadata { error: serde_json::Error },
+    #[error("registry got invalid metadata")]
+    InvalidMetadata(#[source] serde_json::Error),
 
     #[error("file not found: {0}")]
     FileNotFound(Utf8PathBuf),

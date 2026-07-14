@@ -49,3 +49,10 @@ pub fn remove_empty_parents(path: impl Into<PathBuf>) -> std::io::Result<()> {
 
     Ok(())
 }
+
+pub fn create_parent_dirs(path: impl AsRef<Path>) -> std::io::Result<()> {
+    if let Some(parent) = path.as_ref().parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    Ok(())
+}

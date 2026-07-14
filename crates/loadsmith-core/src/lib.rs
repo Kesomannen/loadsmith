@@ -11,7 +11,7 @@ pub use error::{Error, Result};
 pub use version::{Version, VersionRange};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, PartialOrd, Ord)]
-pub struct PackageId(pub String);
+pub struct PackageId(String);
 
 impl PackageId {
     pub fn new(id: impl Into<String>) -> Self {
@@ -20,6 +20,10 @@ impl PackageId {
 
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+
+    pub fn into_string(self) -> String {
+        self.0
     }
 }
 
@@ -44,8 +48,8 @@ impl Display for PackageId {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(into = "String", try_from = "&str")]
 pub struct PackageRef {
-    pub id: PackageId,
-    pub version: Version,
+    id: PackageId,
+    version: Version,
 }
 
 impl PackageRef {
@@ -54,6 +58,26 @@ impl PackageRef {
             id: id.into(),
             version: version.into(),
         }
+    }
+
+    pub fn id(&self) -> &PackageId {
+        &self.id
+    }
+
+    pub fn version(&self) -> &Version {
+        &self.version
+    }
+
+    pub fn into_id(self) -> PackageId {
+        self.id
+    }
+
+    pub fn into_version(self) -> Version {
+        self.version
+    }
+
+    pub fn into_split(self) -> (PackageId, Version) {
+        (self.id, self.version)
     }
 }
 

@@ -4,31 +4,21 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use loadsmith_core::PackageRef;
 use tracing::{trace, warn};
 
 #[cfg(unix)]
 use crate::zip::ZipFile;
-use crate::{error::Result, rule::InstallRuleset, zip::Zip};
+use crate::{error::Result, zip::Zip};
 
-pub fn extract<R: Read + Seek>(
-    reader: R,
-    package: &PackageRef,
-    ruleset: InstallRuleset,
-    target: impl AsRef<Path>,
-) -> Result<Vec<PathBuf>> {
+pub fn extract<R: Read + Seek>(reader: R, target: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
     let mut zip = zip::ZipArchive::new(reader)?;
-    extract_zip(&mut zip, package, ruleset, target.as_ref())
+    extract_zip(&mut zip, target.as_ref())
 }
 
-pub fn extract_zip<Z: Zip>(
-    zip: &mut Z,
-    package: &PackageRef,
-    ruleset: InstallRuleset,
-    target: &Path,
-) -> Result<Vec<PathBuf>> {
+pub fn extract_zip<Z: Zip>(zip: &mut Z, target: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
     let t = crate::zip::private::Token;
 
+    let target = target.as_ref();
     let mut files = Vec::new();
 
     for i in 0..zip.len(t) {
@@ -38,27 +28,18 @@ pub fn extract_zip<Z: Zip>(
             continue; // we create the necessary dirs when creating files instead
         }
 
-        let source_path = source_file.path(t)?;
+        let relative_path = source_file.path(t)?;
 
-        let Some(mapped_path) = ruleset.map_file(&source_path, package) else {
-            trace!(%source_path, "no matching rule");
-            continue;
-        };
-
-        let target_path = target.join(&mapped_path);
+        let target_path = target.join(&relative_path);
 
         if target_path.exists() {
-            warn!(%source_path, %mapped_path, "file already exists, skipping extraction");
+            warn!(%relative_path, "file already exists, skipping extraction");
             continue;
         }
 
-        trace!(%source_path, %mapped_path, "extract file");
+        trace!(%relative_path, "extract file");
 
-        fs::create_dir_all(
-            target_path
-                .parent()
-                .expect("path should have target as parent"),
-        )?;
+        loadsmith_util::create_parent_dirs(&target_path)?;
 
         let mut target_file = File::create(&target_path)?;
 
@@ -86,44 +67,35 @@ fn set_unix_mode<F: ZipFile>(file: &F, path: &Path) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use camino::Utf8Path;
-    use globset::{Glob, GlobSet};
-
-    use crate::{GlobRule, InstallRule, zip::mock::MockZip};
+    use crate::zip::mock::MockZip;
 
     use super::*;
 
-    const TEST_PACKAGE_ID: &str = "Author-Name";
-
-    fn test_extract(zip: &mut MockZip, ruleset: InstallRuleset) -> tempfile::TempDir {
-        let package = loadsmith_core::PackageRef::new(TEST_PACKAGE_ID.to_string(), (1, 0, 0));
-        let tempfile = tempfile::tempdir().unwrap();
-
-        extract_zip(zip, &package, ruleset, tempfile.path()).unwrap();
-
-        tempfile
-    }
-
     #[test]
     fn simple_glob() {
-        let mut zip = MockZip::default()
-            .with_empty_file("file1")
-            .with_empty_file("file2")
-            .with_empty_file("file3");
+        let included_files = &["file1", "nested/file2", "nested/../file3", "./././file4"];
 
-        let rules = [
-            InstallRule::Glob(GlobRule::try_from_pattern("file1", Utf8Path::new(".")).unwrap()),
-            InstallRule::Glob(GlobRule::try_from_pattern("file3", Utf8Path::new(".")).unwrap()),
-        ];
+        let mut zip = MockZip::default();
 
-        let exclude = GlobSet::new([Glob::new("file3").unwrap()]).unwrap();
+        for file in included_files {
+            zip = zip.with_empty_file(file);
+        }
 
-        let ruleset = InstallRuleset::new(&rules).with_exclude(&exclude);
+        let dir = tempfile::tempdir().unwrap();
 
-        let dir = test_extract(&mut zip, ruleset);
+        extract_zip(&mut zip, &dir).unwrap();
 
-        assert!(dir.path().join("file1").exists());
-        assert!(!dir.path().join("file2").exists());
-        assert!(!dir.path().join("file3").exists()); // excluded by the exclude glob
+        for file in included_files {
+            assert!(dir.path().join(file).exists());
+        }
+
+        // let rules = [
+        //     InstallRule::Glob(GlobRule::try_from_pattern("file1", Utf8Path::new(".")).unwrap()),
+        //     InstallRule::Glob(GlobRule::try_from_pattern("file3", Utf8Path::new(".")).unwrap()),
+        // ];
+
+        // let exclude = GlobSet::new([Glob::new("file3").unwrap()]).unwrap();
+
+        // let ruleset = InstallRuleset::new(&rules).with_exclude(&exclude);
     }
 }

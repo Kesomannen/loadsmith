@@ -81,9 +81,7 @@ impl<R: Read + Seek> ImportFile<R> {
 
             trace!(path = %relative_path, "importing file");
 
-            if let Some(parent) = target_path.parent() {
-                fs::create_dir_all(parent)?;
-            }
+            loadsmith_util::create_parent_dirs(&target_path)?;
 
             let mut file = fs::File::create(target_path)?;
             io::copy(&mut Cursor::new(buf), &mut file)?;

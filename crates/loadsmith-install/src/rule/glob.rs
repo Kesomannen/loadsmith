@@ -79,7 +79,7 @@ impl GlobRule {
 
         let mut target = self.target.to_path_buf();
         if self.subdir {
-            target.push(package.id.as_str());
+            target.push(package.id().as_str());
         }
         target.push(suffix);
 

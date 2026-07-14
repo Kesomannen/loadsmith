@@ -40,7 +40,7 @@ where
         let existing = existing_lockfile
             .and_then(|lockfile| lockfile.package_by_id(&id))
             .and_then(|existing| {
-                if version_range.matches(&existing.ref_.version) {
+                if version_range.matches(existing.ref_.version()) {
                     Some(existing)
                 } else {
                     None
@@ -48,7 +48,7 @@ where
             });
 
         let locked = if let Some(existing) = existing {
-            trace!(%id, version = %existing.ref_.version, source, "using locked version of package");
+            trace!(%id, version = %existing.ref_.version(), source, "using locked version of package");
 
             let mut existing = existing.clone();
             existing.transitive = transitive;

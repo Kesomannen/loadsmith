@@ -20,11 +20,11 @@ impl Lockfile {
     }
 
     pub fn package_by_id(&self, id: &PackageId) -> Option<&LockedPackage> {
-        self.packages.iter().find(|locked| locked.ref_.id == *id)
+        self.packages.iter().find(|locked| locked.ref_.id() == id)
     }
 
     pub(crate) fn id_to_package_map(&self) -> HashMap<&PackageId, &LockedPackage> {
-        self.packages.iter().map(|p| (&p.ref_.id, p)).collect()
+        self.packages.iter().map(|p| (p.ref_.id(), p)).collect()
     }
 
     pub fn diff<'a>(&'a self, new: &'a Lockfile) -> Diff<'a, LockedPackage, LockedPackage> {
@@ -88,7 +88,7 @@ impl LockedPackage {
 
 impl Diffable for LockedPackage {
     fn version(&self) -> &loadsmith_core::Version {
-        &self.ref_.version
+        self.ref_.version()
     }
 }
 

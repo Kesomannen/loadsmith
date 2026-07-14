@@ -1,7 +1,7 @@
 use std::{
     fmt::Debug,
     fs::{self},
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 use camino::Utf8PathBuf;
@@ -17,19 +17,24 @@ use crate::{
 pub fn install(
     package: PackageRef,
     ruleset: InstallRuleset,
-    source: impl AsRef<Path> + Debug,
-    profile: impl AsRef<Path> + Debug,
+    source: impl AsRef<Path>,
+    profile: impl AsRef<Path>,
     no_links: bool,
 ) -> Result<(InstalledPackage, Vec<Utf8PathBuf>)> {
     let source = source.as_ref();
     let profile = profile.as_ref();
 
-    let mut files = Vec::new();
-    let mut overwrote_files = Vec::new();
+    let mut installed_files = Vec::new();
+    let mut overriden_files = Vec::new();
+
     let walkdir = WalkDir::new(source).follow_links(false).into_iter();
 
     for entry in walkdir {
         let entry = entry?;
+
+        if entry.file_type().is_dir() {
+            continue; // we create the necessary dirs when creating files instead
+        }
 
         let relative_path = entry
             .path()
@@ -38,58 +43,51 @@ pub fn install(
 
         let relative_path = Utf8PathBuf::try_from(relative_path.to_path_buf())?;
 
-        let target_path = profile.join(&relative_path);
+        let Some((mapped, rule)) = ruleset.map_file_and_return_rule(&relative_path, &package)
+        else {
+            debug!(%relative_path, "files left unmapped by ruleset, skipping");
+            continue;
+        };
 
-        if entry.file_type().is_dir() {
-            if target_path.is_dir() {
-                trace!(?relative_path, "directory already exists, skipping");
-            } else {
-                fs::create_dir(&target_path)?;
-                trace!(?relative_path, "create directory")
-            }
-        } else {
-            let rule = ruleset.find_rule_for_mapped_path(&relative_path);
-            let (file, overwrote) = install_file(
-                entry.path(),
-                target_path,
-                relative_path.clone(),
-                rule,
-                no_links,
-            )?;
+        let target_path = profile.join(mapped);
 
-            if let Some(file) = file {
-                files.push(file);
-            }
+        loadsmith_util::create_parent_dirs(&target_path)?;
 
-            if overwrote {
-                overwrote_files.push(relative_path);
-            }
+        let (installed, overwrote) = install_file(
+            entry.path(),
+            &target_path,
+            relative_path.clone(),
+            rule,
+            no_links,
+        )?;
+
+        if let Some(installed) = installed {
+            installed_files.push(installed);
+        }
+
+        if overwrote {
+            overriden_files.push(relative_path);
         }
     }
 
-    Ok((InstalledPackage::now(package, files), overwrote_files))
+    Ok((
+        InstalledPackage::now(package, installed_files),
+        overriden_files,
+    ))
 }
 
 fn install_file(
-    source: impl AsRef<Path>,
-    target: impl AsRef<Path> + Into<PathBuf>,
+    source: &Path,
+    target: &Path,
     relative_path: Utf8PathBuf,
-    rule: Option<&InstallRule>,
+    rule: &InstallRule,
     no_links: bool,
 ) -> Result<(Option<InstalledFile>, bool)> {
-    let target = target.as_ref();
-
-    let link = !no_links && rule.map(|r| r.use_links()).unwrap_or(false);
+    let link = !no_links && rule.use_links();
     let mut overwrote = false;
 
     if target.exists() {
-        match rule.map(|r| r.conflict_strategy()).unwrap_or_else(|| {
-            debug!(
-                ?relative_path,
-                "no matching rule, defaulting to overwrite strategy"
-            );
-            ConflictStrategy::Overwrite
-        }) {
+        match rule.conflict_strategy() {
             ConflictStrategy::Overwrite => {
                 trace!(?relative_path, "overwriting existing file");
                 overwrote = true;
@@ -119,7 +117,7 @@ fn install_file(
     Ok((Some(InstalledFile::new(relative_path, link)), overwrote))
 }
 
-pub fn uninstall(package: InstalledPackage, profile: impl AsRef<Path> + Debug) -> Result<()> {
+pub fn uninstall(package: &InstalledPackage, profile: impl AsRef<Path>) -> Result<()> {
     let profile = profile.as_ref();
 
     for file in &package.files {

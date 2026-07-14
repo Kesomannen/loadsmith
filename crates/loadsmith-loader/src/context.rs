@@ -93,9 +93,7 @@ impl<'a> LaunchContext<'a> {
             "copy file to game directory"
         );
 
-        if let Some(parent) = game_path.parent() {
-            fs::create_dir_all(parent)?;
-        }
+        loadsmith_util::create_parent_dirs(&game_path)?;
 
         fs::copy(profile_path, game_path)?;
 

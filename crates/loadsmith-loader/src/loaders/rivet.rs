@@ -64,7 +64,7 @@ impl Loader for Rivet {
     }
 
     fn package_dir(&self, package: &PackageRef) -> Option<PathBuf> {
-        Some(PathBuf::from("Rivet/Mods").join(package.id.as_str()))
+        Some(PathBuf::from("Rivet/Mods").join(package.id().as_str()))
     }
 
     fn package_config_dirs(&self) -> Vec<PathBuf> {

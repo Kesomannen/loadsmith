@@ -24,7 +24,7 @@ pub struct ProfileStateData {
 
 impl Diffable for InstalledPackage {
     fn version(&self) -> &loadsmith_core::Version {
-        &self.ref_.version
+        self.ref_.version()
     }
 }
 
@@ -74,10 +74,10 @@ impl ProfileState {
         &mut self,
         package: PackageRef,
         ruleset: InstallRuleset,
-        source: impl AsRef<Path> + Debug,
+        source: impl AsRef<Path>,
         no_links: bool,
     ) -> Result<()> {
-        if self.packages().contains_key(&package.id) {
+        if self.packages().contains_key(package.id()) {
             return Err(Error::PackageAlreadyInstalled);
         }
 
@@ -92,8 +92,14 @@ impl ProfileState {
             .packages_mut()
             .remove(package)
             .ok_or(Error::PackageNotInstalled)?;
-        loadsmith_install::uninstall(install, &self.path)?;
-        Ok(())
+
+        if let Err(err) = loadsmith_install::uninstall(&install, &self.path) {
+            self.packages_mut().insert(package.clone(), install);
+
+            Err(err.into())
+        } else {
+            Ok(())
+        }
     }
 
     fn add(&mut self, install: InstalledPackage, overwritten_files: Vec<Utf8PathBuf>) {
@@ -103,7 +109,8 @@ impl ProfileState {
                 .retain(|file| !overwritten_files.contains(&file.relative_path));
         }
 
-        self.packages_mut().insert(install.ref_.id.clone(), install);
+        self.packages_mut()
+            .insert(install.ref_.id().clone(), install);
     }
 }
 

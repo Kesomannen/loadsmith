@@ -40,3 +40,4 @@ pub mod thunderstore {
         sqlite::{self, SqliteIndex},
     };
 }
+pub use loadsmith_github::GithubRegistry;

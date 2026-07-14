@@ -113,9 +113,7 @@ enum SourceKind {
 
 impl Source {
     fn read(id: &loadsmith_core::PackageId, metadata: Option<&serde_json::Value>) -> Result<Self> {
-        let metadata: Metadata = metadata.ok_or(Error::MissingMetadata).and_then(|json| {
-            serde_json::from_value(json.clone()).map_err(|error| Error::InvalidMetadata { error })
-        })?;
+        let metadata: Metadata = crate::read_metadata(metadata)?;
 
         if !metadata.path.is_file() {
             return Err(Error::FileNotFound(metadata.path));

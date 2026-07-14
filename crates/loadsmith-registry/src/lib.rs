@@ -8,6 +8,7 @@ mod registries;
 
 pub use error::{Error, Result};
 pub use registries::*;
+use serde::de::DeserializeOwned;
 
 #[derive(Debug, Clone)]
 pub struct VersionInfo {
@@ -62,4 +63,24 @@ impl RegistrySet {
     pub fn get(&self, id: &str) -> Option<&dyn Registry> {
         self.registries.get(id).map(|r| r.as_ref())
     }
+}
+
+pub fn read_metadata_or_default<T: DeserializeOwned + Default>(
+    metadata: Option<&serde_json::Value>,
+) -> Result<T> {
+    match metadata {
+        Some(metadata) => read_metadata_some(metadata),
+        None => Ok(T::default()),
+    }
+}
+
+pub fn read_metadata<T: DeserializeOwned>(metadata: Option<&serde_json::Value>) -> Result<T> {
+    match metadata {
+        Some(metadata) => read_metadata_some(metadata),
+        None => Err(Error::MissingMetadata),
+    }
+}
+
+fn read_metadata_some<T: DeserializeOwned>(metadata: &serde_json::Value) -> Result<T> {
+    serde_json::from_value(metadata.clone()).map_err(Error::InvalidMetadata)
 }

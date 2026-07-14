@@ -45,16 +45,11 @@ fn extract_and_install_package(
     ruleset: InstallRuleset,
 ) -> anyhow::Result<(TempDir, InstalledPackage)> {
     let extract_dir = tempfile::tempdir()?;
-    loadsmith::extract(Cursor::new(bytes), &package, ruleset, extract_dir.path())?;
+    loadsmith::extract(Cursor::new(bytes), &extract_dir)?;
 
     let install_dir = tempfile::tempdir()?;
-    let (install_manifest, _overwritten_files) = loadsmith::install(
-        package,
-        ruleset,
-        extract_dir.path(),
-        install_dir.path(),
-        false,
-    )?;
+    let (install_manifest, _overwritten_files) =
+        loadsmith::install(package, ruleset, &extract_dir, &install_dir, false)?;
 
     Ok((install_dir, install_manifest))
 }
@@ -127,7 +122,7 @@ async fn test_install_flow(
 
     insta::assert_yaml_snapshot!(install_manifest.ref_.to_string(), files);
 
-    loadsmith::uninstall(install_manifest, &profile).context("failed to uninstall package")?;
+    loadsmith::uninstall(&install_manifest, &profile).context("failed to uninstall package")?;
 
     let files = list_files(&profile).context("failed to list files after uninstall")?;
 
