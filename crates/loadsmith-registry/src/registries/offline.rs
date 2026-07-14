@@ -1,6 +1,6 @@
 use std::{collections::HashMap, pin::Pin};
 
-use loadsmith_core::{Dependency, PackageId, Version};
+use loadsmith_core::{Checksum, Dependency, PackageId, PackageRef, Version};
 use serde::{Deserialize, Serialize};
 
 use crate::{Error, Registry, ResolvedVersion, Result, VersionInfo};
@@ -34,7 +34,7 @@ pub struct PackageVersion {
     #[serde(default)]
     pub size: Option<u64>,
     #[serde(default)]
-    pub checksum: Option<String>,
+    pub checksum: Option<Checksum>,
     pub deps: Vec<Dependency>,
 }
 
@@ -54,7 +54,7 @@ impl PackageVersion {
         self
     }
 
-    pub fn with_checksum(mut self, checksum: impl Into<String>) -> Self {
+    pub fn with_checksum(mut self, checksum: impl Into<Checksum>) -> Self {
         self.checksum = Some(checksum.into());
         self
     }
@@ -101,12 +101,13 @@ impl Registry for OfflineRegistry {
 
     fn resolve<'a>(
         &'a self,
-        id: &'a PackageId,
-        version: &'a Version,
+        ref_: &'a PackageRef,
         _metadata: Option<&'a serde_json::Value>,
     ) -> Pin<Box<dyn Future<Output = Result<ResolvedVersion>> + 'a>> {
         Box::pin(async move {
-            let version = self.package_by_id(id)?.version_by_version(version)?;
+            let version = self
+                .package_by_id(ref_.id())?
+                .version_by_version(ref_.version())?;
 
             Ok(ResolvedVersion {
                 url: version.url.clone(),

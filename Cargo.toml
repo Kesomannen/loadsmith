@@ -39,6 +39,7 @@ steamlocate = "2.1.0"
 open = "5.3.6"
 octocrab = "0.54.0"
 http = "1.4.2"
+hex = "0.4.3"
 
 [profile.dev.package]
 insta.opt-level = 3

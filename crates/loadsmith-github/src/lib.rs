@@ -1,7 +1,7 @@
-use std::pin::Pin;
+use std::{pin::Pin, str::FromStr};
 
 use globset::Glob;
-use loadsmith_core::{PackageId, Version};
+use loadsmith_core::{Checksum, PackageId, PackageRef, Version};
 use loadsmith_registry::{Registry, Result as RegistryResult, VersionInfo};
 use octocrab::Octocrab;
 use serde::Deserialize;
@@ -54,12 +54,11 @@ impl GithubRegistry {
 
     async fn resolve(
         &self,
-        package_id: &PackageId,
-        version: &Version,
+        ref_: &PackageRef,
         metadata: &Metadata,
     ) -> Result<loadsmith_registry::ResolvedVersion> {
-        let tag = metadata.tag(version);
-        let release = self.release_by_tag(package_id, tag).await?;
+        let tag = metadata.tag(ref_.version());
+        let release = self.release_by_tag(ref_.id(), tag).await?;
 
         let matching_assets = release
             .assets
@@ -84,10 +83,21 @@ impl GithubRegistry {
             }
         };
 
+        let checksum = asset
+            .digest
+            .as_ref()
+            .map(|digest| {
+                Checksum::from_str(digest).map_err(|err| Error::InvalidAssetDigest {
+                    checksum: digest.clone(),
+                    err,
+                })
+            })
+            .transpose()?;
+
         let resolved_version = loadsmith_registry::ResolvedVersion {
             url: asset.browser_download_url.to_string(),
             size: Some(asset.size as u64),
-            checksum: asset.digest.clone(),
+            checksum,
             deps: Vec::new(),
         };
 
@@ -188,14 +198,13 @@ impl Registry for GithubRegistry {
 
     fn resolve<'a>(
         &'a self,
-        id: &'a PackageId,
-        version: &'a Version,
+        ref_: &'a PackageRef,
         metadata: Option<&'a serde_json::Value>,
     ) -> Pin<Box<dyn Future<Output = RegistryResult<loadsmith_registry::ResolvedVersion>> + 'a>>
     {
         Box::pin(async move {
             let metadata = loadsmith_registry::read_metadata_or_default(metadata)?;
-            let resolved = self.resolve(id, version, &metadata).await?;
+            let resolved = self.resolve(ref_, &metadata).await?;
             Ok(resolved)
         })
     }
@@ -209,6 +218,8 @@ fn split_package_id(id: &PackageId) -> Result<(&str, &str)> {
 
 #[cfg(test)]
 mod tests {
+    use loadsmith_core::PackageRef;
+
     use super::*;
 
     #[tokio::test]
@@ -244,13 +255,11 @@ mod tests {
             .install_default()
             .unwrap();
         let registry = GithubRegistry::default();
-        let id = PackageId::new("EvaisaDev/LethalLib");
-        let version = Version::new(0, 13, 1);
+        let ref_ = PackageRef::new("EvaisaDev/LethalLib".to_string(), (0, 13, 1));
 
         let resolved = registry
             .resolve(
-                &id,
-                &version,
+                &ref_,
                 &Metadata {
                     tag_template: "v{version}".to_string(),
                     asset_glob: Glob::new("*.zip").unwrap(),

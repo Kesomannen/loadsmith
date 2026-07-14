@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 loadsmith-core = { path = "../loadsmith-core" }
+loadsmith-util = { path = "../loadsmith-util" }
 
 thiserror = { workspace = true }
 url = { workspace = true }

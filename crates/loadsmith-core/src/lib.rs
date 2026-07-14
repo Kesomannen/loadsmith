@@ -4,9 +4,11 @@ use camino::Utf8PathBuf;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+mod checksum;
 mod error;
 mod version;
 
+pub use checksum::Checksum;
 pub use error::{Error, Result};
 pub use version::{Version, VersionRange};
 
@@ -124,24 +126,47 @@ impl TryFrom<&str> for PackageRef {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InstalledPackage {
     #[serde(rename = "package")]
-    pub ref_: PackageRef,
-    pub files: Vec<InstalledFile>,
-    pub date: DateTime<Utc>,
+    ref_: PackageRef,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    checksum: Option<Checksum>,
+    date: DateTime<Utc>,
+    files: Vec<InstalledFile>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InstalledFile {
-    pub relative_path: Utf8PathBuf,
-    pub linked: bool,
+    relative_path: Utf8PathBuf,
+    linked: bool,
 }
 
 impl InstalledPackage {
-    pub fn now(ref_: PackageRef, files: Vec<InstalledFile>) -> Self {
+    pub fn now(ref_: PackageRef, files: Vec<InstalledFile>, checksum: Option<Checksum>) -> Self {
         Self {
             ref_,
             files,
             date: Utc::now(),
+            checksum,
         }
+    }
+
+    pub fn ref_(&self) -> &PackageRef {
+        &self.ref_
+    }
+
+    pub fn files(&self) -> &[InstalledFile] {
+        &self.files
+    }
+
+    pub fn files_mut(&mut self) -> &mut Vec<InstalledFile> {
+        &mut self.files
+    }
+
+    pub fn date(&self) -> &DateTime<Utc> {
+        &self.date
+    }
+
+    pub fn checksum(&self) -> Option<&Checksum> {
+        self.checksum.as_ref()
     }
 }
 
@@ -151,6 +176,14 @@ impl InstalledFile {
             relative_path: relative_path.into(),
             linked,
         }
+    }
+
+    pub fn relative_path(&self) -> &Utf8PathBuf {
+        &self.relative_path
+    }
+
+    pub fn linked(&self) -> bool {
+        self.linked
     }
 }
 

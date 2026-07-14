@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Debug, pin::Pin};
 
-use loadsmith_core::{Dependency, PackageId, Version};
+use loadsmith_core::{Checksum, Dependency, PackageId, PackageRef, Version};
 
 mod error;
 
@@ -19,7 +19,7 @@ pub struct VersionInfo {
 pub struct ResolvedVersion {
     pub url: String,
     pub size: Option<u64>,
-    pub checksum: Option<String>,
+    pub checksum: Option<Checksum>,
     pub deps: Vec<Dependency>,
 }
 
@@ -32,10 +32,18 @@ pub trait Registry: Debug + Send + Sync {
 
     fn resolve<'a>(
         &'a self,
-        id: &'a PackageId,
-        version: &'a Version,
+        ref_: &'a PackageRef,
         metadata: Option<&'a serde_json::Value>,
     ) -> Pin<Box<dyn Future<Output = Result<ResolvedVersion>> + 'a>>;
+
+    fn revalidate_checksum<'a>(
+        &'a self,
+        ref_: &'a PackageRef,
+        metadata: Option<&'a serde_json::Value>,
+    ) -> Result<Option<Checksum>> {
+        let _ = (ref_, metadata);
+        Ok(None)
+    }
 }
 
 #[derive(Debug)]

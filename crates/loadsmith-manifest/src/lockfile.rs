@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use loadsmith_core::{Dependency, PackageId, PackageRef};
+use loadsmith_core::{Checksum, Dependency, PackageId, PackageRef};
 use serde::{Deserialize, Serialize};
 
 use crate::{Diff, Diffable};
@@ -41,9 +41,11 @@ pub struct LockedPackage {
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub transitive: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub registry_metadata: Option<serde_json::Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub size: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub checksum: Option<String>,
+    pub checksum: Option<Checksum>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub deps: Vec<Dependency>,
 }
@@ -59,6 +61,7 @@ impl LockedPackage {
             source: source.into(),
             url: url.into(),
             transitive: false,
+            registry_metadata: None,
             size: None,
             checksum: None,
             deps: Vec::new(),
@@ -75,7 +78,7 @@ impl LockedPackage {
         self
     }
 
-    pub fn with_checksum(mut self, checksum: impl Into<String>) -> Self {
+    pub fn with_checksum(mut self, checksum: impl Into<Checksum>) -> Self {
         self.checksum = Some(checksum.into());
         self
     }
@@ -87,6 +90,10 @@ impl LockedPackage {
 }
 
 impl Diffable for LockedPackage {
+    fn checksum(&self) -> Option<&Checksum> {
+        self.checksum.as_ref()
+    }
+
     fn version(&self) -> &loadsmith_core::Version {
         self.ref_.version()
     }

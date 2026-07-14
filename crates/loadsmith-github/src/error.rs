@@ -30,6 +30,13 @@ pub enum Error {
 
     #[error("multiple matching assets found in release: {matching_assets:?}")]
     MultipleMatchingAssets { matching_assets: Vec<String> },
+
+    #[error("invalid release asset digest: {checksum}")]
+    InvalidAssetDigest {
+        checksum: String,
+        #[source]
+        err: loadsmith_core::Error,
+    },
 }
 
 impl Error {

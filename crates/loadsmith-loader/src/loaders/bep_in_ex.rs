@@ -57,8 +57,15 @@ impl Loader for BepInEx {
 
     fn loader_install_rules(&self) -> InstallRuleset<'_> {
         static RULES: LazyLock<Vec<InstallRule>> = LazyLock::new(|| {
-            // extract all non-top-level files into the package root
-            vec![glob_rule!("*/*" => ".").strip_top_level(true).into()]
+            vec![
+                glob_rule!("*/*.{ini,cfg}" => ".")
+                    .strip_top_level(true)
+                    .into(),
+                glob_rule!("*/*" => ".")
+                    .strip_top_level(true)
+                    .use_links(true)
+                    .into(),
+            ]
         });
 
         InstallRuleset::new(&RULES)

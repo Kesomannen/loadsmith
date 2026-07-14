@@ -5,7 +5,7 @@ use std::{
 };
 
 use camino::Utf8PathBuf;
-use loadsmith_core::{InstalledPackage, PackageId, PackageRef};
+use loadsmith_core::{Checksum, InstalledPackage, PackageId, PackageRef};
 use loadsmith_install::InstallRuleset;
 use serde::{Deserialize, Serialize};
 
@@ -23,8 +23,12 @@ pub struct ProfileStateData {
 }
 
 impl Diffable for InstalledPackage {
+    fn checksum(&self) -> Option<&Checksum> {
+        self.checksum()
+    }
+
     fn version(&self) -> &loadsmith_core::Version {
-        self.ref_.version()
+        self.ref_().version()
     }
 }
 
@@ -76,13 +80,14 @@ impl ProfileState {
         ruleset: InstallRuleset,
         source: impl AsRef<Path>,
         no_links: bool,
+        checksum: Option<Checksum>,
     ) -> Result<()> {
         if self.packages().contains_key(package.id()) {
             return Err(Error::PackageAlreadyInstalled);
         }
 
         let (install, overwritten_files) =
-            loadsmith_install::install(package, ruleset, source, &self.path, no_links)?;
+            loadsmith_install::install(package, ruleset, source, &self.path, no_links, checksum)?;
         self.add(install, overwritten_files);
         Ok(())
     }
@@ -105,12 +110,12 @@ impl ProfileState {
     fn add(&mut self, install: InstalledPackage, overwritten_files: Vec<Utf8PathBuf>) {
         for other in self.packages_mut().values_mut() {
             other
-                .files
-                .retain(|file| !overwritten_files.contains(&file.relative_path));
+                .files_mut()
+                .retain(|file| !overwritten_files.contains(file.relative_path()));
         }
 
         self.packages_mut()
-            .insert(install.ref_.id().clone(), install);
+            .insert(install.ref_().id().clone(), install);
     }
 }
 

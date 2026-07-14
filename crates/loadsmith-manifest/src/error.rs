@@ -28,6 +28,13 @@ pub enum Error {
         err: loadsmith_registry::Error,
     },
 
+    #[error("failed to revalidate package {ref_}")]
+    Revalidate {
+        ref_: PackageRef,
+        #[source]
+        err: loadsmith_registry::Error,
+    },
+
     #[error("package is not installed")]
     PackageNotInstalled,
 

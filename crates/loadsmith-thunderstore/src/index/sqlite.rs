@@ -6,7 +6,7 @@ use std::{
 
 use chrono::{DateTime, Utc};
 use futures::{TryStreamExt, pin_mut};
-use loadsmith_core::{PackageId, Version};
+use loadsmith_core::{PackageId, PackageRef, Version};
 use parking_lot::Mutex;
 use rusqlite::OptionalExtension;
 use thunderstore::VersionIdent;
@@ -156,32 +156,34 @@ impl SqliteIndex {
 
     pub fn resolve(
         &self,
-        id: &PackageId,
-        version: &Version,
+        ref_: &PackageRef,
     ) -> Result<Option<loadsmith_registry::ResolvedVersion>> {
         let db = self.db.lock();
 
         let resolved = db
             .prepare(include_str!("queries/select_resolved.sql"))?
-            .query_one(rusqlite::params![id.as_str(), version.to_string()], |row| {
-                let url = row.get::<_, String>(0)?;
-                let size = row.get::<_, i64>(1)?;
+            .query_one(
+                rusqlite::params![ref_.id().as_str(), ref_.version().to_string()],
+                |row| {
+                    let url = row.get::<_, String>(0)?;
+                    let size = row.get::<_, i64>(1)?;
 
-                let deps_json = row.get::<_, String>(2)?;
-                let deps: Vec<VersionIdent> = serde_json::from_str(&deps_json).unwrap();
+                    let deps_json = row.get::<_, String>(2)?;
+                    let deps: Vec<VersionIdent> = serde_json::from_str(&deps_json).unwrap();
 
-                let categories_json = row.get::<_, String>(3)?;
-                let categories: Vec<String> = serde_json::from_str(&categories_json).unwrap();
-                let is_modpack = categories.contains(&super::MODPACK_CATEGORY.to_string());
-                let deps = super::dependencies_from_idents(&deps, is_modpack);
+                    let categories_json = row.get::<_, String>(3)?;
+                    let categories: Vec<String> = serde_json::from_str(&categories_json).unwrap();
+                    let is_modpack = categories.contains(&super::MODPACK_CATEGORY.to_string());
+                    let deps = super::dependencies_from_idents(&deps, is_modpack);
 
-                Ok(loadsmith_registry::ResolvedVersion {
-                    url,
-                    deps,
-                    size: Some(size as u64),
-                    checksum: None,
-                })
-            })?;
+                    Ok(loadsmith_registry::ResolvedVersion {
+                        url,
+                        deps,
+                        size: Some(size as u64),
+                        checksum: None,
+                    })
+                },
+            )?;
 
         Ok(Some(resolved))
     }
@@ -236,7 +238,10 @@ mod tests {
         println!("{versions:#?}");
 
         let resolved = index
-            .resolve(&rounds_with_friends, &versions.unwrap()[0].version)
+            .resolve(&PackageRef::new(
+                rounds_with_friends,
+                versions.unwrap()[0].version,
+            ))
             .unwrap();
         assert!(resolved.is_some());
         println!("{resolved:#?}");

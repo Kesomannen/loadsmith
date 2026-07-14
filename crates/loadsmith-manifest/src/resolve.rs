@@ -45,7 +45,29 @@ where
                 } else {
                     None
                 }
-            });
+            })
+            .map(|existing| -> Result<_> {
+                let registry = registries
+                    .get(&existing.source)
+                    .ok_or_else(|| Error::UnknownRegistry(source.to_string()))?;
+
+                let new_checksum = registry
+                    .revalidate_checksum(&existing.ref_, existing.registry_metadata.as_ref())
+                    .map_err(|err| Error::Revalidate {
+                        ref_: existing.ref_.clone(),
+                        err,
+                    })?;
+
+                if new_checksum != existing.checksum {
+                    trace!(%id, version = %existing.ref_.version(), source, "locked package checksum mismatch, revalidating");
+
+                    Ok(None)
+                } else {
+                    Ok(Some(existing))
+                }
+            })
+            .transpose()?
+            .flatten();
 
         let locked = if let Some(existing) = existing {
             trace!(%id, version = %existing.ref_.version(), source, "using locked version of package");
@@ -77,7 +99,7 @@ where
             let ref_ = PackageRef::new(id.clone(), version.version);
 
             let resolved = registry
-                .resolve(&id, &version.version, registry_metadata.as_ref())
+                .resolve(&ref_, registry_metadata.as_ref())
                 .await
                 .map_err(|err| Error::Resolve {
                     ref_: ref_.clone(),
@@ -91,6 +113,7 @@ where
                 url: resolved.url,
                 size: resolved.size,
                 checksum: resolved.checksum,
+                registry_metadata,
                 transitive,
             }
         };

@@ -5,7 +5,7 @@ use std::{
 };
 
 use camino::Utf8PathBuf;
-use loadsmith_core::{InstalledFile, InstalledPackage, PackageRef};
+use loadsmith_core::{Checksum, InstalledFile, InstalledPackage, PackageRef};
 use tracing::{debug, trace};
 use walkdir::WalkDir;
 
@@ -20,6 +20,7 @@ pub fn install(
     source: impl AsRef<Path>,
     profile: impl AsRef<Path>,
     no_links: bool,
+    checksum: Option<Checksum>,
 ) -> Result<(InstalledPackage, Vec<Utf8PathBuf>)> {
     let source = source.as_ref();
     let profile = profile.as_ref();
@@ -49,17 +50,14 @@ pub fn install(
             continue;
         };
 
-        let target_path = profile.join(mapped);
+        trace!(
+            from = ?relative_path,
+            to = ?mapped,
+            "mapped file"
+        );
 
-        loadsmith_util::create_parent_dirs(&target_path)?;
-
-        let (installed, overwrote) = install_file(
-            entry.path(),
-            &target_path,
-            relative_path.clone(),
-            rule,
-            no_links,
-        )?;
+        let (installed, overwrote) =
+            install_file(entry.path(), &profile.join(&mapped), mapped, rule, no_links)?;
 
         if let Some(installed) = installed {
             installed_files.push(installed);
@@ -71,7 +69,7 @@ pub fn install(
     }
 
     Ok((
-        InstalledPackage::now(package, installed_files),
+        InstalledPackage::now(package, installed_files, checksum),
         overriden_files,
     ))
 }
@@ -79,7 +77,7 @@ pub fn install(
 fn install_file(
     source: &Path,
     target: &Path,
-    relative_path: Utf8PathBuf,
+    mapped_relative: Utf8PathBuf,
     rule: &InstallRule,
     no_links: bool,
 ) -> Result<(Option<InstalledFile>, bool)> {
@@ -89,7 +87,7 @@ fn install_file(
     if target.exists() {
         match rule.conflict_strategy() {
             ConflictStrategy::Overwrite => {
-                trace!(?relative_path, "overwriting existing file");
+                trace!(%mapped_relative, "overwriting existing file");
                 overwrote = true;
                 // fs::copy already overwrites the file, no need to remove it first
                 if link {
@@ -97,7 +95,7 @@ fn install_file(
                 }
             }
             ConflictStrategy::Skip => {
-                trace!(?relative_path, "skipping existing file");
+                trace!(%mapped_relative, "skipping existing file");
                 return Ok((None, false));
             }
             ConflictStrategy::Error => {
@@ -106,22 +104,24 @@ fn install_file(
         }
     }
 
+    loadsmith_util::create_parent_dirs(&target)?;
+
     if link {
+        trace!(%mapped_relative, "link file");
         fs::hard_link(source, &target)?;
-        trace!(?relative_path, "link file");
     } else {
+        trace!(%mapped_relative, "copy file");
         fs::copy(source, &target)?;
-        trace!(?relative_path, "copy file");
     }
 
-    Ok((Some(InstalledFile::new(relative_path, link)), overwrote))
+    Ok((Some(InstalledFile::new(mapped_relative, link)), overwrote))
 }
 
 pub fn uninstall(package: &InstalledPackage, profile: impl AsRef<Path>) -> Result<()> {
     let profile = profile.as_ref();
 
-    for file in &package.files {
-        let target_path = profile.join(&file.relative_path);
+    for file in package.files() {
+        let target_path = profile.join(file.relative_path());
 
         if target_path.exists() {
             fs::remove_file(&target_path)?;

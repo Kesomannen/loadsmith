@@ -1,6 +1,6 @@
 use std::pin::Pin;
 
-use loadsmith_core::{PackageId, Version};
+use loadsmith_core::{PackageId, PackageRef};
 use loadsmith_registry::{Registry, ResolvedVersion, VersionInfo};
 
 use crate::{Error, in_memory::InMemoryIndex, sqlite::SqliteIndex};
@@ -66,14 +66,13 @@ impl Registry for ThunderstoreRegistry {
 
     fn resolve<'a>(
         &'a self,
-        id: &'a PackageId,
-        version: &'a Version,
+        ref_: &'a PackageRef,
         _metadata: Option<&'a serde_json::Value>,
     ) -> Pin<Box<dyn Future<Output = loadsmith_registry::Result<ResolvedVersion>> + 'a>> {
         Box::pin(async move {
             match &self.index {
-                Index::InMemory(in_memory_index) => in_memory_index.resolve(id, version).await,
-                Index::Sqlite(sqlite_index) => sqlite_index.resolve(id, version),
+                Index::InMemory(in_memory_index) => in_memory_index.resolve(ref_).await,
+                Index::Sqlite(sqlite_index) => sqlite_index.resolve(ref_),
             }
             .map_err(loadsmith_registry::Error::other)?
             .ok_or(loadsmith_registry::Error::VersionNotFound)

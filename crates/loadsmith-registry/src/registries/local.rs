@@ -6,9 +6,8 @@ use std::{
 };
 
 use camino::Utf8PathBuf;
-use loadsmith_core::{Dependency, PackageId, Version, VersionRange};
+use loadsmith_core::{Dependency, PackageId, PackageRef, Version, VersionRange};
 use serde::Deserialize;
-use sha2::{Digest, Sha256};
 use thunderstore::VersionIdent;
 
 use crate::{Error, Registry, ResolvedVersion, Result, VersionInfo};
@@ -31,69 +30,61 @@ impl LocalRegistry {
 impl Registry for LocalRegistry {
     fn version_info<'a>(
         &'a self,
-        id: &'a loadsmith_core::PackageId,
+        id: &'a PackageId,
         metadata: Option<&'a serde_json::Value>,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<VersionInfo>>> + 'a>> {
         Box::pin(async move {
+            let metadata = crate::read_metadata(metadata)?;
             let source = Source::read(id, metadata)?;
-            match &source.kind {
-                SourceKind::Zip(manifest) => {
-                    let version_info = VersionInfo {
-                        version: manifest.version_number,
-                    };
 
-                    Ok(vec![version_info])
-                }
-            }
+            Ok(vec![VersionInfo {
+                version: source.version().clone(),
+            }])
         })
     }
 
     fn resolve<'a>(
         &'a self,
-        id: &'a PackageId,
-        version: &'a Version,
+        ref_: &'a PackageRef,
         metadata: Option<&'a serde_json::Value>,
     ) -> Pin<Box<dyn Future<Output = Result<ResolvedVersion>> + 'a>> {
         Box::pin(async move {
-            let source = Source::read(id, metadata)?;
+            let metadata = crate::read_metadata(metadata)?;
+
+            let source = Source::read(ref_.id(), metadata)?;
+
+            if source.version() != ref_.version() {
+                return Err(Error::VersionNotFound);
+            }
 
             let full_path = source.path.canonicalize_utf8()?;
             let url = format!("file://{}", full_path);
 
             let size = std::fs::metadata(&source.path)?.len();
-            let checksum = source.checksum()?;
-
-            let deps = match source.kind {
-                SourceKind::Zip(manifest) => {
-                    if &manifest.version_number != version {
-                        return Err(Error::VersionNotFound);
-                    }
-
-                    manifest
-                        .dependencies
-                        .into_iter()
-                        .map(|ident| {
-                            let package_id = PackageId::new(ident.package_id().into_string());
-
-                            // TODO: better source handling instead of random string
-                            // TODO: better version range handling
-                            Dependency::new(
-                                package_id,
-                                VersionRange::any(),
-                                "thunderstore".to_string(),
-                            )
-                        })
-                        .collect()
-                }
-            };
 
             Ok(ResolvedVersion {
                 url,
                 size: Some(size),
-                checksum: Some(checksum),
-                deps,
+                deps: source.dependencies()?,
+                checksum: Some(source.checksum()?),
             })
         })
+    }
+
+    fn revalidate_checksum<'a>(
+        &'a self,
+        ref_: &'a PackageRef,
+        metadata: Option<&'a serde_json::Value>,
+    ) -> Result<Option<loadsmith_core::Checksum>> {
+        let metadata = crate::read_metadata(metadata)?;
+
+        let source = Source::read(ref_.id(), metadata)?;
+
+        if source.version() != ref_.version() {
+            return Err(Error::VersionNotFound);
+        }
+
+        Ok(Some(source.checksum()?))
     }
 }
 
@@ -112,9 +103,7 @@ enum SourceKind {
 }
 
 impl Source {
-    fn read(id: &loadsmith_core::PackageId, metadata: Option<&serde_json::Value>) -> Result<Self> {
-        let metadata: Metadata = crate::read_metadata(metadata)?;
-
+    fn read(id: &PackageId, metadata: Metadata) -> Result<Self> {
         if !metadata.path.is_file() {
             return Err(Error::FileNotFound(metadata.path));
         }
@@ -139,13 +128,35 @@ impl Source {
         })
     }
 
-    fn checksum(&self) -> Result<String> {
-        let mut file = File::open(&self.path)?;
-        let mut hasher = digest_io::IoWrapper(Sha256::new());
-        std::io::copy(&mut file, &mut hasher)?;
-        let hash = hasher.0.finalize();
+    fn version(&self) -> &Version {
+        match &self.kind {
+            SourceKind::Zip(manifest) => &manifest.version_number,
+        }
+    }
 
-        Ok(format!("{hash:x?}"))
+    fn dependencies(&self) -> Result<Vec<Dependency>> {
+        match &self.kind {
+            SourceKind::Zip(manifest) => {
+                let deps = manifest
+                    .dependencies
+                    .iter()
+                    .map(|ident| {
+                        let package_id = PackageId::new(ident.package_id().into_string());
+
+                        // TODO: better source handling instead of hardcoding thunderstore
+                        // TODO: better version range handling
+                        Dependency::new(package_id, VersionRange::any(), "thunderstore".to_string())
+                    })
+                    .collect();
+
+                Ok(deps)
+            }
+        }
+    }
+
+    fn checksum(&self) -> Result<loadsmith_core::Checksum> {
+        let checksum = loadsmith_util::hash_file(&self.path)?.into();
+        Ok(checksum)
     }
 }
 

@@ -6,7 +6,7 @@ use std::{
 };
 
 use futures::{TryStreamExt, pin_mut};
-use loadsmith_core::{PackageId, Version};
+use loadsmith_core::{PackageId, PackageRef, Version};
 use loadsmith_registry::ResolvedVersion;
 use parking_lot::{Mutex, RawMutex, lock_api::MutexGuard};
 use serde::{Deserialize, Serialize};
@@ -111,19 +111,15 @@ impl InMemoryIndex {
         }
     }
 
-    pub async fn resolve(
-        &self,
-        id: &PackageId,
-        version: &Version,
-    ) -> Result<Option<ResolvedVersion>> {
+    pub async fn resolve(&self, ref_: &PackageRef) -> Result<Option<ResolvedVersion>> {
         let lock = self.lock();
 
-        match lock.get(id) {
+        match lock.get(ref_.id()) {
             GetPackage::Found(package) => {
                 let Some(version) = package
                     .versions
                     .iter()
-                    .find(|v| Version::from(v.number.clone()) == *version)
+                    .find(|v| Version::from(v.number.clone()) == *ref_.version())
                 else {
                     return Ok(None);
                 };
