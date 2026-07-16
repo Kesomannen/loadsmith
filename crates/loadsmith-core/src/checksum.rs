@@ -8,11 +8,48 @@ use crate::{Error, Result};
 #[serde(into = "String", try_from = "String")]
 pub enum Checksum {
     Blake3(blake3::Hash),
+    Sha256([u8; 32]),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[serde(rename_all = "lowercase")]
+pub enum ChecksumAlgorithm {
+    Blake3,
+    Sha256,
 }
 
 impl Checksum {
     pub fn blake3(hash: blake3::Hash) -> Self {
         Self::from(hash)
+    }
+
+    pub fn sha256(hash: [u8; 32]) -> Self {
+        Self::Sha256(hash)
+    }
+
+    pub fn algorithm(&self) -> ChecksumAlgorithm {
+        match self {
+            Checksum::Blake3(_) => ChecksumAlgorithm::Blake3,
+            Checksum::Sha256(_) => ChecksumAlgorithm::Sha256,
+        }
+    }
+
+    pub fn without_algorithm(&self) -> WithoutAlgorithm<'_> {
+        WithoutAlgorithm(self)
+    }
+
+    pub fn from_value_str(value: &str, algorithm: ChecksumAlgorithm) -> Result<Self> {
+        match algorithm {
+            ChecksumAlgorithm::Blake3 => {
+                let hash = blake3::Hash::from_hex(value).map_err(Error::InvalidBlake3Hex)?;
+                Ok(Checksum::Blake3(hash))
+            }
+            ChecksumAlgorithm::Sha256 => {
+                let mut hash = [0u8; 32];
+                hex::decode_to_slice(value, &mut hash).map_err(Error::InvalidSha256Hex)?;
+                Ok(Checksum::Sha256(hash))
+            }
+        }
     }
 }
 
@@ -24,9 +61,7 @@ impl From<blake3::Hash> for Checksum {
 
 impl Display for Checksum {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Checksum::Blake3(hash) => write!(f, "blake3:{}", hash.to_hex()),
-        }
+        write!(f, "{}:{}", self.algorithm(), self.without_algorithm())
     }
 }
 
@@ -35,14 +70,7 @@ impl FromStr for Checksum {
 
     fn from_str(s: &str) -> Result<Self> {
         let (algorithm, value) = s.split_once(':').ok_or(Error::InvalidVersionFormat)?;
-
-        match algorithm {
-            "blake3" => {
-                let hash = blake3::Hash::from_hex(value).map_err(Error::InvalidBlake3Hex)?;
-                Ok(Checksum::Blake3(hash))
-            }
-            algo => Err(Error::UnknownAlgorithm(algo.to_string())),
-        }
+        Checksum::from_value_str(value, algorithm.parse()?)
     }
 }
 
@@ -57,6 +85,40 @@ impl TryFrom<String> for Checksum {
 
     fn try_from(s: String) -> Result<Self> {
         s.parse()
+    }
+}
+
+impl Display for ChecksumAlgorithm {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let algorithm = match self {
+            ChecksumAlgorithm::Blake3 => "blake3",
+            ChecksumAlgorithm::Sha256 => "sha256",
+        };
+
+        write!(f, "{algorithm}")
+    }
+}
+
+impl FromStr for ChecksumAlgorithm {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match s {
+            "blake3" => Ok(ChecksumAlgorithm::Blake3),
+            "sha256" => Ok(ChecksumAlgorithm::Sha256),
+            algo => Err(Error::UnknownAlgorithm(algo.to_string())),
+        }
+    }
+}
+
+pub struct WithoutAlgorithm<'a>(&'a Checksum);
+
+impl Display for WithoutAlgorithm<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.0 {
+            Checksum::Blake3(hash) => write!(f, "{}", hash.to_hex()),
+            Checksum::Sha256(hash) => write!(f, "{}", hex::encode(hash)),
+        }
     }
 }
 

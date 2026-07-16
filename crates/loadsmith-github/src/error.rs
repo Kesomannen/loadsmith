@@ -9,6 +9,9 @@ pub enum Error {
     #[error("invalid package ID format")]
     InvalidPackageIdFormat,
 
+    #[error("invalid repository format: {0}")]
+    InvalidRepositoryFormat(String),
+
     #[error("invalid release tag format")]
     InvalidReleaseTagFormat { tag: String },
 

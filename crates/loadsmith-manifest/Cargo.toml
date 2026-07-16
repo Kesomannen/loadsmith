@@ -8,6 +8,7 @@ loadsmith-core = { path = "../loadsmith-core" }
 loadsmith-registry = { path = "../loadsmith-registry" }
 loadsmith-thunderstore = { path = "../loadsmith-thunderstore" }
 loadsmith-install = { path = "../loadsmith-install" }
+loadsmith-util = { path = "../loadsmith-util" }
 
 camino = { workspace = true }
 thunderstore = { workspace = true }
@@ -16,7 +17,9 @@ serde_json = { workspace = true }
 toml = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
+walkdir = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full"] }
 insta = { workspace = true }
+blake3 = { workspace = true }

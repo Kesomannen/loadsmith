@@ -1625,12 +1625,14 @@ dependencies = [
 name = "loadsmith-manifest"
 version = "0.1.0"
 dependencies = [
+ "blake3",
  "camino",
  "insta",
  "loadsmith-core",
  "loadsmith-install",
  "loadsmith-registry",
  "loadsmith-thunderstore",
+ "loadsmith-util",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -1638,6 +1640,7 @@ dependencies = [
  "tokio",
  "toml",
  "tracing",
+ "walkdir",
 ]
 
 [[package]]

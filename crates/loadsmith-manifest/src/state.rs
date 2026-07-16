@@ -9,7 +9,9 @@ use loadsmith_core::{Checksum, InstalledPackage, PackageId, PackageRef};
 use loadsmith_install::InstallRuleset;
 use serde::{Deserialize, Serialize};
 
-use crate::{Diff, Diffable, Error, LockedPackage, Lockfile, Result};
+use crate::{
+    Diff, Diffable, Error, LockedPackage, Lockfile, PackageStore, PackageStoreEntry, Result,
+};
 
 #[derive(Debug, Clone)]
 pub struct ProfileState {
@@ -74,6 +76,14 @@ impl ProfileState {
         Diff::compute(self.id_to_package_map(), lockfile.id_to_package_map())
     }
 
+    fn check_already_installed(&self, package: &PackageRef) -> Result<()> {
+        if self.packages().contains_key(package.id()) {
+            Err(Error::PackageAlreadyInstalled)
+        } else {
+            Ok(())
+        }
+    }
+
     pub fn install(
         &mut self,
         package: PackageRef,
@@ -82,12 +92,23 @@ impl ProfileState {
         no_links: bool,
         checksum: Option<Checksum>,
     ) -> Result<()> {
-        if self.packages().contains_key(package.id()) {
-            return Err(Error::PackageAlreadyInstalled);
-        }
+        self.check_already_installed(&package)?;
 
         let (install, overwritten_files) =
             loadsmith_install::install(package, ruleset, source, &self.path, no_links, checksum)?;
+        self.add(install, overwritten_files);
+        Ok(())
+    }
+
+    pub fn install_from_store(
+        &mut self,
+        entry: PackageStoreEntry,
+        ruleset: InstallRuleset,
+        store: &PackageStore,
+    ) -> Result<()> {
+        self.check_already_installed(entry.package())?;
+
+        let (install, overwritten_files) = store.install(entry, ruleset, &self.path)?;
         self.add(install, overwritten_files);
         Ok(())
     }

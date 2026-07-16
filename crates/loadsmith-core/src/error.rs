@@ -19,6 +19,9 @@ pub enum Error {
 
     #[error("invalid blake3 hex value")]
     InvalidBlake3Hex(#[source] blake3::HexError),
+
+    #[error("invalid sha256 hex value")]
+    InvalidSha256Hex(#[source] hex::FromHexError),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

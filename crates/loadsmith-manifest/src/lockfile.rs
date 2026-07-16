@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use loadsmith_core::{Checksum, Dependency, PackageId, PackageRef};
 use serde::{Deserialize, Serialize};
 
-use crate::{Diff, Diffable};
+use crate::{Diff, Diffable, PackageStoreEntry};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Lockfile {
@@ -86,6 +86,19 @@ impl LockedPackage {
     pub fn with_deps(mut self, deps: Vec<Dependency>) -> Self {
         self.deps = deps;
         self
+    }
+
+    pub fn with_registry_metadata(mut self, metadata: serde_json::Value) -> Self {
+        self.registry_metadata = Some(metadata);
+        self
+    }
+
+    pub fn store_entry(&self) -> PackageStoreEntry {
+        PackageStoreEntry::new(self.ref_.clone(), self.checksum.clone())
+    }
+
+    pub fn into_store_entry(self) -> PackageStoreEntry {
+        PackageStoreEntry::new(self.ref_, self.checksum)
     }
 }
 

@@ -41,6 +41,12 @@ impl From<String> for PackageId {
     }
 }
 
+impl From<&str> for PackageId {
+    fn from(id: &str) -> Self {
+        id.to_string().into()
+    }
+}
+
 impl Display for PackageId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)

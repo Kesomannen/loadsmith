@@ -15,7 +15,7 @@ pub fn extract<R: Read + Seek>(reader: R, target: impl AsRef<Path>) -> Result<Ve
     extract_zip(&mut zip, target.as_ref())
 }
 
-pub fn extract_zip<Z: Zip>(zip: &mut Z, target: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
+fn extract_zip<Z: Zip>(zip: &mut Z, target: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
     let t = crate::zip::private::Token;
 
     let target = target.as_ref();

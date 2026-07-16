@@ -40,13 +40,17 @@ where
         let existing = existing_lockfile
             .and_then(|lockfile| lockfile.package_by_id(&id))
             .and_then(|existing| {
-                if version_range.matches(existing.ref_.version()) {
+                if version_range.matches(existing.ref_.version()) && existing.source == source {
                     Some(existing)
                 } else {
                     None
                 }
             })
             .map(|existing| -> Result<_> {
+                let Some(existing_checksum) = existing.checksum.as_ref() else {
+                    return Ok(Some(existing));
+                };
+
                 let registry = registries
                     .get(&existing.source)
                     .ok_or_else(|| Error::UnknownRegistry(source.to_string()))?;
@@ -58,7 +62,7 @@ where
                         err,
                     })?;
 
-                if new_checksum != existing.checksum {
+                if new_checksum.is_some_and(|new| new != *existing_checksum) {
                     trace!(%id, version = %existing.ref_.version(), source, "locked package checksum mismatch, revalidating");
 
                     Ok(None)

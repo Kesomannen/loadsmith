@@ -2,6 +2,12 @@ use loadsmith_core::{PackageId, PackageRef, VersionRange};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("I/O error")]
+    Io(#[from] std::io::Error),
+
+    #[error("walkdir error")]
+    Walkdir(#[from] walkdir::Error),
+
     #[error(transparent)]
     Install(#[from] loadsmith_install::Error),
 
@@ -40,6 +46,18 @@ pub enum Error {
 
     #[error("package already installed")]
     PackageAlreadyInstalled,
+
+    #[error("invalid package store entry path")]
+    InvalidPackageStoreEntryPath,
+
+    #[error("invalid package store entry version")]
+    InvalidPackageStoreEntryVersion(#[source] loadsmith_core::Error),
+
+    #[error("invalid package store entry checksum")]
+    InvalidPackageStoreEntryChecksum(#[source] loadsmith_core::Error),
+
+    #[error("path contains non-UTF-8 characters")]
+    NonUtf8Path,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

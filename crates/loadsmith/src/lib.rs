@@ -5,7 +5,7 @@ pub mod core {
     pub use loadsmith_core::{Error, Result};
 }
 pub use loadsmith_install::{
-    InstallRule, InstallRuleset, OwnedInstallRuleset, extract, extract_zip, install, uninstall,
+    InstallRule, InstallRuleset, OwnedInstallRuleset, extract, install, uninstall,
 };
 pub mod install {
     pub use loadsmith_install::{ConflictStrategy, Error, GlobRule, Result, RouteRule};
@@ -17,7 +17,10 @@ pub mod loader {
         ReturnOfModding, Rivet, Shimloader,
     };
 }
-pub use loadsmith_manifest::{LockedPackage, Lockfile, ProfileState, ProfileStateData, resolve};
+pub use loadsmith_manifest::{
+    LockedPackage, Lockfile, PackageStore, PackageStoreEntry, ProfileState, ProfileStateData,
+    resolve,
+};
 pub mod manifest {
     pub use loadsmith_manifest::{Diff, Diffable, Error, Result};
 }

@@ -29,7 +29,7 @@ impl GithubRegistry {
         package_id: &PackageId,
         metadata: &Metadata,
     ) -> Result<Vec<VersionInfo>> {
-        let (owner, repo) = split_package_id(package_id)?;
+        let (owner, repo) = metadata.owner_and_repo(package_id)?;
 
         let releases = self
             .github
@@ -54,11 +54,10 @@ impl GithubRegistry {
 
     async fn resolve(
         &self,
-        ref_: &PackageRef,
+        pkg: &PackageRef,
         metadata: &Metadata,
     ) -> Result<loadsmith_registry::ResolvedVersion> {
-        let tag = metadata.tag(ref_.version());
-        let release = self.release_by_tag(ref_.id(), tag).await?;
+        let release = self.release_by_tag(metadata, pkg).await?;
 
         let matching_assets = release
             .assets
@@ -106,10 +105,11 @@ impl GithubRegistry {
 
     async fn release_by_tag(
         &self,
-        package_id: &PackageId,
-        tag: impl AsRef<str>,
+        metadata: &Metadata,
+        pkg: &PackageRef,
     ) -> Result<octocrab::models::repos::Release> {
-        let (owner, repo) = split_package_id(package_id)?;
+        let (owner, repo) = metadata.owner_and_repo(pkg.id())?;
+        let tag = metadata.tag(pkg.version());
 
         let release = self
             .github
@@ -136,6 +136,8 @@ struct Metadata {
     tag_template: String,
     #[serde(rename = "asset")]
     asset_glob: Glob,
+    #[serde(rename = "repo")]
+    repository: Option<String>,
 }
 
 impl Metadata {
@@ -171,6 +173,25 @@ impl Metadata {
             .compile_matcher()
             .is_match(asset_name.as_ref())
     }
+
+    fn owner_and_repo<'a>(&'a self, package_id: &'a PackageId) -> Result<(&'a str, &'a str)> {
+        if let Some(repo) = &self.repository {
+            let mut parts = repo.split('/');
+            let (owner, name) = match (parts.next(), parts.next(), parts.next()) {
+                (Some(owner), Some(repo), None) => (owner, repo),
+                _ => {
+                    return Err(Error::InvalidRepositoryFormat(repo.clone()));
+                }
+            };
+
+            Ok((owner, name))
+        } else {
+            package_id
+                .as_str()
+                .split_once('-')
+                .ok_or(Error::InvalidPackageIdFormat)
+        }
+    }
 }
 
 impl Default for Metadata {
@@ -178,6 +199,7 @@ impl Default for Metadata {
         Self {
             tag_template: "v{version}".to_string(),
             asset_glob: Glob::new("*.zip").expect("constant glob should be valid"),
+            repository: None,
         }
     }
 }
@@ -210,12 +232,6 @@ impl Registry for GithubRegistry {
     }
 }
 
-fn split_package_id(id: &PackageId) -> Result<(&str, &str)> {
-    id.as_str()
-        .split_once('/')
-        .ok_or(Error::InvalidPackageIdFormat)
-}
-
 #[cfg(test)]
 mod tests {
     use loadsmith_core::PackageRef;
@@ -230,7 +246,7 @@ mod tests {
             .unwrap();
 
         let registry = GithubRegistry::default();
-        let id = PackageId::new("EvaisaDev/LethalLib");
+        let id = PackageId::new("Evaisa-LethalLib");
 
         let versions = registry
             .version_info(
@@ -238,6 +254,7 @@ mod tests {
                 &Metadata {
                     tag_template: "v{version}".to_string(),
                     asset_glob: Glob::new("*.zip").unwrap(),
+                    repository: Some("EvaisaDev/LethalLib".to_string()),
                 },
             )
             .await
@@ -255,7 +272,7 @@ mod tests {
             .install_default()
             .unwrap();
         let registry = GithubRegistry::default();
-        let ref_ = PackageRef::new("EvaisaDev/LethalLib".to_string(), (0, 13, 1));
+        let ref_ = PackageRef::new("Evaisa-LethalLib".to_string(), (0, 13, 1));
 
         let resolved = registry
             .resolve(
@@ -263,6 +280,7 @@ mod tests {
                 &Metadata {
                     tag_template: "v{version}".to_string(),
                     asset_glob: Glob::new("*.zip").unwrap(),
+                    repository: Some("EvaisaDev/LethalLib".to_string()),
                 },
             )
             .await
@@ -281,6 +299,18 @@ mod tests {
         let version = Version::new(1, 2, 3);
         let tag = metadata.tag(&version);
         assert_eq!(tag, "v1.2.3");
+    }
+
+    #[test]
+    fn metadata_tag_multiple_placeholders() {
+        let metadata = Metadata {
+            tag_template: "v{version}-beta-{version}".to_string(),
+            ..Default::default()
+        };
+
+        let version = Version::new(1, 2, 3);
+        let tag = metadata.tag(&version);
+        assert_eq!(tag, "v1.2.3-beta-{version}");
     }
 
     #[test]
@@ -346,5 +376,23 @@ mod tests {
 
         assert!(metadata.matches_asset("file.tar.gz"));
         assert!(!metadata.matches_asset("file.zip"));
+    }
+
+    #[test]
+    fn metadata_owner_and_repo() {
+        let package_id = PackageId::new("some-package");
+
+        let metadata = Metadata {
+            repository: Some("owner/repo".to_string()),
+            ..Default::default()
+        };
+        let (owner, repo) = metadata.owner_and_repo(&package_id).unwrap();
+        assert_eq!(owner, "owner");
+        assert_eq!(repo, "repo");
+
+        let metadata_no_repo = Metadata::default();
+        let (owner, repo) = metadata_no_repo.owner_and_repo(&package_id).unwrap();
+        assert_eq!(owner, "some");
+        assert_eq!(repo, "package");
     }
 }
