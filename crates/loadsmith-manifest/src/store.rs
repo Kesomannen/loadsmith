@@ -59,9 +59,13 @@ impl PackageStore {
         entry: &PackageStoreEntry,
         reader: R,
     ) -> Result<Vec<PathBuf>> {
-        let source = self.path_of(entry);
-        std::fs::create_dir_all(&source)?;
-        let files = loadsmith_install::extract(reader, &source)?;
+        let target = self.path_of(entry);
+        if target.exists() {
+            return Err(Error::PackageStoreEntryAlreadyExists);
+        }
+
+        std::fs::create_dir_all(&target)?;
+        let files = loadsmith_install::extract(reader, &target)?;
         Ok(files)
     }
 
@@ -170,16 +174,7 @@ impl PackageStoreEntry {
     fn path(&self) -> PathBuf {
         let mut path = PathBuf::new();
 
-        let prefix = self
-            .package
-            .id()
-            .as_str()
-            .chars()
-            .take(2)
-            .collect::<String>()
-            .to_lowercase();
-
-        path.push(prefix);
+        path.push(self.prefix());
         path.push(self.package.id().as_str());
 
         let version_str = match &self.checksum {
@@ -197,13 +192,27 @@ impl PackageStoreEntry {
         path
     }
 
+    fn prefix(&self) -> String {
+        self.package
+            .id()
+            .as_str()
+            .chars()
+            .take(2)
+            .collect::<String>()
+            .to_lowercase()
+    }
+
     fn try_from_path(path: impl AsRef<Path>) -> Result<Self> {
         use std::path::Component;
 
         let path = path.as_ref();
 
         let mut components = path.components();
-        components.next(); // prefix
+        let Some(Component::Normal(prefix)) = components.next() else {
+            return Err(Error::InvalidPackageStoreEntryPath);
+        };
+
+        let prefix = prefix.to_str().ok_or(Error::NonUtf8Path)?;
 
         let id = match components.next() {
             Some(Component::Normal(os_str)) => {
@@ -243,7 +252,13 @@ impl PackageStoreEntry {
 
         let package = PackageRef::new(id, version);
 
-        Ok(Self { package, checksum })
+        let this = Self { package, checksum };
+
+        if this.prefix() != prefix {
+            return Err(Error::InvalidPackageStoreEntryPath);
+        }
+
+        Ok(this)
     }
 }
 
@@ -318,6 +333,7 @@ mod tests {
         assert!(PackageStoreEntry::try_from_path("C:/au/Author-Name/0.1.0").is_err());
         assert!(PackageStoreEntry::try_from_path("au/Author-Name/0.1.0+invalid_checksum").is_err());
         assert!(PackageStoreEntry::try_from_path("au/Author-Name/invalid_version").is_err());
+        assert!(PackageStoreEntry::try_from_path("other-prefix/Author-Name/0.1.0").is_err());
     }
 
     #[test]

@@ -41,6 +41,9 @@ pub enum Error {
         err: loadsmith_registry::Error,
     },
 
+    #[error("path contains non-UTF-8 characters")]
+    NonUtf8Path,
+
     #[error("package is not installed")]
     PackageNotInstalled,
 
@@ -56,8 +59,8 @@ pub enum Error {
     #[error("invalid package store entry checksum")]
     InvalidPackageStoreEntryChecksum(#[source] loadsmith_core::Error),
 
-    #[error("path contains non-UTF-8 characters")]
-    NonUtf8Path,
+    #[error("package store entry already exists")]
+    PackageStoreEntryAlreadyExists,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

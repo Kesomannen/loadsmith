@@ -1,6 +1,7 @@
-use std::{fmt::Display, str::FromStr};
+use std::{fmt::Display, io::Read, str::FromStr};
 
 use serde::{Deserialize, Serialize};
+use sha2::Digest;
 
 use crate::{Error, Result};
 
@@ -25,6 +26,27 @@ impl Checksum {
 
     pub fn sha256(hash: [u8; 32]) -> Self {
         Self::Sha256(hash)
+    }
+
+    pub fn compute<R>(mut reader: R, algorithm: ChecksumAlgorithm) -> Result<Self>
+    where
+        R: Read,
+    {
+        match algorithm {
+            ChecksumAlgorithm::Blake3 => {
+                let mut hasher = blake3::Hasher::new();
+                std::io::copy(&mut reader, &mut hasher)?;
+                Ok(Checksum::Blake3(hasher.finalize()))
+            }
+            ChecksumAlgorithm::Sha256 => {
+                let mut hasher = digest_io::IoWrapper(sha2::Sha256::new());
+                std::io::copy(&mut reader, &mut hasher)?;
+
+                let array = hasher.0.finalize().into();
+
+                Ok(Checksum::Sha256(array))
+            }
+        }
     }
 
     pub fn algorithm(&self) -> ChecksumAlgorithm {

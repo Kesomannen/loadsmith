@@ -1,5 +1,6 @@
 pub use loadsmith_core::{
-    Dependency, InstalledFile, InstalledPackage, PackageId, PackageRef, Version, VersionRange,
+    Checksum, ChecksumAlgorithm, Dependency, InstalledFile, InstalledPackage, PackageId,
+    PackageRef, Version, VersionRange,
 };
 pub mod core {
     pub use loadsmith_core::{Error, Result};

@@ -2,6 +2,9 @@ use std::num::ParseIntError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("I/O error")]
+    Io(#[from] std::io::Error),
+
     #[error("invalid version part: {0}")]
     InvalidVersionPart(ParseIntError),
 

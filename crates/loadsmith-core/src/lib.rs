@@ -8,7 +8,7 @@ mod checksum;
 mod error;
 mod version;
 
-pub use checksum::Checksum;
+pub use checksum::{Checksum, ChecksumAlgorithm};
 pub use error::{Error, Result};
 pub use version::{Version, VersionRange};
 
@@ -53,7 +53,7 @@ impl Display for PackageId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, PartialOrd, Ord)]
 #[serde(into = "String", try_from = "&str")]
 pub struct PackageRef {
     id: PackageId,

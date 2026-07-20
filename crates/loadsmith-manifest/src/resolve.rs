@@ -30,96 +30,22 @@ where
     let mut resolved = Vec::<LockedPackage>::new();
 
     while let Some((dep, transitive)) = queue.pop_front() {
-        let Dependency {
-            id,
-            version_range,
-            source,
-            registry_metadata,
-        } = dep;
-
-        let existing = existing_lockfile
-            .and_then(|lockfile| lockfile.package_by_id(&id))
-            .and_then(|existing| {
-                if version_range.matches(existing.ref_.version()) && existing.source == source {
-                    Some(existing)
-                } else {
-                    None
-                }
-            })
-            .map(|existing| -> Result<_> {
-                let Some(existing_checksum) = existing.checksum.as_ref() else {
-                    return Ok(Some(existing));
-                };
-
-                let registry = registries
-                    .get(&existing.source)
-                    .ok_or_else(|| Error::UnknownRegistry(source.to_string()))?;
-
-                let new_checksum = registry
-                    .revalidate_checksum(&existing.ref_, existing.registry_metadata.as_ref())
-                    .map_err(|err| Error::Revalidate {
-                        ref_: existing.ref_.clone(),
-                        err,
-                    })?;
-
-                if new_checksum.is_some_and(|new| new != *existing_checksum) {
-                    trace!(%id, version = %existing.ref_.version(), source, "locked package checksum mismatch, revalidating");
-
-                    Ok(None)
-                } else {
-                    Ok(Some(existing))
-                }
-            })
-            .transpose()?
-            .flatten();
+        let existing = validate_locked_package(existing_lockfile, registries, &dep)?;
 
         let locked = if let Some(existing) = existing {
-            trace!(%id, version = %existing.ref_.version(), source, "using locked version of package");
-
             let mut existing = existing.clone();
             existing.transitive = transitive;
+
+            trace!(
+                id = %dep.id,
+                version = %existing.ref_.version(),
+                source = %existing.source,
+                "using locked version of package"
+            );
+
             existing
         } else {
-            let registry = registries
-                .get(&source)
-                .ok_or_else(|| Error::UnknownRegistry(source.to_string()))?;
-
-            let versions = registry
-                .version_info(&id, registry_metadata.as_ref())
-                .await
-                .map_err(|err| Error::VersionInfo {
-                    id: id.clone(),
-                    err,
-                })?;
-
-            let version = versions
-                .into_iter()
-                .filter(|v| version_range.matches(&v.version))
-                .max_by_key(|v| v.version)
-                .ok_or_else(|| Error::NoAvailableVersion(id.clone(), version_range.clone()))?;
-
-            trace!(%id, version = %version.version, source, "resolved package from registry");
-
-            let ref_ = PackageRef::new(id.clone(), version.version);
-
-            let resolved = registry
-                .resolve(&ref_, registry_metadata.as_ref())
-                .await
-                .map_err(|err| Error::Resolve {
-                    ref_: ref_.clone(),
-                    err,
-                })?;
-
-            LockedPackage {
-                ref_,
-                source: source.clone(),
-                deps: resolved.deps,
-                url: resolved.url,
-                size: resolved.size,
-                checksum: resolved.checksum,
-                registry_metadata,
-                transitive,
-            }
+            resolve_from_registries(registries, dep, transitive).await?
         };
 
         for trans_dep in locked.deps.iter() {
@@ -132,6 +58,116 @@ where
     }
 
     Ok(Lockfile::new(resolved))
+}
+
+async fn resolve_from_registries(
+    registries: &RegistrySet,
+    dep: Dependency,
+    transitive: bool,
+) -> Result<LockedPackage> {
+    let Dependency {
+        id,
+        version_range,
+        source,
+        registry_metadata,
+    } = dep;
+
+    let registry = registries
+        .get(&source)
+        .ok_or_else(|| Error::UnknownRegistry(source.to_string()))?;
+
+    let versions = registry
+        .version_info(&id, registry_metadata.as_ref())
+        .await
+        .map_err(|err| Error::VersionInfo {
+            id: id.clone(),
+            err,
+        })?;
+
+    let version = versions
+        .into_iter()
+        .filter(|v| version_range.matches(&v.version))
+        .max_by_key(|v| v.version)
+        .ok_or_else(|| Error::NoAvailableVersion(id.clone(), version_range.clone()))?;
+
+    trace!(%id, version = %version.version, source, "resolved package from registry");
+
+    let ref_ = PackageRef::new(id.clone(), version.version);
+
+    let resolved = registry
+        .resolve(&ref_, registry_metadata.as_ref())
+        .await
+        .map_err(|err| Error::Resolve {
+            ref_: ref_.clone(),
+            err,
+        })?;
+
+    let locked = LockedPackage {
+        ref_,
+        source: source.clone(),
+        deps: resolved.deps,
+        url: resolved.url,
+        size: resolved.size,
+        checksum: resolved.checksum,
+        registry_metadata,
+        transitive,
+    };
+
+    Ok(locked)
+}
+
+fn validate_locked_package<'a>(
+    lockfile: Option<&'a Lockfile>,
+    registries: &RegistrySet,
+    dependency: &Dependency,
+) -> Result<Option<&'a LockedPackage>> {
+    let Some(lockfile) = lockfile else {
+        return Ok(None);
+    };
+
+    let Some(package) = lockfile.package_by_id(&dependency.id) else {
+        return Ok(None);
+    };
+
+    if !dependency.version_range.matches(package.ref_.version()) {
+        return Ok(None);
+    }
+
+    if package.source != dependency.source {
+        return Ok(None);
+    }
+
+    if package.registry_metadata != dependency.registry_metadata {
+        return Ok(None);
+    }
+
+    let Some(existing_checksum) = package.checksum.as_ref() else {
+        return Ok(Some(package));
+    };
+
+    let registry = registries
+        .get(&package.source)
+        .ok_or_else(|| Error::UnknownRegistry(dependency.source.to_string()))?;
+
+    let new_checksum = registry
+        .revalidate_checksum(&package.ref_, package.registry_metadata.as_ref())
+        .map_err(|err| Error::Revalidate {
+            ref_: package.ref_.clone(),
+            err,
+        })?;
+
+    if new_checksum.is_some_and(|new| new != *existing_checksum) {
+        trace!(
+            id = %package.ref_.id(),
+            version = %package.ref_.version(),
+            source = %package.source,
+            "locked package checksum mismatch, revalidating from registry"
+        );
+
+        Ok(None)
+    } else {
+        Ok(Some(package))
+    }
 }
 
 #[cfg(test)]

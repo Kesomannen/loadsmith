@@ -88,14 +88,5 @@ mod tests {
         for file in included_files {
             assert!(dir.path().join(file).exists());
         }
-
-        // let rules = [
-        //     InstallRule::Glob(GlobRule::try_from_pattern("file1", Utf8Path::new(".")).unwrap()),
-        //     InstallRule::Glob(GlobRule::try_from_pattern("file3", Utf8Path::new(".")).unwrap()),
-        // ];
-
-        // let exclude = GlobSet::new([Glob::new("file3").unwrap()]).unwrap();
-
-        // let ruleset = InstallRuleset::new(&rules).with_exclude(&exclude);
     }
 }
