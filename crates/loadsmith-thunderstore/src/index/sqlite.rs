@@ -240,7 +240,7 @@ mod tests {
         let resolved = index
             .resolve(&PackageRef::new(
                 rounds_with_friends,
-                versions.unwrap()[0].version,
+                versions.unwrap().pop().unwrap().version,
             ))
             .unwrap();
         assert!(resolved.is_some());

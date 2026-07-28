@@ -92,7 +92,9 @@ impl Registry for OfflineRegistry {
             let versions = package
                 .versions
                 .iter()
-                .map(|v| VersionInfo { version: v.version })
+                .map(|v| VersionInfo {
+                    version: v.version.clone(),
+                })
                 .collect();
 
             Ok(versions)
@@ -132,8 +134,14 @@ mod tests {
             Package::new(
                 PackageId::new("author-name"),
                 vec![
-                    PackageVersion::new((1, 0, 0), "https://example.com/package-1.0.0.zip"),
-                    PackageVersion::new((1, 1, 0), "https://example.com/package-1.1.0.zip"),
+                    PackageVersion::new(
+                        Version::new(1, 0, 0),
+                        "https://example.com/package-1.0.0.zip",
+                    ),
+                    PackageVersion::new(
+                        Version::new(1, 1, 0),
+                        "https://example.com/package-1.1.0.zip",
+                    ),
                 ],
             ),
         )]));

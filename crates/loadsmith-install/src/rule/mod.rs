@@ -248,6 +248,8 @@ impl OwnedInstallRuleset {
 
 #[cfg(test)]
 mod tests {
+    use loadsmith_core::Version;
+
     use super::*;
 
     #[test]
@@ -259,7 +261,7 @@ mod tests {
 
         let ruleset = InstallRuleset::new(&rules);
 
-        let pkg = PackageRef::new("test".to_string(), (1, 0, 0));
+        let pkg = PackageRef::new("test".to_string(), Version::new(1, 0, 0));
 
         // The path takes precedence over file extension, so the "Plugins" rule
         // should match even though the file has a .dll extension.

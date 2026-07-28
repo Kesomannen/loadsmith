@@ -56,3 +56,15 @@ pub fn create_parent_dirs(path: impl AsRef<Path>) -> std::io::Result<()> {
     }
     Ok(())
 }
+
+pub fn exact_version_eq(version: &semver::Version) -> semver::VersionReq {
+    semver::VersionReq {
+        comparators: vec![semver::Comparator {
+            op: semver::Op::Exact,
+            major: version.major,
+            minor: Some(version.minor),
+            patch: Some(version.patch),
+            pre: semver::Prerelease::EMPTY,
+        }],
+    }
+}

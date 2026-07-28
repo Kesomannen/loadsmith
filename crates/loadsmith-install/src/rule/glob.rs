@@ -89,7 +89,7 @@ impl GlobRule {
 
 #[cfg(test)]
 mod tests {
-    use loadsmith_core::PackageId;
+    use loadsmith_core::{PackageId, Version};
 
     use super::*;
 
@@ -110,7 +110,7 @@ mod tests {
     fn map_file() {
         let rule = GlobRule::try_from_pattern("*.rs", Utf8Path::new("target")).unwrap();
 
-        let package = PackageRef::new(PackageId::new("Author-Name"), (1, 0, 0));
+        let package = PackageRef::new(PackageId::new("Author-Name"), Version::new(1, 0, 0));
 
         assert_eq!(
             rule.map_file("main.rs", &package),
@@ -133,7 +133,7 @@ mod tests {
         let rule = GlobRule::try_from_pattern("in/**", Utf8Path::new("out"))
             .unwrap()
             .strip_top_level(true);
-        let package = PackageRef::new(PackageId::new("Author-Name"), (1, 0, 0));
+        let package = PackageRef::new(PackageId::new("Author-Name"), Version::new(1, 0, 0));
 
         assert_eq!(
             rule.map_file("in/file.txt", &package),
@@ -158,7 +158,7 @@ mod tests {
         let rule = GlobRule::try_from_pattern("UE4SS/Mods/*", Utf8Path::new("shimloader/mod"))
             .unwrap()
             .strip_levels(2);
-        let package = PackageRef::new(PackageId::new("Author-Name"), (1, 0, 0));
+        let package = PackageRef::new(PackageId::new("Author-Name"), Version::new(1, 0, 0));
 
         assert_eq!(rule.map_file("file.dll", &package), None);
 

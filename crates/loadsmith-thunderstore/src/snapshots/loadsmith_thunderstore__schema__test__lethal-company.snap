@@ -56,7 +56,7 @@ BepInEx {
                     target: "BepInEx/config",
                     file_extensions: [],
                     subdir: false,
-                    flatten: false,
+                    flatten: true,
                     mutable: true,
                 },
             ),

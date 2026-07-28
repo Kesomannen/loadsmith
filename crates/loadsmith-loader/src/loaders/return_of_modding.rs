@@ -77,7 +77,7 @@ impl Loader for ReturnOfModding {
 
 #[cfg(test)]
 mod tests {
-    use loadsmith_core::PackageRef;
+    use loadsmith_core::{PackageRef, Version};
 
     use crate::{assert_map, assert_maps, test_util::MapFileTester};
 
@@ -87,7 +87,7 @@ mod tests {
     fn map_loader_files() {
         assert_maps!(MapFileTester::new(
             ReturnOfModding::with_default_rules(),
-            PackageRef::new("Hell2Modding-Hell2Modding".to_string(), (1, 0, 105)),
+            PackageRef::new("Hell2Modding-Hell2Modding".to_string(), Version::new(1, 0, 105)),
             true,
         ), [
             "icon.png" => None,
@@ -103,7 +103,7 @@ mod tests {
         assert_maps!(
             MapFileTester::new(
                 ReturnOfModding::with_default_rules(),
-                PackageRef::new("Author-Name".to_string(), (1, 0, 0)),
+                PackageRef::new("Author-Name".to_string(), Version::new(1, 0, 0)),
                 false,
             ),
             [
@@ -121,7 +121,7 @@ mod tests {
     #[test]
     fn package_dir_works() {
         let loader = ReturnOfModding::with_default_rules();
-        let package = PackageRef::new("Author-Name".to_string(), (1, 0, 0));
+        let package = PackageRef::new("Author-Name".to_string(), Version::new(1, 0, 0));
 
         let package_dir = loader.package_dir(&package);
 

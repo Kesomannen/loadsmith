@@ -1496,6 +1496,7 @@ version = "0.38.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f6c19a05435c21ac299d71b6a9c13db3e3f47c520517d58990a462a1397a61db"
 dependencies = [
+ "cc",
  "pkg-config",
  "vcpkg",
 ]
@@ -1564,6 +1565,7 @@ dependencies = [
  "octocrab",
  "reqwest",
  "rustls",
+ "semver",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -1634,6 +1636,7 @@ dependencies = [
  "loadsmith-registry",
  "loadsmith-thunderstore",
  "loadsmith-util",
+ "semver",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -1695,6 +1698,7 @@ dependencies = [
  "parking_lot",
  "reqwest",
  "rusqlite",
+ "semver",
  "serde",
  "serde_json",
  "serde_yaml_ng",
@@ -1712,6 +1716,7 @@ name = "loadsmith-util"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "semver",
  "tracing",
 ]
 

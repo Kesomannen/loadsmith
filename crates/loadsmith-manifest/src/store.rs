@@ -135,14 +135,14 @@ impl PackageStore {
             .into_iter()
             .filter_map(|entry| entry.ok())
             .filter(|entry| entry.file_type().is_file())
-            .all(|file| {
-                let Some(meta) = file.metadata().ok() else {
-                    return false;
-                };
-
+            .all(|#[allow(unused)] file| {
                 #[cfg(unix)]
                 {
                     use std::os::unix::fs::MetadataExt;
+
+                    let Some(meta) = file.metadata().ok() else {
+                        return false;
+                    };
 
                     meta.nlink() <= 1
                 }
@@ -282,15 +282,18 @@ mod tests {
 
     #[test]
     fn entry_path() {
-        let entry = PackageStoreEntry::new(PackageRef::new("Author-Name", (0, 1, 0)), None);
+        let entry =
+            PackageStoreEntry::new(PackageRef::new("Author-Name", Version::new(0, 1, 0)), None);
         assert_eq!(entry.path(), PathBuf::from("au/Author-Name/0.1.0"));
 
-        let entry = PackageStoreEntry::new(PackageRef::new("A", (0, 1, 0)), None);
+        let entry = PackageStoreEntry::new(PackageRef::new("A", Version::new(0, 1, 0)), None);
         assert_eq!(entry.path(), PathBuf::from("a/A/0.1.0"));
 
         let hash = blake3::hash(b"Hello, world!");
-        let entry =
-            PackageStoreEntry::new(PackageRef::new("Author-Name", (0, 1, 0)), Some(hash.into()));
+        let entry = PackageStoreEntry::new(
+            PackageRef::new("Author-Name", Version::new(0, 1, 0)),
+            Some(hash.into()),
+        );
         assert_eq!(
             entry.path(),
             PathBuf::from(format!("au/Author-Name/0.1.0+blake3_{BLAKE3_HELLO_WORLD}"))
@@ -303,7 +306,7 @@ mod tests {
         assert_eq!(
             entry,
             PackageStoreEntry {
-                package: PackageRef::new("Author-Name", (0, 1, 0)),
+                package: PackageRef::new("Author-Name", Version::new(0, 1, 0)),
                 checksum: None
             }
         );
@@ -317,7 +320,7 @@ mod tests {
         assert_eq!(
             entry,
             PackageStoreEntry {
-                package: PackageRef::new("Author-Name", (0, 1, 0)),
+                package: PackageRef::new("Author-Name", Version::new(0, 1, 0)),
                 checksum: Some(hash.into())
             }
         );
@@ -340,8 +343,10 @@ mod tests {
     fn entry_path_roundtrip() {
         let hash = blake3::hash(b"Hello, world!");
 
-        let entry =
-            PackageStoreEntry::new(PackageRef::new("Author-Name", (0, 1, 0)), Some(hash.into()));
+        let entry = PackageStoreEntry::new(
+            PackageRef::new("Author-Name", Version::new(0, 1, 0)),
+            Some(hash.into()),
+        );
         let entry2 = PackageStoreEntry::try_from_path(entry.path()).unwrap();
 
         assert_eq!(entry, entry2);

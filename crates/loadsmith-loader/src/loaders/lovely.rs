@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::LazyLock};
 
-use loadsmith_core::PackageRef;
+use loadsmith_core::{PackageRef, Version};
 use loadsmith_install::{InstallRule, InstallRuleset};
 
 use crate::{LaunchArgs, LaunchContext, Loader, Result, glob_rule};
@@ -79,7 +79,7 @@ impl Loader for Lovely {
 
 #[cfg(test)]
 mod tests {
-    use loadsmith_core::PackageRef;
+    use loadsmith_core::{PackageRef, Version};
 
     use crate::{assert_map, assert_maps, test_util::MapFileTester};
 
@@ -89,7 +89,7 @@ mod tests {
     fn map_loader_files() {
         assert_maps!(MapFileTester::new(
             Lovely::new(),
-            PackageRef::new("Thunderstore-lovely".to_string(), (0, 9, 0)),
+            PackageRef::new("Thunderstore-lovely".to_string(), Version::new(0, 9, 0)),
             true,
         ), [
             "README.md" => None,
@@ -103,7 +103,7 @@ mod tests {
         assert_maps!(
             MapFileTester::new(
                 Lovely::new(),
-                PackageRef::new("Author-Name".to_string(), (1, 0, 0)),
+                PackageRef::new("Author-Name".to_string(), Version::new(1, 0, 0)),
                 false,
             ),
             [
@@ -117,7 +117,7 @@ mod tests {
     #[test]
     fn package_dir_works() {
         let loader = Lovely::new();
-        let package = PackageRef::new("Author-Name".to_string(), (1, 0, 0));
+        let package = PackageRef::new("Author-Name".to_string(), Version::new(1, 0, 0));
 
         let package_dir = loader.package_dir(&package);
 

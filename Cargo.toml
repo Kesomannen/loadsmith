@@ -34,7 +34,7 @@ digest-io = "0.1.0"
 blake3 = "1.8.5"
 futures = "0.3.32"
 parking_lot = "0.12.5"
-rusqlite = "0.40.1"
+rusqlite = { version = "0.40.1", features = ["bundled"] }
 steamlocate = "2.1.0"
 open = "5.3.6"
 octocrab = "0.54.0"

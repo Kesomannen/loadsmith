@@ -149,7 +149,7 @@ impl RouteRule {
 
 #[cfg(test)]
 mod tests {
-    use loadsmith_core::PackageId;
+    use loadsmith_core::{PackageId, Version};
 
     use super::*;
 
@@ -238,7 +238,7 @@ mod tests {
             .with_subdir(true)
             .with_flatten(true);
 
-        let package = PackageRef::new(PackageId::new("Author-Name"), (1, 0, 0));
+        let package = PackageRef::new(PackageId::new("Author-Name"), Version::new(1, 0, 0));
 
         // defaults correctly when name is not present in the path
         assert_map!(rule, "MyPlugin.dll", &package => "BepInEx/plugins/Author-Name/MyPlugin.dll");
@@ -269,7 +269,7 @@ mod tests {
             .with_subdir(true)
             .with_file_extension("plugin");
 
-        let package = PackageRef::new(PackageId::new("Author-Name"), (1, 0, 0));
+        let package = PackageRef::new(PackageId::new("Author-Name"), Version::new(1, 0, 0));
 
         // Flattened routing keeps only the file name and package folder.
         assert_map!(rule, "MyPlugin.dll", &package => "BepInEx/plugins/Author-Name/MyPlugin.dll");
@@ -297,7 +297,7 @@ mod tests {
             .with_flatten(true)
             .with_file_extension("plugin");
 
-        let package = PackageRef::new(PackageId::new("Author-Name"), (1, 0, 0));
+        let package = PackageRef::new(PackageId::new("Author-Name"), Version::new(1, 0, 0));
 
         // Without subdir support, the package id is never inserted.
         assert_map!(rule, "MyPlugin.dll", &package => "BepInEx/plugins/MyPlugin.dll");
@@ -310,6 +310,9 @@ mod tests {
 
         // Nested content stays nested when flattening does not remove it.
         assert_map!(rule, "plugins/Nested/MyPlugin.plugin", &package => "BepInEx/plugins/Nested/MyPlugin.plugin");
+
+        // Nested content stays nested when flattening does not remove it.
+        assert_map!(rule, "BepInEx/plugins/Nested/MyPlugin.plugin", &package => "BepInEx/plugins/Nested/MyPlugin.plugin");
     }
 
     #[test]
@@ -319,7 +322,7 @@ mod tests {
             .with_flatten(false)
             .with_file_extension("plugin");
 
-        let package = PackageRef::new(PackageId::new("Author-Name"), (1, 0, 0));
+        let package = PackageRef::new(PackageId::new("Author-Name"), Version::new(1, 0, 0));
 
         // No package folder is inserted when subdir is disabled.
         assert_map!(rule, "MyPlugin.dll", &package => "BepInEx/plugins/MyPlugin.dll");
@@ -345,7 +348,7 @@ mod tests {
         assert_map!(
             rule,
             "",
-            &PackageRef::new(PackageId::new("Author-Name"), (1, 0, 0)) => "BepInEx/plugins/Author-Name"
+            &PackageRef::new(PackageId::new("Author-Name"), Version::new(1, 0, 0)) => "BepInEx/plugins/Author-Name"
         );
     }
 }

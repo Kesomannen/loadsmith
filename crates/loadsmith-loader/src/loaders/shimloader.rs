@@ -107,7 +107,7 @@ impl Loader for Shimloader {
 
 #[cfg(test)]
 mod tests {
-    use loadsmith_core::PackageRef;
+    use loadsmith_core::{PackageRef, Version};
 
     use crate::{assert_map, assert_maps, test_util::MapFileTester};
 
@@ -117,7 +117,7 @@ mod tests {
     fn map_loader_files() {
         assert_maps!(MapFileTester::new(
             Shimloader::with_default_rules(),
-            PackageRef::new("Thunderstore-unreal_shimloader".to_string(), (1, 1, 7)),
+            PackageRef::new("Thunderstore-unreal_shimloader".to_string(), Version::new(1, 1, 7)),
             true,
         ), [
             "README.md" => None,
@@ -136,7 +136,7 @@ mod tests {
         assert_maps!(
             MapFileTester::new(
                 Shimloader::with_default_rules(),
-                PackageRef::new("Author-Name".to_string(), (1, 0, 0)),
+                PackageRef::new("Author-Name".to_string(), Version::new(1, 0, 0)),
                 false,
             ),
             [
@@ -152,7 +152,7 @@ mod tests {
     #[test]
     fn package_dir_works() {
         let loader = Shimloader::with_default_rules();
-        let package = PackageRef::new("Author-Name".to_string(), (1, 0, 0));
+        let package = PackageRef::new("Author-Name".to_string(), Version::new(1, 0, 0));
 
         let package_dir = loader.package_dir(&package);
 

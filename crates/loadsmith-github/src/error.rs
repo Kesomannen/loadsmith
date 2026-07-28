@@ -19,7 +19,7 @@ pub enum Error {
     InvalidReleaseTagVersion {
         tag: String,
         #[source]
-        err: loadsmith_core::Error,
+        err: semver::Error,
     },
 
     #[error("package not found")]

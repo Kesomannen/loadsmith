@@ -116,16 +116,18 @@ impl Diffable for LockedPackage {
 mod tests {
     use super::*;
 
+    use loadsmith_core::{PackageRef, Version};
+
     #[test]
     fn diff() {
         let a = Lockfile::new(vec![
             LockedPackage::new(
-                PackageRef::new("A".to_string(), (1, 0, 0)),
+                PackageRef::new("A".to_string(), Version::new(1, 0, 0)),
                 "local",
                 "https://example.com",
             ),
             LockedPackage::new(
-                PackageRef::new("B".to_string(), (1, 0, 0)),
+                PackageRef::new("B".to_string(), Version::new(1, 0, 0)),
                 "local",
                 "https://example.com",
             ),
@@ -133,12 +135,12 @@ mod tests {
 
         let b = Lockfile::new(vec![
             LockedPackage::new(
-                PackageRef::new("B".to_string(), (2, 0, 0)),
+                PackageRef::new("B".to_string(), Version::new(2, 0, 0)),
                 "local",
                 "https://example.com",
             ),
             LockedPackage::new(
-                PackageRef::new("C".to_string(), (1, 0, 0)),
+                PackageRef::new("C".to_string(), Version::new(1, 0, 0)),
                 "local",
                 "https://example.com",
             ),
@@ -149,7 +151,7 @@ mod tests {
         assert_eq!(
             diff.added,
             vec![&LockedPackage::new(
-                PackageRef::new("C".to_string(), (1, 0, 0)),
+                PackageRef::new("C".to_string(), Version::new(1, 0, 0)),
                 "local",
                 "https://example.com",
             )]
@@ -157,7 +159,7 @@ mod tests {
         assert_eq!(
             diff.removed,
             vec![&LockedPackage::new(
-                PackageRef::new("A".to_string(), (1, 0, 0)),
+                PackageRef::new("A".to_string(), Version::new(1, 0, 0)),
                 "local",
                 "https://example.com",
             )]
@@ -166,12 +168,12 @@ mod tests {
             diff.changed,
             vec![(
                 &LockedPackage::new(
-                    PackageRef::new("B".to_string(), (1, 0, 0)),
+                    PackageRef::new("B".to_string(), Version::new(1, 0, 0)),
                     "local",
                     "https://example.com",
                 ),
                 &LockedPackage::new(
-                    PackageRef::new("B".to_string(), (2, 0, 0)),
+                    PackageRef::new("B".to_string(), Version::new(2, 0, 0)),
                     "local",
                     "https://example.com",
                 )

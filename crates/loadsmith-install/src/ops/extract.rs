@@ -6,9 +6,10 @@ use std::{
 
 use tracing::{trace, warn};
 
-#[cfg(unix)]
-use crate::zip::ZipFile;
-use crate::{error::Result, zip::Zip};
+use crate::{
+    error::Result,
+    zip::{Zip, ZipFile},
+};
 
 pub fn extract<R: Read + Seek>(reader: R, target: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
     let mut zip = zip::ZipArchive::new(reader)?;

@@ -45,7 +45,7 @@ where
 
             existing
         } else {
-            resolve_from_registries(registries, dep, transitive).await?
+            resolve_from_registry_set(registries, dep, transitive).await?
         };
 
         for trans_dep in locked.deps.iter() {
@@ -60,14 +60,14 @@ where
     Ok(Lockfile::new(resolved))
 }
 
-async fn resolve_from_registries(
+async fn resolve_from_registry_set(
     registries: &RegistrySet,
     dep: Dependency,
     transitive: bool,
 ) -> Result<LockedPackage> {
     let Dependency {
         id,
-        version_range,
+        version_req: version_range,
         source,
         registry_metadata,
     } = dep;
@@ -81,13 +81,14 @@ async fn resolve_from_registries(
         .await
         .map_err(|err| Error::VersionInfo {
             id: id.clone(),
+            source: source.clone(),
             err,
         })?;
 
     let version = versions
         .into_iter()
         .filter(|v| version_range.matches(&v.version))
-        .max_by_key(|v| v.version)
+        .max_by(|a, b| a.version.cmp(&b.version))
         .ok_or_else(|| Error::NoAvailableVersion(id.clone(), version_range.clone()))?;
 
     trace!(%id, version = %version.version, source, "resolved package from registry");
@@ -99,6 +100,7 @@ async fn resolve_from_registries(
         .await
         .map_err(|err| Error::Resolve {
             ref_: ref_.clone(),
+            source: source.clone(),
             err,
         })?;
 
@@ -129,7 +131,7 @@ fn validate_locked_package<'a>(
         return Ok(None);
     };
 
-    if !dependency.version_range.matches(package.ref_.version()) {
+    if !dependency.version_req.matches(package.ref_.version()) {
         return Ok(None);
     }
 
@@ -153,6 +155,7 @@ fn validate_locked_package<'a>(
         .revalidate_checksum(&package.ref_, package.registry_metadata.as_ref())
         .map_err(|err| Error::Revalidate {
             ref_: package.ref_.clone(),
+            source: package.source.clone(),
             err,
         })?;
 
@@ -174,7 +177,7 @@ fn validate_locked_package<'a>(
 mod tests {
     use std::collections::HashMap;
 
-    use loadsmith_core::{Dependency, VersionRange};
+    use loadsmith_core::{Dependency, Version, VersionReq};
     use loadsmith_registry::offline::{OfflineRegistry, Package, PackageVersion};
 
     use super::*;
@@ -191,14 +194,19 @@ mod tests {
                 a.clone(),
                 Package::new(
                     a.clone(),
-                    vec![PackageVersion::new((1, 0, 0), DUMMY_URL).with_deps(vec![
-                        Dependency::new(b.clone(), VersionRange::any(), "offline"),
-                    ])],
+                    vec![
+                        PackageVersion::new(Version::new(1, 0, 0), DUMMY_URL).with_deps(vec![
+                            Dependency::new(b.clone(), VersionReq::STAR, "offline"),
+                        ]),
+                    ],
                 ),
             ),
             (
                 b.clone(),
-                Package::new(b.clone(), vec![PackageVersion::new((1, 0, 0), DUMMY_URL)]),
+                Package::new(
+                    b.clone(),
+                    vec![PackageVersion::new(Version::new(1, 0, 0), DUMMY_URL)],
+                ),
             ),
         ]));
 
@@ -207,7 +215,7 @@ mod tests {
 
         let dependencies = vec![Dependency::new(
             a.clone(),
-            VersionRange::exact((1, 0, 0)),
+            VersionReq::parse("=1.0.0").unwrap(),
             "offline",
         )];
 

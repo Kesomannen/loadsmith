@@ -159,7 +159,7 @@ pub(crate) fn bepinex_preloader_path(
 
 #[cfg(test)]
 mod tests {
-    use loadsmith_core::PackageRef;
+    use loadsmith_core::{PackageRef, Version};
 
     use crate::{assert_map, assert_maps, test_util::MapFileTester};
 
@@ -169,7 +169,7 @@ mod tests {
     fn map_loader_files() {
         assert_maps!(MapFileTester::new(
             BepInEx::with_default_rules(),
-            PackageRef::new("BepInEx-BepInExPack".to_string(), (5, 4, 2100)),
+            PackageRef::new("BepInEx-BepInExPack".to_string(), Version::new(5, 4, 2100)),
             true,
         ), [
             "README.md" => None,
@@ -182,13 +182,15 @@ mod tests {
     fn map_package_files() {
         assert_maps!(MapFileTester::new(
             BepInEx::with_default_rules(),
-            PackageRef::new("Author-Name".to_string(), (1, 0, 0)),
+            PackageRef::new("Author-Name".to_string(), Version::new(1, 0, 0)),
             false,
         ), [
             "README.md" => "BepInEx/plugins/Author-Name/README.md",
             "nested/file.txt" => "BepInEx/plugins/Author-Name/file.txt",
             "plugins/nested/file.txt" => "BepInEx/plugins/Author-Name/nested/file.txt",
+            "BepInEx/plugins/file.txt" => "BepInEx/plugins/Author-Name/file.txt",
             "config/settings.json" => "BepInEx/config/settings.json",
+            "BepInEx/config/myconfig.cfg" => "BepInEx/config/myconfig.cfg",
             "patchers/patcher.dll" => "BepInEx/patchers/Author-Name/patcher.dll",
             "core/core.dll" => "BepInEx/core/Author-Name/core.dll",
             "patch.mm.dll" => "BepInEx/monomod/Author-Name/patch.mm.dll",
@@ -248,7 +250,7 @@ mod tests {
     #[test]
     fn package_dir_works() {
         let loader = BepInEx::with_default_rules();
-        let package = PackageRef::new("Author-Name".to_string(), (1, 0, 0));
+        let package = PackageRef::new("Author-Name".to_string(), Version::new(1, 0, 0));
 
         let package_dir = loader.package_dir(&package).unwrap();
 

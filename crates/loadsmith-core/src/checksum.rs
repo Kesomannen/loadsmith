@@ -91,7 +91,7 @@ impl FromStr for Checksum {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self> {
-        let (algorithm, value) = s.split_once(':').ok_or(Error::InvalidVersionFormat)?;
+        let (algorithm, value) = s.split_once(':').ok_or(Error::InvalidChecksumFormat)?;
         Checksum::from_value_str(value, algorithm.parse()?)
     }
 }

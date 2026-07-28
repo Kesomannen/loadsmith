@@ -42,13 +42,13 @@ pub struct Version {
 
 impl From<Version> for loadsmith_core::Version {
     fn from(value: Version) -> Self {
-        Self::new(value.major, value.minor, value.patch)
+        loadsmith_core::Version::new(value.major, value.minor, value.patch)
     }
 }
 
 impl From<loadsmith_core::Version> for Version {
     fn from(value: loadsmith_core::Version) -> Self {
-        Self::new(value.major, value.minor, value.patch)
+        Version::new(value.major, value.minor, value.patch)
     }
 }
 
@@ -79,12 +79,6 @@ impl Version {
             minor,
             patch,
         }
-    }
-}
-
-impl From<(u64, u64, u64)> for Version {
-    fn from((major, minor, patch): (u64, u64, u64)) -> Self {
-        Self::new(major, minor, patch)
     }
 }
 
@@ -175,7 +169,7 @@ mod tests {
             "My Profile",
             vec![Mod::new(
                 PackageIdent::new("BepInEx", "BepInExPack"),
-                (5, 4, 2100),
+                Version::new(5, 4, 2100),
                 true,
             )],
             (),

@@ -6,6 +6,7 @@ use std::{
 use anyhow::{Context, anyhow};
 use bytes::Bytes;
 use loadsmith::{InstallRuleset, InstalledPackage, PackageRef, thunderstore::PackageRefExt};
+use loadsmith_core::Version;
 use serde::{Deserialize, Serialize};
 use tempfile::TempDir;
 use walkdir::WalkDir;
@@ -137,13 +138,16 @@ async fn test_install_flow(
 #[tokio::test]
 #[ignore]
 async fn install_lethal_lib() -> anyhow::Result<()> {
-    let package = PackageRef::new("Evaisa-LethalLib".to_string(), (1, 2, 0));
+    let package = PackageRef::new("Evaisa-LethalLib".to_string(), Version::new(1, 2, 0));
     test_install_flow("lethal-company", package, false).await
 }
 
 #[tokio::test]
 #[ignore]
 async fn install_bep_in_ex() -> anyhow::Result<()> {
-    let package = PackageRef::new("BepInEx-BepInExPack_ROUNDS".to_string(), (5, 4, 1901));
+    let package = PackageRef::new(
+        "BepInEx-BepInExPack_ROUNDS".to_string(),
+        Version::new(5, 4, 1901),
+    );
     test_install_flow("rounds", package, true).await
 }

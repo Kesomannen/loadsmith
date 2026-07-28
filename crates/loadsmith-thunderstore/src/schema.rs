@@ -160,7 +160,7 @@ fn rule_to_loadsmith(
 
     let flatten = matches!(
         rule.tracking_method,
-        TrackingMethod::Subdir | TrackingMethod::PackageZip
+        TrackingMethod::Subdir | TrackingMethod::None | TrackingMethod::PackageZip
     );
 
     let mutable = matches!(

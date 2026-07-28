@@ -80,7 +80,7 @@ impl Loader for BepisLoader {
 
 #[cfg(test)]
 mod tests {
-    use loadsmith_core::PackageRef;
+    use loadsmith_core::{PackageRef, Version};
 
     use crate::{assert_map, assert_maps, test_util::MapFileTester};
 
@@ -90,7 +90,7 @@ mod tests {
     fn map_loader_files() {
         assert_maps!(MapFileTester::new(
             BepisLoader::with_default_rules(),
-            PackageRef::new("BepInEx-BepInExPack".to_string(), (5, 4, 2100)),
+            PackageRef::new("BepInEx-BepInExPack".to_string(), Version::new(5, 4, 2100)),
             true,
         ), [
             "README.md" => None,
@@ -103,7 +103,7 @@ mod tests {
     fn map_package_files() {
         assert_maps!(MapFileTester::new(
             BepisLoader::with_default_rules(),
-            PackageRef::new("Author-Name".to_string(), (1, 0, 0)),
+            PackageRef::new("Author-Name".to_string(), Version::new(1, 0, 0)),
             false,
         ), [
             "README.md" => "BepInEx/plugins/Author-Name/README.md",
@@ -136,7 +136,7 @@ mod tests {
     #[test]
     fn package_dir_works() {
         let loader = BepisLoader::with_default_rules();
-        let package = PackageRef::new("Author-Name".to_string(), (1, 0, 0));
+        let package = PackageRef::new("Author-Name".to_string(), Version::new(1, 0, 0));
 
         let package_dir = loader.package_dir(&package).unwrap();
 

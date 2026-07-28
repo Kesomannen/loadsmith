@@ -120,7 +120,7 @@ MelonLoader {
             Route(
                 RouteRule {
                     name: "Managed",
-                    target: "MelonLoader/Managed",
+                    target: "MelonLoader\\Managed",
                     file_extensions: [
                         "managed.dll",
                     ],
@@ -132,7 +132,7 @@ MelonLoader {
             Route(
                 RouteRule {
                     name: "Libs",
-                    target: "MelonLoader/Libs",
+                    target: "MelonLoader\\Libs",
                     file_extensions: [],
                     subdir: false,
                     flatten: false,
@@ -152,7 +152,7 @@ MelonLoader {
             Route(
                 RouteRule {
                     name: "CustomItems",
-                    target: "UserData/CustomItems",
+                    target: "UserData\\CustomItems",
                     file_extensions: [
                         "melon",
                     ],
@@ -164,7 +164,7 @@ MelonLoader {
             Route(
                 RouteRule {
                     name: "CustomMaps",
-                    target: "UserData/CustomMaps",
+                    target: "UserData\\CustomMaps",
                     file_extensions: [
                         "bcm",
                         "cma",
@@ -177,7 +177,7 @@ MelonLoader {
             Route(
                 RouteRule {
                     name: "PlayerModels",
-                    target: "UserData/PlayerModels",
+                    target: "UserData\\PlayerModels",
                     file_extensions: [
                         "body",
                     ],
@@ -189,7 +189,7 @@ MelonLoader {
             Route(
                 RouteRule {
                     name: "CustomLoadScreens",
-                    target: "UserData/CustomLoadScreens",
+                    target: "UserData\\CustomLoadScreens",
                     file_extensions: [
                         "load",
                     ],
@@ -201,7 +201,7 @@ MelonLoader {
             Route(
                 RouteRule {
                     name: "Music",
-                    target: "UserData/Music",
+                    target: "UserData\\Music",
                     file_extensions: [
                         "wav",
                     ],
@@ -213,7 +213,7 @@ MelonLoader {
             Route(
                 RouteRule {
                     name: "Food",
-                    target: "UserData/Food",
+                    target: "UserData\\Food",
                     file_extensions: [
                         "food",
                     ],
@@ -225,7 +225,7 @@ MelonLoader {
             Route(
                 RouteRule {
                     name: "Scoreworks",
-                    target: "UserData/Scoreworks",
+                    target: "UserData\\Scoreworks",
                     file_extensions: [
                         "sw",
                     ],
@@ -237,7 +237,7 @@ MelonLoader {
             Route(
                 RouteRule {
                     name: "CustomSkins",
-                    target: "UserData/CustomSkins",
+                    target: "UserData\\CustomSkins",
                     file_extensions: [
                         "png",
                     ],
@@ -249,7 +249,7 @@ MelonLoader {
             Route(
                 RouteRule {
                     name: "Grenades",
-                    target: "UserData/Grenades",
+                    target: "UserData\\Grenades",
                     file_extensions: [
                         "grenade",
                     ],

@@ -272,7 +272,7 @@ mod tests {
             .install_default()
             .unwrap();
         let registry = GithubRegistry::default();
-        let ref_ = PackageRef::new("Evaisa-LethalLib".to_string(), (0, 13, 1));
+        let ref_ = PackageRef::new("Evaisa-LethalLib".to_string(), Version::new(0, 13, 1));
 
         let resolved = registry
             .resolve(

@@ -1,4 +1,4 @@
-use loadsmith_core::{Dependency, PackageId, VersionRange};
+use loadsmith_core::{Dependency, PackageId, VersionReq};
 use thunderstore::VersionIdent;
 
 use crate::PackageIdExt;
@@ -26,9 +26,9 @@ fn dependency_from_ident(ident: &VersionIdent, is_modpack: bool) -> Dependency {
     Dependency::new(
         package_id,
         if is_modpack {
-            VersionRange::exact(ident.parsed_version())
+            loadsmith_util::exact_version_eq(&ident.parsed_version())
         } else {
-            VersionRange::any()
+            VersionReq::STAR
         },
         "thunderstore".to_string(),
     )

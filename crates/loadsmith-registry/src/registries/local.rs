@@ -1,7 +1,7 @@
 use std::{fs::File, io::BufReader, path::Path, pin::Pin};
 
 use camino::Utf8PathBuf;
-use loadsmith_core::{Dependency, PackageId, PackageRef, Version, VersionRange};
+use loadsmith_core::{Dependency, PackageId, PackageRef, Version, VersionReq};
 use serde::Deserialize;
 use thunderstore::VersionIdent;
 
@@ -161,7 +161,7 @@ impl Source {
 
                         Dependency::new(
                             package_id,
-                            VersionRange::any(),
+                            VersionReq::STAR,
                             self.dependency_registry.clone(),
                         )
                     })

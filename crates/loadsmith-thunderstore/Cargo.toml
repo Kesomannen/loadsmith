@@ -27,6 +27,7 @@ futures = { workspace = true }
 parking_lot = { workspace = true }
 rusqlite = { workspace = true }
 chrono = { workspace = true }
+semver = { workspace = true }
 
 [dev-dependencies]
 reqwest = { workspace = true, features = ["blocking", "json", "gzip"] }

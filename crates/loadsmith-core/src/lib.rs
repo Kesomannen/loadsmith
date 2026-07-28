@@ -6,11 +6,10 @@ use serde::{Deserialize, Serialize};
 
 mod checksum;
 mod error;
-mod version;
 
 pub use checksum::{Checksum, ChecksumAlgorithm};
 pub use error::{Error, Result};
-pub use version::{Version, VersionRange};
+pub use semver::{Version, VersionReq};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, PartialOrd, Ord)]
 pub struct PackageId(String);
@@ -196,7 +195,7 @@ impl InstalledFile {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Dependency {
     pub id: PackageId,
-    pub version_range: VersionRange,
+    pub version_req: VersionReq,
     pub source: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub registry_metadata: Option<serde_json::Value>,
@@ -205,12 +204,12 @@ pub struct Dependency {
 impl Dependency {
     pub fn new(
         id: impl Into<PackageId>,
-        version_range: impl Into<VersionRange>,
+        version_req: impl Into<VersionReq>,
         source: impl Into<String>,
     ) -> Self {
         Self {
             id: id.into(),
-            version_range: version_range.into(),
+            version_req: version_req.into(),
             source: source.into(),
             registry_metadata: None,
         }

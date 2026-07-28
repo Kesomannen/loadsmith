@@ -119,7 +119,7 @@ impl Loader for Northstar {
 
 #[cfg(test)]
 mod tests {
-    use loadsmith_core::PackageRef;
+    use loadsmith_core::{PackageRef, Version};
 
     use crate::{assert_map, assert_maps, test_util::MapFileTester};
 
@@ -129,7 +129,7 @@ mod tests {
     fn map_loader_files() {
         assert_maps!(MapFileTester::new(
             Northstar::with_default_rules(),
-            PackageRef::new("northstar-Northstar".to_string(), (1, 31, 10)),
+            PackageRef::new("northstar-Northstar".to_string(), Version::new(1, 31, 10)),
             true,
         ), [
             "README.md" => None,
@@ -143,7 +143,7 @@ mod tests {
     fn map_package_files() {
         assert_maps!(MapFileTester::new(
             Northstar::with_default_rules(),
-            PackageRef::new("Author-Name".to_string(), (1, 0, 0)),
+            PackageRef::new("Author-Name".to_string(), Version::new(1, 0, 0)),
             false,
         ), [
             "manifest.json" => None,
@@ -160,7 +160,7 @@ mod tests {
     #[test]
     fn package_dir_works() {
         let loader = Northstar::with_default_rules();
-        let package = PackageRef::new("Author-Name".to_string(), (1, 0, 0));
+        let package = PackageRef::new("Author-Name".to_string(), Version::new(1, 0, 0));
 
         assert!(loader.package_dir(&package).is_none());
     }
