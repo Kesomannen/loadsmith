@@ -20,7 +20,7 @@ pub mod loader {
 }
 pub use loadsmith_manifest::{
     LockedPackage, Lockfile, PackageStore, PackageStoreEntry, ProfileState, ProfileStateData,
-    resolve,
+    download_and_extract, resolve,
 };
 pub mod manifest {
     pub use loadsmith_manifest::{Diff, Diffable, Error, Result};

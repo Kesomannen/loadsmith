@@ -4,6 +4,7 @@ use camino::Utf8PathBuf;
 use loadsmith_core::{Dependency, PackageId, PackageRef, Version, VersionReq};
 use serde::Deserialize;
 use thunderstore::VersionIdent;
+use tracing::debug;
 
 use crate::{Error, Registry, ResolvedVersion, Result, VersionInfo};
 
@@ -49,15 +50,12 @@ impl Registry for LocalRegistry {
             let source = Source::read_ref(ref_, metadata)?;
 
             let full_path = source.path.canonicalize_utf8()?;
-            let url = format!("file://{}", full_path);
-
-            let size = std::fs::metadata(&source.path)?.len();
 
             Ok(ResolvedVersion {
-                url,
-                size: Some(size),
+                url: full_path.into(),
+                size: source.size()?,
                 deps: source.dependencies()?,
-                checksum: Some(source.checksum()?),
+                checksum: source.checksum()?,
             })
         })
     }
@@ -69,8 +67,9 @@ impl Registry for LocalRegistry {
     ) -> Result<Option<loadsmith_core::Checksum>> {
         let metadata = crate::read_metadata(metadata)?;
         let source = Source::read_ref(ref_, metadata)?;
+        let checksum = source.checksum()?;
 
-        Ok(Some(source.checksum()?))
+        Ok(checksum)
     }
 }
 
@@ -83,6 +82,12 @@ struct Metadata {
         rename = "deps_source"
     )]
     dependency_registry: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "source_version"
+    )]
+    source_version: Option<Version>,
 }
 
 struct Source {
@@ -93,8 +98,9 @@ struct Source {
 
 enum SourceKind {
     Zip(ThunderstoreManifest),
-    Dll,
-    Directory,
+    Directory(ThunderstoreManifest),
+    Dll(Version),
+    Other(Version),
 }
 
 impl Source {
@@ -107,18 +113,42 @@ impl Source {
 
         let kind = match (metadata.path.is_file(), metadata.path.extension()) {
             (true, Some("zip")) => {
-                let manifest = read_zip(&metadata.path)?;
+                let manifest = read_zip_manifest(&metadata.path)?;
 
-                let ident = format!("{}-{}", manifest.namespace, manifest.name);
-                if ident != id.as_str() {
+                if let Some(namespace) = &manifest.namespace {
+                    let ident = format!("{}-{}", namespace, manifest.name);
+                    if ident != id.as_str() {
+                        return Err(Error::PackageNotFound);
+                    }
+                } else if manifest.name != id.as_str() {
                     return Err(Error::PackageNotFound);
                 }
 
+                Self::warn_if_source_version_set(&manifest.version_number, &metadata);
+
                 SourceKind::Zip(manifest)
             }
-            (true, Some("dll")) => SourceKind::Dll,
-            (false, _) => SourceKind::Directory,
-            _ => return Err(Error::InvalidFileType(metadata.path)),
+            (true, Some("dll")) => {
+                SourceKind::Dll(metadata.source_version.ok_or(Error::LocalVersionMissing)?)
+            }
+            (false, _) => {
+                let manifest_path = metadata.path.join("manifest.json");
+                if !manifest_path.exists() {
+                    return Err(Error::LocalManifestMissing);
+                }
+
+                let manifest_str = std::fs::read_to_string(&manifest_path)?;
+                let manifest: ThunderstoreManifest = serde_json::from_str(&manifest_str)?;
+
+                Self::warn_if_source_version_set(&manifest.version_number, &metadata);
+
+                SourceKind::Directory(manifest)
+            }
+            _ => {
+                debug!(path = %metadata.path, "could not determine source kind");
+
+                SourceKind::Other(metadata.source_version.ok_or(Error::LocalVersionMissing)?)
+            }
         };
 
         let dependency_registry = metadata
@@ -130,6 +160,17 @@ impl Source {
             path: metadata.path,
             dependency_registry,
         })
+    }
+
+    fn warn_if_source_version_set(package_version: &Version, metadata: &Metadata) {
+        if let Some(source_version) = &metadata.source_version {
+            debug!(
+                path = %metadata.path,
+                %source_version,
+                %package_version,
+                "source_version is set, but is overriden by the local package's version"
+            );
+        }
     }
 
     fn read_ref(ref_: &PackageRef, metadata: Metadata) -> Result<Self> {
@@ -144,15 +185,24 @@ impl Source {
 
     fn version(&self) -> &Version {
         match &self.kind {
-            SourceKind::Zip(manifest) => &manifest.version_number,
-            SourceKind::Dll => todo!(),
-            SourceKind::Directory => todo!(),
+            SourceKind::Zip(manifest) | SourceKind::Directory(manifest) => &manifest.version_number,
+            SourceKind::Dll(version) | SourceKind::Other(version) => version,
+        }
+    }
+
+    fn size(&self) -> Result<Option<u64>> {
+        match &self.kind {
+            SourceKind::Zip(_) | SourceKind::Dll(_) | SourceKind::Other(_) => {
+                let size = std::fs::metadata(&self.path)?.len();
+                Ok(Some(size))
+            }
+            SourceKind::Directory(_) => Ok(None),
         }
     }
 
     fn dependencies(&self) -> Result<Vec<Dependency>> {
         match &self.kind {
-            SourceKind::Zip(manifest) => {
+            SourceKind::Zip(manifest) | SourceKind::Directory(manifest) => {
                 let deps = manifest
                     .dependencies
                     .iter()
@@ -169,25 +219,25 @@ impl Source {
 
                 Ok(deps)
             }
-            SourceKind::Dll => todo!(),
-            SourceKind::Directory => todo!(),
+            SourceKind::Dll(_) | SourceKind::Other(_) => Ok(Vec::new()),
         }
     }
 
-    fn checksum(&self) -> Result<loadsmith_core::Checksum> {
+    fn checksum(&self) -> Result<Option<loadsmith_core::Checksum>> {
         match self.kind {
-            SourceKind::Zip(_) | SourceKind::Dll => {
+            SourceKind::Zip(_) | SourceKind::Dll(_) | SourceKind::Other(_) => {
                 let hash = loadsmith_util::hash_file(&self.path)?;
-                Ok(hash.into())
+                Ok(Some(hash.into()))
             }
-            SourceKind::Directory => todo!(),
+            SourceKind::Directory(_) => Ok(None),
         }
     }
 }
 
 #[derive(Debug, Deserialize)]
 struct ThunderstoreManifest {
-    namespace: String,
+    #[serde(default)]
+    namespace: Option<String>,
     name: String,
     #[allow(unused)]
     description: String,
@@ -197,11 +247,14 @@ struct ThunderstoreManifest {
     website_url: Option<String>,
 }
 
-fn read_zip(path: impl AsRef<Path>) -> Result<ThunderstoreManifest> {
+fn read_zip_manifest(path: impl AsRef<Path>) -> Result<ThunderstoreManifest> {
     let file = File::open(path.as_ref()).map(BufReader::new)?;
     let mut archive = zip::ZipArchive::new(file)?;
 
-    let mut manifest_file = archive.by_name("manifest.json")?;
+    let mut manifest_file = archive.by_name("manifest.json").map_err(|err| match err {
+        zip::result::ZipError::FileNotFound => Error::LocalManifestMissing,
+        other => Error::Zip(other),
+    })?;
     let manifest: ThunderstoreManifest = serde_json::from_reader(&mut manifest_file)?;
 
     Ok(manifest)

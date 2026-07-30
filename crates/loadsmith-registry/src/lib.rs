@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Debug, pin::Pin};
 
-use loadsmith_core::{Checksum, Dependency, PackageId, PackageRef, Version};
+use loadsmith_core::{Checksum, Dependency, FileUrl, PackageId, PackageRef, Version};
 
 mod error;
 
@@ -17,7 +17,7 @@ pub struct VersionInfo {
 
 #[derive(Debug, Clone)]
 pub struct ResolvedVersion {
-    pub url: String,
+    pub url: FileUrl,
     pub size: Option<u64>,
     pub checksum: Option<Checksum>,
     pub deps: Vec<Dependency>,

@@ -94,7 +94,7 @@ impl GithubRegistry {
             .transpose()?;
 
         let resolved_version = loadsmith_registry::ResolvedVersion {
-            url: asset.browser_download_url.to_string(),
+            url: asset.browser_download_url.clone().into(),
             size: Some(asset.size as u64),
             checksum,
             deps: Vec::new(),

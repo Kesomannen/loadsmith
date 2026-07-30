@@ -39,6 +39,14 @@ pub enum Error {
 
     #[error("package version not found")]
     VersionNotFound,
+
+    #[error("local package has no manifest")]
+    LocalManifestMissing,
+
+    #[error(
+        "version could not be determined from local package, please specify a source_version in metadata"
+    )]
+    LocalVersionMissing,
 }
 
 impl Error {

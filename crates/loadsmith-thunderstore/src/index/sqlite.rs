@@ -176,6 +176,8 @@ impl SqliteIndex {
                     let is_modpack = categories.contains(&super::MODPACK_CATEGORY.to_string());
                     let deps = super::dependencies_from_idents(&deps, is_modpack);
 
+                    let url = loadsmith_core::FileUrl::try_from_url(&url).unwrap();
+
                     Ok(loadsmith_registry::ResolvedVersion {
                         url,
                         deps,

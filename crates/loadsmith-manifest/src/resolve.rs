@@ -177,14 +177,14 @@ fn validate_locked_package<'a>(
 mod tests {
     use std::collections::HashMap;
 
-    use loadsmith_core::{Dependency, Version, VersionReq};
+    use loadsmith_core::{Dependency, FileUrl, Version, VersionReq};
     use loadsmith_registry::offline::{OfflineRegistry, Package, PackageVersion};
 
     use super::*;
 
     #[tokio::test]
     async fn resolve_manifest_offline_simple() {
-        const DUMMY_URL: &str = "https://example.com/package.zip";
+        let dummy_url = FileUrl::try_from_url("https://example.com/dummy.zip").unwrap();
 
         let a = PackageId::new("A");
         let b = PackageId::new("B");
@@ -195,9 +195,9 @@ mod tests {
                 Package::new(
                     a.clone(),
                     vec![
-                        PackageVersion::new(Version::new(1, 0, 0), DUMMY_URL).with_deps(vec![
-                            Dependency::new(b.clone(), VersionReq::STAR, "offline"),
-                        ]),
+                        PackageVersion::new(Version::new(1, 0, 0), dummy_url.clone()).with_deps(
+                            vec![Dependency::new(b.clone(), VersionReq::STAR, "offline")],
+                        ),
                     ],
                 ),
             ),
@@ -205,7 +205,7 @@ mod tests {
                 b.clone(),
                 Package::new(
                     b.clone(),
-                    vec![PackageVersion::new(Version::new(1, 0, 0), DUMMY_URL)],
+                    vec![PackageVersion::new(Version::new(1, 0, 0), dummy_url)],
                 ),
             ),
         ]));

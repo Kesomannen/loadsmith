@@ -1,6 +1,5 @@
 use std::{
     fmt::Display,
-    io::{Read, Seek},
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -54,19 +53,14 @@ impl PackageStore {
         self.path_of(entry).exists()
     }
 
-    pub fn add<R: Read + Seek>(
-        &self,
-        entry: &PackageStoreEntry,
-        reader: R,
-    ) -> Result<Vec<PathBuf>> {
-        let target = self.path_of(entry);
-        if target.exists() {
+    pub fn reserve(&self, entry: &PackageStoreEntry) -> Result<PathBuf> {
+        let path = self.path_of(entry);
+        if path.exists() {
             return Err(Error::PackageStoreEntryAlreadyExists);
         }
 
-        std::fs::create_dir_all(&target)?;
-        let files = loadsmith_install::extract(reader, &target)?;
-        Ok(files)
+        std::fs::create_dir_all(&path)?;
+        Ok(path)
     }
 
     pub fn install(

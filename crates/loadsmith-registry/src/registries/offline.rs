@@ -1,6 +1,6 @@
 use std::{collections::HashMap, pin::Pin};
 
-use loadsmith_core::{Checksum, Dependency, PackageId, PackageRef, Version};
+use loadsmith_core::{Checksum, Dependency, FileUrl, PackageId, PackageRef, Version};
 use serde::{Deserialize, Serialize};
 
 use crate::{Error, Registry, ResolvedVersion, Result, VersionInfo};
@@ -30,7 +30,7 @@ impl Package {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PackageVersion {
     pub version: Version,
-    pub url: String,
+    pub url: FileUrl,
     #[serde(default)]
     pub size: Option<u64>,
     #[serde(default)]
@@ -39,7 +39,7 @@ pub struct PackageVersion {
 }
 
 impl PackageVersion {
-    pub fn new(version: impl Into<Version>, download_url: impl Into<String>) -> Self {
+    pub fn new(version: impl Into<Version>, download_url: impl Into<FileUrl>) -> Self {
         Self {
             version: version.into(),
             url: download_url.into(),
@@ -136,11 +136,11 @@ mod tests {
                 vec![
                     PackageVersion::new(
                         Version::new(1, 0, 0),
-                        "https://example.com/package-1.0.0.zip",
+                        FileUrl::try_from_url("https://example.com/package-1.0.0.zip").unwrap(),
                     ),
                     PackageVersion::new(
                         Version::new(1, 1, 0),
-                        "https://example.com/package-1.1.0.zip",
+                        FileUrl::try_from_url("https://example.com/package-1.1.0.zip").unwrap(),
                     ),
                 ],
             ),

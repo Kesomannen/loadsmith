@@ -6,6 +6,9 @@ pub enum Error {
     #[error("semver error")]
     Semver(#[from] semver::Error),
 
+    #[error("URL parse error")]
+    Url(#[from] url::ParseError),
+
     #[error("invalid package reference format")]
     InvalidPackageRefFormat,
 

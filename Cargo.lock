@@ -1644,6 +1644,7 @@ dependencies = [
  "tokio",
  "toml",
  "tracing",
+ "url",
  "walkdir",
 ]
 
@@ -1676,6 +1677,7 @@ dependencies = [
  "thiserror 2.0.18",
  "thunderstore",
  "tokio",
+ "tracing",
  "url",
  "zip",
 ]
@@ -1718,6 +1720,7 @@ dependencies = [
  "blake3",
  "semver",
  "tracing",
+ "walkdir",
 ]
 
 [[package]]

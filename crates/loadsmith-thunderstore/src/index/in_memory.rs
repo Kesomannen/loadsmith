@@ -122,7 +122,7 @@ impl InMemoryIndex {
                 let deps = super::dependencies_from_idents(&version.dependencies, is_modpack);
 
                 Ok(Some(ResolvedVersion {
-                    url: version.download_url.to_string(),
+                    url: version.download_url.clone().into(),
                     size: Some(version.file_size),
                     checksum: None,
                     deps,

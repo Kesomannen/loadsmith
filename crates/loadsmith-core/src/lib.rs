@@ -6,10 +6,12 @@ use serde::{Deserialize, Serialize};
 
 mod checksum;
 mod error;
+mod source;
 
 pub use checksum::{Checksum, ChecksumAlgorithm};
 pub use error::{Error, Result};
 pub use semver::{Version, VersionReq};
+pub use source::FileUrl;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, PartialOrd, Ord)]
 pub struct PackageId(String);

@@ -64,6 +64,9 @@ pub enum Error {
 
     #[error("package store entry already exists")]
     PackageStoreEntryAlreadyExists,
+
+    #[error("download task failed")]
+    Download(#[source] Box<dyn std::error::Error + Send + Sync>),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

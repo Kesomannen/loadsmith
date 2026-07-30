@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use loadsmith_core::{Checksum, Dependency, PackageId, PackageRef};
+use loadsmith_core::{Checksum, Dependency, FileUrl, PackageId, PackageRef};
 use serde::{Deserialize, Serialize};
 
 use crate::{Diff, Diffable, PackageStoreEntry};
@@ -37,7 +37,7 @@ pub struct LockedPackage {
     #[serde(rename = "package")]
     pub ref_: PackageRef,
     pub source: String,
-    pub url: String,
+    pub url: FileUrl,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub transitive: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -54,7 +54,7 @@ impl LockedPackage {
     pub fn new(
         package: impl Into<PackageRef>,
         source: impl Into<String>,
-        url: impl Into<String>,
+        url: impl Into<FileUrl>,
     ) -> Self {
         Self {
             ref_: package.into(),
@@ -120,16 +120,18 @@ mod tests {
 
     #[test]
     fn diff() {
+        let example_com = FileUrl::try_from_url("https://example.com").unwrap();
+
         let a = Lockfile::new(vec![
             LockedPackage::new(
                 PackageRef::new("A".to_string(), Version::new(1, 0, 0)),
                 "local",
-                "https://example.com",
+                example_com.clone(),
             ),
             LockedPackage::new(
                 PackageRef::new("B".to_string(), Version::new(1, 0, 0)),
                 "local",
-                "https://example.com",
+                example_com.clone(),
             ),
         ]);
 
@@ -137,12 +139,12 @@ mod tests {
             LockedPackage::new(
                 PackageRef::new("B".to_string(), Version::new(2, 0, 0)),
                 "local",
-                "https://example.com",
+                example_com.clone(),
             ),
             LockedPackage::new(
                 PackageRef::new("C".to_string(), Version::new(1, 0, 0)),
                 "local",
-                "https://example.com",
+                example_com.clone(),
             ),
         ]);
 
@@ -153,7 +155,7 @@ mod tests {
             vec![&LockedPackage::new(
                 PackageRef::new("C".to_string(), Version::new(1, 0, 0)),
                 "local",
-                "https://example.com",
+                example_com.clone(),
             )]
         );
         assert_eq!(
@@ -161,7 +163,7 @@ mod tests {
             vec![&LockedPackage::new(
                 PackageRef::new("A".to_string(), Version::new(1, 0, 0)),
                 "local",
-                "https://example.com",
+                example_com.clone(),
             )]
         );
         assert_eq!(
@@ -170,12 +172,12 @@ mod tests {
                 &LockedPackage::new(
                     PackageRef::new("B".to_string(), Version::new(1, 0, 0)),
                     "local",
-                    "https://example.com",
+                    example_com.clone(),
                 ),
                 &LockedPackage::new(
                     PackageRef::new("B".to_string(), Version::new(2, 0, 0)),
                     "local",
-                    "https://example.com",
+                    example_com.clone(),
                 )
             )]
         );

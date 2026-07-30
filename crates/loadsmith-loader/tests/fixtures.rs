@@ -40,7 +40,12 @@ fn test_fixture(path: &Path, package: &PackageRef, rules: &InstallRuleset) {
         .filter(|line| !line.is_empty());
 
     let mapped = lines
-        .map(|line| (line, rules.map_file(line, package)))
+        .map(|line| {
+            let path = rules
+                .map_file(line, package)
+                .map(|path| path.into_string().replace('\\', "/"));
+            (line, path)
+        })
         .collect::<BTreeMap<_, _>>();
 
     insta::assert_yaml_snapshot!(package.to_string(), mapped)
