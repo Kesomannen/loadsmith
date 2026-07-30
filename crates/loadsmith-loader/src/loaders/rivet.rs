@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::LazyLock};
 
-use loadsmith_core::{PackageRef, Version};
+use loadsmith_core::PackageRef;
 use loadsmith_install::{InstallRule, InstallRuleset};
 
 use crate::{LaunchArgs, LaunchContext, Loader, Result, glob_rule};

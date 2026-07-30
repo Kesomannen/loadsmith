@@ -74,7 +74,7 @@ pub fn guess_proton(game_path: impl AsRef<Path>) -> bool {
     })
 }
 
-pub fn try_guess_proton(game_path: impl AsRef<Path>) -> Result<bool> {
+pub fn try_guess_proton(#[allow(unused)] game_path: impl AsRef<Path>) -> Result<bool> {
     #[cfg(target_os = "windows")]
     {
         Ok(false)

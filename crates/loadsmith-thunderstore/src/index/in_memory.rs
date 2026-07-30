@@ -29,13 +29,6 @@ pub struct Community {
     packages: HashMap<PackageId, thunderstore::models::PackageV1>,
 }
 
-#[derive(Debug)]
-pub enum GetPackage<'a> {
-    Found(&'a thunderstore::models::PackageV1),
-    NotFound,
-    NotComplete,
-}
-
 impl InMemoryIndex {
     pub fn new(client: thunderstore::Client) -> Self {
         Self::new_with_state(client, State::default())
@@ -92,8 +85,9 @@ impl InMemoryIndex {
         id: &PackageId,
     ) -> Result<Option<Vec<loadsmith_registry::VersionInfo>>> {
         let lock = self.lock();
+
         match lock.get(id) {
-            GetPackage::Found(package) => {
+            Ok(Some(package)) => {
                 let versions = package
                     .versions
                     .iter()
@@ -106,8 +100,8 @@ impl InMemoryIndex {
 
                 Ok(Some(versions))
             }
-            GetPackage::NotComplete => Err(Error::IndexNotComplete),
-            GetPackage::NotFound => Ok(None),
+            Ok(None) => Ok(None),
+            Err(e) => Err(e),
         }
     }
 
@@ -115,7 +109,7 @@ impl InMemoryIndex {
         let lock = self.lock();
 
         match lock.get(ref_.id()) {
-            GetPackage::Found(package) => {
+            Ok(Some(package)) => {
                 let Some(version) = package
                     .versions
                     .iter()
@@ -134,8 +128,8 @@ impl InMemoryIndex {
                     deps,
                 }))
             }
-            GetPackage::NotComplete => Err(Error::IndexNotComplete),
-            GetPackage::NotFound => Ok(None),
+            Ok(None) => Ok(None),
+            Err(e) => Err(e),
         }
     }
 }
@@ -162,18 +156,17 @@ impl State {
         Ok(())
     }
 
-    pub fn get(&self, id: &PackageId) -> GetPackage<'_> {
+    pub fn get<'a>(
+        &'a self,
+        id: &PackageId,
+    ) -> Result<Option<&'a thunderstore::models::PackageV1>> {
         let complete = !self.0.is_empty() && self.0.values().all(|community| community.complete);
 
-        self.0
-            .values()
-            .find_map(|community| community.get(id))
-            .map(GetPackage::Found)
-            .unwrap_or(if complete {
-                GetPackage::NotFound
-            } else {
-                GetPackage::NotComplete
-            })
+        match self.0.values().find_map(|community| community.get(id)) {
+            Some(package) => Ok(Some(package)),
+            None if !complete => Err(Error::IndexNotComplete),
+            None => Ok(None),
+        }
     }
 
     pub fn community_mut(&mut self, community: impl Into<String>) -> &mut Community {

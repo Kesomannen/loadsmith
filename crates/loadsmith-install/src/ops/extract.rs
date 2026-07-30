@@ -1,5 +1,5 @@
 use std::{
-    fs::{self, File},
+    fs::File,
     io::{self, Read, Seek},
     path::{Path, PathBuf},
 };
@@ -60,7 +60,7 @@ fn set_unix_mode<F: ZipFile>(file: &F, path: &Path) -> Result<()> {
     use std::os::unix::fs::PermissionsExt;
 
     if let Some(mode) = file.unix_mode(crate::zip::private::Token) {
-        fs::set_permissions(path, PermissionsExt::from_mode(mode))?;
+        std::fs::set_permissions(path, PermissionsExt::from_mode(mode))?;
     }
 
     Ok(())

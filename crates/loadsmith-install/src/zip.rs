@@ -16,9 +16,9 @@ pub trait Zip {
 pub trait ZipFile: Read {
     fn is_dir(&self, _: private::Token) -> bool;
     fn path(&self, _: private::Token) -> Result<Utf8PathBuf>;
-    fn unix_mode(&self, _: private::Token) -> Option<u32> {
-        None
-    }
+    // fn unix_mode(&self, _: private::Token) -> Option<u32> {
+    //     None
+    // }
 }
 
 pub(crate) mod private {
@@ -45,7 +45,7 @@ pub(crate) mod mock {
         path: Utf8PathBuf,
         contents: &'a [u8],
         is_dir: bool,
-        unix_mode: Option<u32>,
+        // unix_mode: Option<u32>,
     }
 
     pub struct MockZipFileReader<'a> {
@@ -79,7 +79,7 @@ pub(crate) mod mock {
                 path,
                 contents,
                 is_dir: false,
-                unix_mode: None,
+                // unix_mode: None,
             }
         }
 
@@ -138,9 +138,9 @@ pub(crate) mod mock {
             Ok(self.file.path.clone())
         }
 
-        fn unix_mode(&self, _: private::Token) -> Option<u32> {
-            self.file.unix_mode
-        }
+        // fn unix_mode(&self, _: private::Token) -> Option<u32> {
+        //     self.file.unix_mode
+        // }
     }
 }
 
@@ -181,8 +181,8 @@ mod zip_crate {
             Ok(utf8_path)
         }
 
-        fn unix_mode(&self, _: private::Token) -> Option<u32> {
-            self.unix_mode()
-        }
+        // fn unix_mode(&self, _: private::Token) -> Option<u32> {
+        //     self.unix_mode()
+        // }
     }
 }

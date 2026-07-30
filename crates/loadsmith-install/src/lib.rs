@@ -6,6 +6,7 @@ mod zip;
 pub use error::{Error, Result};
 pub use ops::{
     extract::extract,
-    install::{ConflictStrategy, install, uninstall},
+    install::{ConflictStrategy, install},
+    uninstall::uninstall,
 };
 pub use rule::{GlobRule, InstallRule, InstallRuleset, OwnedInstallRuleset, RouteRule};
