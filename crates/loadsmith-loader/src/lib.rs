@@ -1,3 +1,10 @@
+//! Mod loader definitions and launch-argument generation for the loadsmith
+//! mod-manager library.
+//!
+//! This is an internal crate of the [`loadsmith`] workspace. Most consumers
+//! should depend on the `loadsmith` facade crate instead of using this
+//! crate directly.
+
 use std::{fmt::Debug, path::PathBuf, sync::LazyLock};
 
 use camino::Utf8PathBuf;

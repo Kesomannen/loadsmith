@@ -3,6 +3,16 @@ resolver = "3"
 members = ["crates/*"]
 
 [workspace.dependencies]
+loadsmith-core = { path = "crates/loadsmith-core", version = "0.2.0" }
+loadsmith-install = { path = "crates/loadsmith-install", version = "0.2.0" }
+loadsmith-loader = { path = "crates/loadsmith-loader", version = "0.2.0" }
+loadsmith-manifest = { path = "crates/loadsmith-manifest", version = "0.2.0" }
+loadsmith-thunderstore = { path = "crates/loadsmith-thunderstore", version = "0.2.0" }
+loadsmith-registry = { path = "crates/loadsmith-registry", version = "0.2.0" }
+loadsmith-platform = { path = "crates/loadsmith-platform", version = "0.2.0" }
+loadsmith-util = { path = "crates/loadsmith-util", version = "0.2.0" }
+loadsmith-github = { path = "crates/loadsmith-github", version = "0.2.0" }
+
 camino = { version = "1.2.3", features = ["serde1"] }
 chrono = { version = "0.4.45", features = ["serde"] }
 globset = { version = "0.4.18", features = ["serde1"] }

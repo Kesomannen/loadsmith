@@ -1,3 +1,10 @@
+//! Thunderstore API client, index backends, and r2z format for the loadsmith
+//! mod-manager library.
+//!
+//! This is an internal crate of the [`loadsmith`] workspace. Most consumers
+//! should depend on the `loadsmith` facade crate instead of using this
+//! crate directly.
+
 mod error;
 mod ext;
 mod index;

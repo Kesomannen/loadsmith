@@ -1,11 +1,12 @@
 [package]
 name = "loadsmith-loader-test-helper"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
+publish = false
 
 [dependencies]
-loadsmith-core = { path = "../loadsmith-core" }
-loadsmith-thunderstore = { path = "../loadsmith-thunderstore" }
+loadsmith-core = { workspace = true }
+loadsmith-thunderstore = { workspace = true }
 
 thunderstore = { workspace = true }
 zip = { workspace = true }

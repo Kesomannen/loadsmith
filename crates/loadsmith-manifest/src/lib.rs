@@ -1,3 +1,10 @@
+//! Manifest and lockfile format, resolver, and profile state for the
+//! loadsmith mod-manager library.
+//!
+//! This is an internal crate of the [`loadsmith`] workspace. Most consumers
+//! should depend on the `loadsmith` facade crate instead of using this
+//! crate directly.
+
 mod diff;
 mod download;
 mod error;

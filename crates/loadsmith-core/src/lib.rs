@@ -1,3 +1,9 @@
+//! Core types, traits, and errors for the loadsmith mod-manager library.
+//!
+//! This is an internal crate of the [`loadsmith`] workspace. Most consumers
+//! should depend on the `loadsmith` facade crate instead of using this
+//! crate directly.
+
 use std::{fmt::Display, str::FromStr};
 
 use camino::Utf8PathBuf;

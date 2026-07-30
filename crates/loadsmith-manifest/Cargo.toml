@@ -1,14 +1,18 @@
 [package]
 name = "loadsmith-manifest"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
+description = "Manifest and lockfile format, resolver, and profile state for the loadsmith mod-manager library"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Kesomannen/loadsmith"
+documentation = "https://docs.rs/loadsmith-manifest"
 
 [dependencies]
-loadsmith-core = { path = "../loadsmith-core" }
-loadsmith-registry = { path = "../loadsmith-registry" }
-loadsmith-thunderstore = { path = "../loadsmith-thunderstore" }
-loadsmith-install = { path = "../loadsmith-install" }
-loadsmith-util = { path = "../loadsmith-util" }
+loadsmith-core = { workspace = true }
+loadsmith-registry = { workspace = true }
+loadsmith-thunderstore = { workspace = true }
+loadsmith-install = { workspace = true }
+loadsmith-util = { workspace = true }
 
 camino = { workspace = true }
 thunderstore = { workspace = true }

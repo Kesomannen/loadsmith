@@ -1,7 +1,11 @@
 [package]
 name = "loadsmith-util"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
+description = "Internal utility functions (hashing, file helpers) for the loadsmith mod-manager library"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Kesomannen/loadsmith"
+documentation = "https://docs.rs/loadsmith-util"
 
 [dependencies]
 blake3 = { workspace = true }

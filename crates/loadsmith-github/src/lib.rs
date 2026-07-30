@@ -1,3 +1,9 @@
+//! GitHub Releases registry for the loadsmith mod-manager library.
+//!
+//! This is an internal crate of the [`loadsmith`] workspace. Most consumers
+//! should depend on the `loadsmith` facade crate instead of using this
+//! crate directly.
+
 use std::{pin::Pin, str::FromStr};
 
 use globset::Glob;

@@ -1,15 +1,19 @@
 [package]
 name = "loadsmith-thunderstore"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
+description = "Thunderstore API client, index backends, and r2z format for the loadsmith mod-manager library"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Kesomannen/loadsmith"
+documentation = "https://docs.rs/loadsmith-thunderstore"
 
 [dependencies]
-loadsmith-core = { path = "../loadsmith-core" }
-loadsmith-loader = { path = "../loadsmith-loader" }
-loadsmith-install = { path = "../loadsmith-install" }
-loadsmith-registry = { path = "../loadsmith-registry" }
-loadsmith-platform = { path = "../loadsmith-platform" }
-loadsmith-util = { path = "../loadsmith-util" }
+loadsmith-core = { workspace = true }
+loadsmith-loader = { workspace = true }
+loadsmith-install = { workspace = true }
+loadsmith-registry = { workspace = true }
+loadsmith-platform = { workspace = true }
+loadsmith-util = { workspace = true }
 
 serde = { workspace = true }
 serde_yaml_ng = { workspace = true }

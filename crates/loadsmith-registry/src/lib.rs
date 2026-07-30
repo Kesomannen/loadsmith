@@ -1,3 +1,10 @@
+//! Registry abstraction and built-in sources for the loadsmith mod-manager
+//! library.
+//!
+//! This is an internal crate of the [`loadsmith`] workspace. Most consumers
+//! should depend on the `loadsmith` facade crate instead of using this
+//! crate directly.
+
 use std::{collections::HashMap, fmt::Debug, pin::Pin};
 
 use loadsmith_core::{Checksum, Dependency, FileUrl, PackageId, PackageRef, Version};

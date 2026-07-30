@@ -1,11 +1,15 @@
 [package]
 name = "loadsmith-install"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
+description = "Install, remove, and list mod files for the loadsmith mod-manager library"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Kesomannen/loadsmith"
+documentation = "https://docs.rs/loadsmith-install"
 
 [dependencies]
-loadsmith-core = { path = "../loadsmith-core" }
-loadsmith-util = { path = "../loadsmith-util" }
+loadsmith-core = { workspace = true }
+loadsmith-util = { workspace = true }
 
 serde = { workspace = true }
 globset = { workspace = true }

@@ -1,12 +1,16 @@
 [package]
 name = "loadsmith-loader"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
+description = "Mod loader definitions and launch-argument generation for the loadsmith mod-manager library"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Kesomannen/loadsmith"
+documentation = "https://docs.rs/loadsmith-loader"
 
 [dependencies]
-loadsmith-core = { path = "../loadsmith-core" }
-loadsmith-install = { path = "../loadsmith-install" }
-loadsmith-util = { path = "../loadsmith-util" }
+loadsmith-core = { workspace = true }
+loadsmith-install = { workspace = true }
+loadsmith-util = { workspace = true }
 
 camino = { workspace = true }
 thiserror = { workspace = true }

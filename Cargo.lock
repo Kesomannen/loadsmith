@@ -1539,7 +1539,7 @@ dependencies = [
 
 [[package]]
 name = "loadsmith-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "blake3",
  "camino",
@@ -1556,7 +1556,7 @@ dependencies = [
 
 [[package]]
 name = "loadsmith-github"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "globset",
  "http",
@@ -1574,7 +1574,7 @@ dependencies = [
 
 [[package]]
 name = "loadsmith-install"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "camino",
  "globset",
@@ -1590,7 +1590,7 @@ dependencies = [
 
 [[package]]
 name = "loadsmith-loader"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "camino",
  "globset",
@@ -1608,7 +1608,7 @@ dependencies = [
 
 [[package]]
 name = "loadsmith-loader-test-helper"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "bytes",
@@ -1626,7 +1626,7 @@ dependencies = [
 
 [[package]]
 name = "loadsmith-manifest"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "blake3",
  "camino",
@@ -1650,7 +1650,7 @@ dependencies = [
 
 [[package]]
 name = "loadsmith-platform"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "camino",
  "loadsmith-loader",
@@ -1665,7 +1665,7 @@ dependencies = [
 
 [[package]]
 name = "loadsmith-registry"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "camino",
  "digest-io",
@@ -1684,7 +1684,7 @@ dependencies = [
 
 [[package]]
 name = "loadsmith-thunderstore"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "camino",
  "chrono",
@@ -1715,7 +1715,7 @@ dependencies = [
 
 [[package]]
 name = "loadsmith-util"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "blake3",
  "semver",

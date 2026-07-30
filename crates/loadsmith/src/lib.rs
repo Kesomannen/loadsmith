@@ -1,3 +1,5 @@
+//! A modular, interface-agnostic Rust library for mod manager implementations.
+
 pub use loadsmith_core::{
     Checksum, ChecksumAlgorithm, Dependency, InstalledFile, InstalledPackage, PackageId,
     PackageRef, Version, VersionReq,
