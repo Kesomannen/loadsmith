@@ -16,9 +16,10 @@ pub trait Zip {
 pub trait ZipFile: Read {
     fn is_dir(&self, _: private::Token) -> bool;
     fn path(&self, _: private::Token) -> Result<Utf8PathBuf>;
-    // fn unix_mode(&self, _: private::Token) -> Option<u32> {
-    //     None
-    // }
+    #[allow(unused)]
+    fn unix_mode(&self, _: private::Token) -> Option<u32> {
+        None
+    }
 }
 
 pub(crate) mod private {
@@ -181,8 +182,8 @@ mod zip_crate {
             Ok(utf8_path)
         }
 
-        // fn unix_mode(&self, _: private::Token) -> Option<u32> {
-        //     self.unix_mode()
-        // }
+        fn unix_mode(&self, _: private::Token) -> Option<u32> {
+            self.unix_mode()
+        }
     }
 }
