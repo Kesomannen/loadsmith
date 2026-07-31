@@ -1,6 +1,6 @@
 [package]
 name = "loadsmith-thunderstore"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 description = "Thunderstore API client, index backends, and r2z format for the loadsmith mod-manager library"
 license = "MIT OR Apache-2.0"
