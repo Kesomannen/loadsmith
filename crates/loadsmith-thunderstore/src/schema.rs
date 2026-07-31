@@ -12,6 +12,36 @@ use tracing::warn;
 
 use crate::{Error, Result};
 
+/// Converts an r2modman loader configuration into a [`Loader`](loadsmith_loader::Loader) implementation.
+///
+/// Maps the thunderstore loader enum to the corresponding loadsmith loader
+/// type (BepInEx, MelonLoader, GDWeave, etc.) and applies any install rules
+/// specified in the config.
+///
+/// # Examples
+///
+/// ```
+/// use loadsmith_thunderstore::r2_config_to_loader;
+/// use thunderstore::models::schema::R2ModmanConfig;
+///
+/// let json = r#"{
+///     "meta": {"displayName": "Test", "iconUrl": null},
+///     "internalFolderName": "test",
+///     "dataFolderName": "test",
+///     "distributions": [],
+///     "settingsIdentifier": "test",
+///     "packageIndex": "",
+///     "steamFolderName": "",
+///     "exeNames": [],
+///     "gameInstanceType": "",
+///     "gameSelectionDisplayMode": "",
+///     "additionalSearchStrings": [],
+///     "packageLoader": "bepinex",
+///     "installRules": []
+/// }"#;
+/// let config: R2ModmanConfig = serde_json::from_str(json).unwrap();
+/// let loader = r2_config_to_loader(&config).unwrap();
+/// ```
 pub fn r2_config_to_loader(
     config: &schema::R2ModmanConfig,
 ) -> Result<Box<dyn loadsmith_loader::Loader>> {
@@ -192,6 +222,22 @@ fn rule_to_loadsmith(
     Ok(rules)
 }
 
+/// Converts a thunderstore [`Distribution`] into a [`loadsmith_platform::Platform`].
+///
+/// Handles Steam (with numeric ID), Epic Games, Xbox Game Pass, Oculus,
+/// Origin, and generic platforms.
+///
+/// # Examples
+///
+/// ```
+/// use loadsmith_thunderstore::distribution_into_platform;
+/// use thunderstore::models::schema::Distribution;
+///
+/// let json = r#"{"platform": "steam", "identifier": "12345"}"#;
+/// let dist: Distribution = serde_json::from_str(json).unwrap();
+/// let platform = distribution_into_platform(dist).unwrap();
+/// assert!(matches!(platform, loadsmith_platform::Platform::Steam { id: 12345 }));
+/// ```
 pub fn distribution_into_platform(distribution: Distribution) -> Result<LoadsmithPlatform> {
     let identifier = distribution
         .identifier

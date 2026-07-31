@@ -1,10 +1,36 @@
-use std::{fmt::Display, io::Read, str::FromStr};
+﻿use std::{
+    fmt::Display,
+    fs::File,
+    io::{BufReader, Read, Write},
+    path::Path,
+    str::FromStr,
+};
 
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
+use walkdir::WalkDir;
 
 use crate::{Error, Result};
 
+/// A checksum value computed with a recognised algorithm (BLAKE3 or SHA-256).
+///
+/// ```rust
+/// # use loadsmith_core::{Checksum, ChecksumAlgorithm};
+/// # use std::io::Cursor;
+/// let data = Cursor::new(b"BepInExPack_Valheim-5.4.2202.zip contents");
+/// let ck = Checksum::compute(data, ChecksumAlgorithm::Blake3).unwrap();
+/// assert_eq!(ck.algorithm().to_string(), "blake3");
+///
+/// let as_str = ck.to_string();
+/// let parsed: Checksum = as_str.parse().unwrap();
+/// assert_eq!(ck, parsed);
+///
+/// let ck = Checksum::from_value_str(
+///     "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+///     ChecksumAlgorithm::Sha256,
+/// ).unwrap();
+/// assert_eq!(ck.algorithm().to_string(), "sha256");
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(into = "String", try_from = "String")]
 pub enum Checksum {
@@ -12,6 +38,7 @@ pub enum Checksum {
     Sha256([u8; 32]),
 }
 
+/// The set of checksum algorithms this crate can handle.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "lowercase")]
 pub enum ChecksumAlgorithm {
@@ -20,15 +47,26 @@ pub enum ChecksumAlgorithm {
 }
 
 impl Checksum {
+    /// Create a `Checksum::Blake3` from an already-computed `blake3::Hash`.
     pub fn blake3(hash: blake3::Hash) -> Self {
         Self::from(hash)
     }
 
+    /// Create a `Checksum::Sha256` from a raw 32-byte array.
     pub fn sha256(hash: [u8; 32]) -> Self {
         Self::Sha256(hash)
     }
 
-    pub fn compute<R>(mut reader: R, algorithm: ChecksumAlgorithm) -> Result<Self>
+    /// Compute a checksum by reading a byte stream with the chosen algorithm.
+    ///
+    /// ```rust
+    /// # use loadsmith_core::{Checksum, ChecksumAlgorithm};
+    /// # use std::io::Cursor;
+    /// let data = Cursor::new(b"some mod archive data");
+    /// let ck = Checksum::compute(data, ChecksumAlgorithm::Sha256).unwrap();
+    /// assert_eq!(ck.algorithm().to_string(), "sha256");
+    /// ```
+    pub fn compute<R>(mut reader: R, algorithm: ChecksumAlgorithm) -> std::io::Result<Self>
     where
         R: Read,
     {
@@ -36,6 +74,7 @@ impl Checksum {
             ChecksumAlgorithm::Blake3 => {
                 let mut hasher = blake3::Hasher::new();
                 std::io::copy(&mut reader, &mut hasher)?;
+
                 Ok(Checksum::Blake3(hasher.finalize()))
             }
             ChecksumAlgorithm::Sha256 => {
@@ -49,6 +88,56 @@ impl Checksum {
         }
     }
 
+    pub fn compute_from_path(
+        path: impl AsRef<Path>,
+        algorithm: ChecksumAlgorithm,
+    ) -> std::io::Result<Self> {
+        fn hash_dir<T: Write>(mut hasher: T, path: &Path) -> std::io::Result<T> {
+            WalkDir::new(path)
+                .sort_by_file_name()
+                .into_iter()
+                .filter_map(|entry| entry.ok())
+                .try_for_each(|entry| {
+                    let file_name = entry.file_name().as_encoded_bytes();
+                    hasher.write_all(file_name)?;
+
+                    if entry.file_type().is_file() {
+                        let mut file = File::open(entry.path()).map(BufReader::new)?;
+                        std::io::copy(&mut file, &mut hasher)?;
+                    }
+
+                    Ok::<(), std::io::Error>(())
+                })?;
+
+            Ok(hasher)
+        }
+
+        let path = path.as_ref();
+        if path.is_dir() {
+            match algorithm {
+                ChecksumAlgorithm::Blake3 => {
+                    let hasher = blake3::Hasher::new();
+
+                    let hasher = hash_dir(hasher, path.as_ref())?;
+
+                    Ok(Checksum::Blake3(hasher.finalize()))
+                }
+                ChecksumAlgorithm::Sha256 => {
+                    let hasher = digest_io::IoWrapper(sha2::Sha256::new());
+
+                    let hasher = hash_dir(hasher, path.as_ref())?;
+
+                    let array = hasher.0.finalize().into();
+                    Ok(Checksum::Sha256(array))
+                }
+            }
+        } else {
+            let file = File::open(path).map(BufReader::new)?;
+            Self::compute(file, algorithm)
+        }
+    }
+
+    /// Return which algorithm this checksum was produced with.
     pub fn algorithm(&self) -> ChecksumAlgorithm {
         match self {
             Checksum::Blake3(_) => ChecksumAlgorithm::Blake3,
@@ -56,10 +145,24 @@ impl Checksum {
         }
     }
 
+    /// Return a wrapper that displays only the hex portion (no algorithm prefix).
     pub fn without_algorithm(&self) -> WithoutAlgorithm<'_> {
         WithoutAlgorithm(self)
     }
 
+    /// Parse a checksum from a raw hex string with an explicit algorithm.
+    ///
+    /// Useful when the algorithm and value are stored separately, or when
+    /// you have already split `"<algo>:<hex>"` yourself.
+    ///
+    /// ```rust
+    /// # use loadsmith_core::{Checksum, ChecksumAlgorithm};
+    /// let ck = Checksum::from_value_str(
+    ///     "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ///     ChecksumAlgorithm::Sha256,
+    /// ).unwrap();
+    /// assert_eq!(ck.algorithm().to_string(), "sha256");
+    /// ```
     pub fn from_value_str(value: &str, algorithm: ChecksumAlgorithm) -> Result<Self> {
         match algorithm {
             ChecksumAlgorithm::Blake3 => {
@@ -133,6 +236,9 @@ impl FromStr for ChecksumAlgorithm {
     }
 }
 
+/// The hex-only portion of a [`Checksum`] (no algorithm prefix).
+///
+/// Created via [`Checksum::without_algorithm`].
 pub struct WithoutAlgorithm<'a>(&'a Checksum);
 
 impl Display for WithoutAlgorithm<'_> {

@@ -1,5 +1,27 @@
 use loadsmith_core::{PackageId, PackageRef, VersionReq};
 
+/// Errors that can occur during manifest resolution, installation, and store
+/// operations.
+///
+/// # Examples
+///
+/// ```rust
+/// use loadsmith_manifest::Error;
+///
+/// fn kind(err: &Error) -> &'static str {
+///     match err {
+///         Error::Io(_) => "io",
+///         Error::PackageNotInstalled => "not_installed",
+///         Error::PackageAlreadyInstalled => "already_installed",
+///         Error::PackageStoreEntryAlreadyExists => "entry_exists",
+///         Error::InvalidPackageStoreEntryPath => "bad_path",
+///         Error::UnknownRegistry(_) => "unknown_registry",
+///         _ => "other",
+///     }
+/// }
+///
+/// assert_eq!(kind(&Error::PackageNotInstalled), "not_installed");
+/// ```
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("I/O error")]
@@ -69,4 +91,5 @@ pub enum Error {
     Download(#[source] Box<dyn std::error::Error + Send + Sync>),
 }
 
+/// Convenience alias for [`std::result::Result`] with the crate-level [`Error`] type.
 pub type Result<T> = std::result::Result<T, Error>;

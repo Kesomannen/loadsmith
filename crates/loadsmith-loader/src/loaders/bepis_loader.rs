@@ -5,6 +5,20 @@ use loadsmith_install::{InstallRuleset, OwnedInstallRuleset, RouteRule};
 
 use crate::{BepInEx, LaunchArgs, LaunchContext, Loader, Result};
 
+/// Loader implementation for BepisLoader, a mod loader for Honey Select /
+/// Koikatsu that wraps BepInEx with a renderer-specific plugin directory.
+///
+/// BepisLoader adds a `renderer` route pointing at `Renderer/BepInEx/plugins`
+/// on top of the standard BepInEx rules. It also forces Doorstop version 4.
+///
+/// # Examples
+///
+/// ```rust
+/// use loadsmith_loader::{BepisLoader, Loader};
+///
+/// let loader = BepisLoader::with_default_rules();
+/// assert_eq!(loader.id(), "BepisLoader");
+/// ```
 #[derive(Debug, Clone)]
 pub struct BepisLoader {
     inner: BepInEx,
@@ -15,10 +29,13 @@ impl BepisLoader {
         Self { inner }
     }
 
+    /// Creates a `BepisLoader` with a custom install ruleset.
     pub fn with_rules(package_install_ruleset: OwnedInstallRuleset) -> Self {
         Self::new(BepInEx::with_rules(package_install_ruleset))
     }
 
+    /// Creates a `BepisLoader` with the default rules (BepInEx defaults plus a
+    /// `renderer` route).
     pub fn with_default_rules() -> Self {
         let mut inner = BepInEx::with_default_rules();
         inner.insert_install_rule(

@@ -5,6 +5,27 @@ use url::Url;
 
 use crate::{Error, Result};
 
+/// Download and extract a package to the given target directory.
+///
+/// The `file` URL determines the source:
+/// - `FileUrl::Url` calls the provided `download` callback to fetch the bytes.
+/// - `FileUrl::Path` pointing to a directory copies it recursively.
+/// - `FileUrl::Path` pointing to a `.zip` file extracts it.
+/// - `FileUrl::Path` pointing to any other file copies it as-is.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// # async fn example() {
+/// use loadsmith_core::FileUrl;
+/// use loadsmith_manifest::download_and_extract;
+///
+/// let url = FileUrl::try_from_url("https://example.com/mod.zip").unwrap();
+/// download_and_extract(url, "/tmp/target", |_u| async move {
+///     Ok::<_, std::io::Error>(vec![])
+/// }).await.unwrap();
+/// # }
+/// ```
 pub async fn download_and_extract<F, Fut, E>(
     file: FileUrl,
     target: impl AsRef<Path>,

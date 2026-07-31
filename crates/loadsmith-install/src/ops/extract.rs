@@ -11,6 +11,23 @@ use crate::{
     zip::{Zip, ZipFile},
 };
 
+/// Extract all files from a zip archive into a target directory.
+///
+/// Directories inside the archive are skipped; parent directories are created as
+/// needed. Files that already exist at the target path are skipped with a warning.
+///
+/// On Unix, file permissions from the zip entry are applied after extraction.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use std::fs::File;
+/// use loadsmith_install::extract;
+///
+/// let file = File::open("C:\\mods\\package.zip").unwrap();
+/// let files = extract(file, "C:\\output").unwrap();
+/// println!("extracted {} files", files.len());
+/// ```
 pub fn extract<R: Read + Seek>(reader: R, target: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
     let mut zip = zip::ZipArchive::new(reader)?;
     extract_zip(&mut zip, target.as_ref())

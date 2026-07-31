@@ -5,6 +5,30 @@ use globset::{Glob, GlobBuilder};
 use loadsmith_core::PackageRef;
 use serde::{Deserialize, Serialize};
 
+/// A glob-based install rule that maps matching files to a target directory.
+///
+/// A `GlobRule` matches files by a glob pattern and maps them into a target
+/// directory, with optional path stripping and subdirectory creation.
+///
+/// # Examples
+///
+/// ```rust
+/// use std::borrow::Cow;
+/// use camino::{Utf8Path, Utf8PathBuf};
+/// use globset::Glob;
+/// use loadsmith_core::{PackageRef, PackageId, Version};
+/// use loadsmith_install::GlobRule;
+///
+/// let rule = GlobRule::try_from_pattern("*.dll", Utf8Path::new("BepInEx/plugins")).unwrap();
+/// let pkg = PackageRef::new(PackageId::new("x753-More_Suits"), Version::new(1, 0, 3));
+///
+/// assert!(rule.matches("MyPlugin.dll"));
+/// assert!(!rule.matches("config.txt"));
+/// assert_eq!(
+///     rule.map_file("MyPlugin.dll", &pkg),
+///     Some(Utf8PathBuf::from("BepInEx/plugins/MyPlugin.dll"))
+/// );
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GlobRule {
     pattern: Glob,
@@ -15,6 +39,7 @@ pub struct GlobRule {
 }
 
 impl GlobRule {
+    /// Creates a new `GlobRule` from a compiled [`Glob`] pattern and a target path.
     pub fn new(pattern: Glob, target: impl Into<Cow<'static, Utf8Path>>) -> Self {
         Self {
             pattern,
@@ -25,6 +50,9 @@ impl GlobRule {
         }
     }
 
+    /// Creates a new `GlobRule` by compiling a glob pattern string.
+    ///
+    /// Returns a [`globset::Error`] if the pattern is invalid.
     pub fn try_from_pattern(
         pattern: impl AsRef<str>,
         target: impl Into<Cow<'static, Utf8Path>>,
@@ -33,30 +61,40 @@ impl GlobRule {
         Ok(Self::new(pattern, target))
     }
 
+    /// Strips the top-level directory component from paths before mapping.
     pub fn strip_top_level(mut self, strip_top_level: bool) -> Self {
         self.strip_levels = if strip_top_level { 1 } else { 0 };
         self
     }
 
+    /// Strips the given number of leading path components before mapping.
     pub fn strip_levels(mut self, strip_levels: usize) -> Self {
         self.strip_levels = strip_levels;
         self
     }
 
+    /// Sets whether to use hard links instead of copying files.
     pub fn use_links(mut self, use_links: bool) -> Self {
         self.use_links = use_links;
         self
     }
 
+    /// Sets whether to create a subdirectory named after the package ID inside
+    /// the target directory.
     pub fn with_subdir(mut self, subdir: bool) -> Self {
         self.subdir = subdir;
         self
     }
 
+    /// Returns `true` if the path matches this rule's glob pattern.
     pub fn matches(&self, path: impl AsRef<Utf8Path>) -> bool {
         self.pattern.compile_matcher().is_match(path.as_ref())
     }
 
+    /// Maps a file path to its install destination under the rule's target directory.
+    ///
+    /// Returns `None` if stripping removes all path components. When `subdir` is
+    /// enabled the package ID is inserted as an intermediate directory.
     pub fn map_file(
         &self,
         path: impl AsRef<Utf8Path>,

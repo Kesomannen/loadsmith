@@ -16,16 +16,55 @@ mod error;
 
 pub use error::{Error, Result};
 
+/// A registry that resolves packages from GitHub Releases.
+///
+/// [`GithubRegistry`] implements the [`Registry`] trait by querying the GitHub API. It uses an [`Octocrab`] client to list
+/// releases and download assets for a given package.
+/// releases and download assets for a given package.
+///
+/// Package metadata (tag template, asset glob, repository) is provided via
+/// the JSON metadata parameter in the [`Registry`] trait methods.
+///
+/// # Example (construction)
+///
+/// ```no_run
+/// use loadsmith_github::GithubRegistry;
+///
+/// let registry = GithubRegistry::new();
+/// ```
 #[derive(Debug)]
 pub struct GithubRegistry {
     github: Octocrab,
 }
 
 impl GithubRegistry {
+    /// Create a new `GithubRegistry` with the default [`Octocrab`] client.
+    ///
+    /// The default client reads credentials from the environment
+    /// (`GITHUB_TOKEN` or `GITHUB_AUTH`) and uses `reqwest` as its HTTP
+    /// backend.
+    ///
+    /// ```no_run
+    /// use loadsmith_github::GithubRegistry;
+    ///
+    /// let registry = GithubRegistry::new();
+    /// ```
     pub fn new() -> Self {
         Self::with_github(Octocrab::default())
     }
 
+    /// Create a new `GithubRegistry` with a custom [`Octocrab`] client.
+    ///
+    /// Use this when you need to customise the HTTP client, base URL, or
+    /// authentication for the GitHub API.
+    ///
+    /// ```no_run
+    /// use loadsmith_github::GithubRegistry;
+    /// use octocrab::Octocrab;
+    ///
+    /// let crab = Octocrab::default();
+    /// let registry = GithubRegistry::with_github(crab);
+    /// ```
     pub fn with_github(github: Octocrab) -> Self {
         Self { github }
     }

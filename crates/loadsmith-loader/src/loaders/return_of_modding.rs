@@ -4,18 +4,41 @@ use loadsmith_install::{InstallRule, InstallRuleset, OwnedInstallRuleset, RouteR
 
 use crate::{LaunchArgs, LaunchContext, Loader, Result, glob_rule};
 
+/// Loader implementation for Return of Modding (ROM), a mod loader for the
+/// game Hellsmith.
+///
+/// Routes packages into `ReturnOfModding/plugins`, `ReturnOfModding/plugins_data`,
+/// and `ReturnOfModding/config` (mutable). The loader passes
+/// `--rom_modding_root_folder` as the launch argument.
+///
+/// # Examples
+///
+/// ```rust
+/// use loadsmith_loader::{ReturnOfModding, Loader};
+///
+/// let loader = ReturnOfModding::with_default_rules();
+/// assert_eq!(loader.id(), "Shimloader");
+/// ```
 #[derive(Debug, Clone)]
 pub struct ReturnOfModding {
     package_install_ruleset: OwnedInstallRuleset,
 }
 
 impl ReturnOfModding {
+    /// Creates a `ReturnOfModding` loader with a custom install ruleset.
     pub fn with_rules(package_install_ruleset: OwnedInstallRuleset) -> Self {
         Self {
             package_install_ruleset,
         }
     }
 
+    /// Creates a `ReturnOfModding` loader with the default rules.
+    ///
+    /// Default routes:
+    ///
+    /// * `ReturnOfModding/plugins` — default rule
+    /// * `ReturnOfModding/plugins_data`
+    /// * `ReturnOfModding/config` (mutable)
     pub fn with_default_rules() -> Self {
         OwnedInstallRuleset::from_rule_iter(
             [

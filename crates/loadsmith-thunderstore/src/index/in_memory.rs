@@ -14,15 +14,52 @@ use tracing::debug;
 
 use crate::{Error, PackageIdExt, Result};
 
+/// An in-memory package index backed by a thunderstore client.
+///
+/// Stores package data in a [`HashMap`] and supports serialisation to/from
+/// disk for caching.
+///
+/// # Examples
+///
+/// ```
+/// use loadsmith_thunderstore::in_memory::InMemoryIndex;
+/// use thunderstore::Client;
+///
+/// let client = Client::new();
+/// let index = InMemoryIndex::new(client);
+/// ```
 #[derive(Debug, Clone)]
 pub struct InMemoryIndex {
     client: thunderstore::Client,
     state: Arc<Mutex<State>>,
 }
 
+/// The serialisable state of an in-memory index.
+///
+/// Maps community names to their indexed packages.
+///
+/// # Examples
+///
+/// ```
+/// use loadsmith_thunderstore::in_memory::State;
+///
+/// let state = State::default();
+/// ```
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct State(HashMap<String, Community>);
 
+/// A community package collection within an in-memory index.
+///
+/// Tracks whether the index is complete and stores packages by their
+/// [`PackageId`].
+///
+/// # Examples
+///
+/// ```
+/// use loadsmith_thunderstore::in_memory::Community;
+///
+/// let community = Community::default();
+/// ```
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Community {
     complete: bool,
@@ -30,10 +67,31 @@ pub struct Community {
 }
 
 impl InMemoryIndex {
+    /// Creates a new empty in-memory index.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use loadsmith_thunderstore::in_memory::InMemoryIndex;
+    /// use thunderstore::Client;
+    ///
+    /// let index = InMemoryIndex::new(Client::new());
+    /// ```
     pub fn new(client: thunderstore::Client) -> Self {
         Self::new_with_state(client, State::default())
     }
 
+    /// Loads a previously saved index from disk, or creates a new one if the
+    /// file does not exist.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use loadsmith_thunderstore::in_memory::InMemoryIndex;
+    /// use thunderstore::Client;
+    ///
+    /// let index = InMemoryIndex::load(Client::new(), "./index.yaml").unwrap();
+    /// ```
     pub fn load(client: thunderstore::Client, path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
         let state = if path.exists() {
@@ -45,6 +103,19 @@ impl InMemoryIndex {
         Ok(Self::new_with_state(client, state))
     }
 
+    /// Serialises the index state to a JSON file on disk.
+    ///
+    /// The `filter` closure controls which packages are included.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use loadsmith_thunderstore::in_memory::InMemoryIndex;
+    /// use thunderstore::Client;
+    ///
+    /// let index = InMemoryIndex::new(Client::new());
+    /// index.save("./index.json", |_| true).unwrap();
+    /// ```
     pub fn save<F>(&self, path: impl AsRef<Path>, filter: F) -> Result<()>
     where
         F: FnMut(&PackageId) -> bool,
@@ -59,10 +130,35 @@ impl InMemoryIndex {
         }
     }
 
+    /// Acquires the inner lock on the index state.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use loadsmith_thunderstore::in_memory::InMemoryIndex;
+    /// use thunderstore::Client;
+    ///
+    /// let index = InMemoryIndex::new(Client::new());
+    /// let _state = index.lock();
+    /// ```
     pub fn lock(&self) -> MutexGuard<'_, RawMutex, State> {
         self.state.lock()
     }
 
+    /// Fetches and stores the package index for a thunderstore community.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use loadsmith_thunderstore::in_memory::InMemoryIndex;
+    /// use thunderstore::Client;
+    ///
+    /// let index = InMemoryIndex::new(Client::new());
+    /// let rt = tokio::runtime::Runtime::new().unwrap();
+    /// rt.block_on(async {
+    ///     index.update("lethal-company").await.unwrap();
+    /// });
+    /// ```
     pub async fn update(&self, community: impl Into<String>) -> Result<()> {
         let community = community.into();
 
@@ -80,6 +176,25 @@ impl InMemoryIndex {
         Ok(())
     }
 
+    /// Returns version information for a package, if found.
+    ///
+    /// Returns `None` when the index is complete and the package is not
+    /// present. Returns an `IndexNotComplete` error when the index has not
+    /// been fully populated.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use loadsmith_core::PackageId;
+    /// use loadsmith_thunderstore::in_memory::InMemoryIndex;
+    /// use thunderstore::Client;
+    ///
+    /// let index = InMemoryIndex::new(Client::new());
+    /// let rt = tokio::runtime::Runtime::new().unwrap();
+    /// rt.block_on(async {
+    ///     let versions = index.version_info(&PackageId::new("Author-Pkg")).await.unwrap();
+    /// });
+    /// ```
     pub async fn version_info(
         &self,
         id: &PackageId,
@@ -105,6 +220,28 @@ impl InMemoryIndex {
         }
     }
 
+    /// Resolves a package reference to a specific version's download URL,
+    /// size, and dependencies.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use loadsmith_core::{PackageId, PackageRef, Version};
+    /// use loadsmith_thunderstore::in_memory::InMemoryIndex;
+    /// use thunderstore::Client;
+    ///
+    /// let index = InMemoryIndex::new(Client::new());
+    /// let rt = tokio::runtime::Runtime::new().unwrap();
+    /// rt.block_on(async {
+    ///     let resolved = index
+    ///         .resolve(&PackageRef::new(
+    ///             PackageId::new("Author-Pkg"),
+    ///             Version::new(1, 0, 0),
+    ///         ))
+    ///         .await
+    ///         .unwrap();
+    /// });
+    /// ```
     pub async fn resolve(&self, ref_: &PackageRef) -> Result<Option<ResolvedVersion>> {
         let lock = self.lock();
 
@@ -135,6 +272,7 @@ impl InMemoryIndex {
 }
 
 impl State {
+    /// Loads state from a JSON file on disk.
     fn load(path: &Path) -> Result<Self> {
         debug!(path = %path.display(), "loading index from disk");
 
@@ -144,6 +282,7 @@ impl State {
         Ok(state)
     }
 
+    /// Serialises the state to a JSON file.
     fn save<F>(&self, path: &Path, _filter: F) -> Result<()>
     where
         F: FnMut(&PackageId) -> bool,
@@ -156,6 +295,21 @@ impl State {
         Ok(())
     }
 
+    /// Looks up a package across all indexed communities.
+    ///
+    /// Returns `IndexNotComplete` if any community index has not finished
+    /// fetching.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use loadsmith_thunderstore::in_memory::State;
+    /// use loadsmith_core::PackageId;
+    ///
+    /// let state = State::default();
+    /// let result = state.get(&PackageId::new("Unknown-Pkg"));
+    /// assert!(result.is_err()); // index is not complete
+    /// ```
     pub fn get<'a>(
         &'a self,
         id: &PackageId,
@@ -169,12 +323,33 @@ impl State {
         }
     }
 
+    /// Returns a mutable reference to the community entry, creating it if
+    /// it does not exist.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use loadsmith_thunderstore::in_memory::State;
+    ///
+    /// let mut state = State::default();
+    /// let community = state.community_mut("rounds");
+    /// ```
     pub fn community_mut(&mut self, community: impl Into<String>) -> &mut Community {
         self.0.entry(community.into()).or_default()
     }
 }
 
 impl Community {
+    /// Inserts a batch of packages into this community's index.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use loadsmith_thunderstore::in_memory::Community;
+    ///
+    /// let mut community = Community::default();
+    /// // PackageV1 batches are typically obtained from the thunderstore API
+    /// ```
     pub fn extend<I>(&mut self, packages: I)
     where
         I: IntoIterator<Item = thunderstore::models::PackageV1>,
@@ -186,6 +361,17 @@ impl Community {
         );
     }
 
+    /// Looks up a package by its [`PackageId`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use loadsmith_thunderstore::in_memory::Community;
+    /// use loadsmith_core::PackageId;
+    ///
+    /// let community = Community::default();
+    /// assert!(community.get(&PackageId::new("Unknown-Pkg")).is_none());
+    /// ```
     pub fn get(&self, id: &PackageId) -> Option<&thunderstore::models::PackageV1> {
         self.packages.get(id)
     }

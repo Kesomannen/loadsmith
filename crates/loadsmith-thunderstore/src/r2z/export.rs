@@ -12,11 +12,45 @@ use zip::{ZipWriter, write::SimpleFileOptions};
 
 use crate::{Error, Result, r2z::ProfileManifest};
 
+/// Writes an r2z (r2modman zip) profile export.
+///
+/// Produces a zip archive containing a YAML manifest (`export.r2x`) and
+/// optional config files.
+///
+/// # Examples
+///
+/// ```
+/// use std::io::Cursor;
+/// use loadsmith_thunderstore::r2z::{ExportFile, ProfileManifest, Mod, Version};
+/// use thunderstore::PackageIdent;
+///
+/// let manifest = ProfileManifest::new(
+///     "Test Profile",
+///     vec![Mod::new(PackageIdent::new("A", "B"), Version::new(1, 0, 0), true)],
+///     (),
+/// );
+///
+/// let mut export = ExportFile::create(Cursor::new(Vec::new()), &manifest).unwrap();
+/// export.write_file("config/settings.cfg", &b"enabled=true"[..]).unwrap();
+/// let data: Cursor<Vec<u8>> = export.finish().unwrap();
+/// assert!(!data.get_ref().is_empty());
+/// ```
 pub struct ExportFile<W: Write + Seek> {
     zip: ZipWriter<W>,
 }
 
 impl<W: Write + Seek> ExportFile<W> {
+    /// Creates a new export archive and writes the manifest as `export.r2x`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::io::Cursor;
+    /// use loadsmith_thunderstore::r2z::{ExportFile, ProfileManifest};
+    ///
+    /// let manifest = ProfileManifest::new("Test", vec![], ());
+    /// let export = ExportFile::create(Cursor::new(Vec::new()), &manifest).unwrap();
+    /// ```
     pub fn create<T: Serialize>(writer: W, manifest: &ProfileManifest<T>) -> Result<Self> {
         let mut zip = ZipWriter::new(writer);
 
@@ -26,10 +60,37 @@ impl<W: Write + Seek> ExportFile<W> {
         Ok(Self { zip })
     }
 
+    /// Finalizes the zip archive and returns the inner writer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::io::Cursor;
+    /// use loadsmith_thunderstore::r2z::{ExportFile, ProfileManifest};
+    ///
+    /// let manifest = ProfileManifest::new("Test", vec![], ());
+    /// let export = ExportFile::create(Cursor::new(Vec::new()), &manifest).unwrap();
+    /// let data = export.finish().unwrap();
+    /// ```
     pub fn finish(self) -> Result<W> {
         self.zip.finish().map_err(Error::Zip)
     }
 
+    /// Writes a file into the zip archive at the given virtual path.
+    ///
+    /// The path is normalized before being stored in the archive.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::io::Cursor;
+    /// use loadsmith_thunderstore::r2z::{ExportFile, ProfileManifest};
+    ///
+    /// let manifest = ProfileManifest::new("Test", vec![], ());
+    /// let mut export = ExportFile::create(Cursor::new(Vec::new()), &manifest).unwrap();
+    /// export.write_file("BepInEx/config/plugin.cfg", &b"key=value"[..]).unwrap();
+    /// let _data = export.finish().unwrap();
+    /// ```
     pub fn write_file(
         &mut self,
         zip_path: impl AsRef<Utf8Path>,
@@ -44,6 +105,24 @@ impl<W: Write + Seek> ExportFile<W> {
         Ok(())
     }
 
+    /// Walks a directory and writes its contents into the archive.
+    ///
+    /// When `filter` is `true`, only files matching common config extensions
+    /// (`.cfg`, `.txt`, `.json`, `.yml`, `.yaml`, `.ini`) or paths under
+    /// `BepInEx/config/` are included.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::io::Cursor;
+    /// use loadsmith_thunderstore::r2z::{ExportFile, ProfileManifest};
+    /// use camino::Utf8Path;
+    ///
+    /// let manifest = ProfileManifest::new("Test", vec![], ());
+    /// let mut export = ExportFile::create(Cursor::new(Vec::new()), &manifest).unwrap();
+    /// export.write_config_from_dir(Utf8Path::new("./config"), true).unwrap();
+    /// let _data = export.finish().unwrap();
+    /// ```
     pub fn write_config_from_dir(
         &mut self,
         directory: impl AsRef<Utf8Path>,

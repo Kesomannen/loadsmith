@@ -1,3 +1,4 @@
+﻿/// Errors that can occur while interacting with the structs in this crate.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("I/O error")]
@@ -25,4 +26,5 @@ pub enum Error {
     InvalidSha256Hex(#[source] hex::FromHexError),
 }
 
+/// Convenience alias for [`std::result::Result`] with the crate-level [`Error`] type.
 pub type Result<T> = std::result::Result<T, Error>;

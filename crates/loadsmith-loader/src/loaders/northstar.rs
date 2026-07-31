@@ -5,18 +5,38 @@ use loadsmith_install::{InstallRule, InstallRuleset, OwnedInstallRuleset, RouteR
 
 use crate::{LaunchArgs, LaunchContext, Loader, Result, glob, glob_rule};
 
+/// Loader implementation for [Northstar](https://northstar.thunderstore.io/),
+/// a mod loader for Titanfall 2.
+///
+/// Northstar places packages into `R2Northstar/mods` and launches with
+/// `-northstar -profile=<path>`. It excludes common metadata files
+/// (`manifest.json`, `README.md`, `icon.png`, `LICENSE`) from installation.
+///
+/// # Examples
+///
+/// ```rust
+/// use loadsmith_loader::{Northstar, Loader};
+///
+/// let loader = Northstar::with_default_rules();
+/// assert_eq!(loader.id(), "Northstar");
+/// ```
 #[derive(Debug, Clone)]
 pub struct Northstar {
     package_install_ruleset: OwnedInstallRuleset,
 }
 
 impl Northstar {
+    /// Creates a `Northstar` loader with a custom install ruleset.
     pub fn with_rules(package_install_ruleset: OwnedInstallRuleset) -> Self {
         Self {
             package_install_ruleset,
         }
     }
 
+    /// Creates a `Northstar` loader with the default rules.
+    ///
+    /// Files are routed into `R2Northstar/mods`. Metadata files
+    /// (`manifest.json`, `README.md`, `icon.png`, `LICENSE`) are excluded.
     pub fn with_default_rules() -> Self {
         let exclude = GlobSet::builder()
             .add(glob!("manifest.json"))
@@ -40,10 +60,12 @@ impl Northstar {
         Self::with_rules(ruleset)
     }
 
+    /// Adds an install rule to the end of the ruleset.
     pub fn add_install_rule(&mut self, rule: impl Into<InstallRule>) {
         self.package_install_ruleset.add_rule(rule.into());
     }
 
+    /// Inserts an install rule at the given index.
     pub fn insert_install_rule(&mut self, index: usize, rule: impl Into<InstallRule>) {
         self.package_install_ruleset.insert_rule(index, rule.into());
     }

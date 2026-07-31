@@ -11,13 +11,46 @@ use walkdir::WalkDir;
 
 use crate::{Error, Result};
 
-/// Manages a central store of package files
+/// Manages a central, content-addressed store of package files on disk.
+///
+/// Each package is stored under a sharded path derived from its
+/// [`PackageStoreEntry`] (e.g. `au/Author-Name/0.1.0+blake3_<hash>`).
+/// The store supports reserving paths for new packages, installing them into
+/// a profile, and cleaning up unused entries.
+///
+/// # Examples
+///
+/// ```rust
+/// # use std::sync::Arc;
+/// use loadsmith_manifest::PackageStore;
+///
+/// let store = PackageStore::open(std::env::temp_dir().join("loadsmith-test-store")).unwrap();
+/// assert!(store.base_path().exists());
+/// ```
 #[derive(Debug, Clone)]
 pub struct PackageStore {
     base_path: Arc<Path>,
     no_links: bool,
 }
 
+/// A reference to a specific package version in the [`PackageStore`].
+///
+/// Entries are identified by their package ref (name + version) and an
+/// optional checksum that disambiguates revisions at the same version.
+///
+/// # Examples
+///
+/// ```rust
+/// use loadsmith_core::{PackageRef, Version};
+/// use loadsmith_manifest::PackageStoreEntry;
+///
+/// let entry = PackageStoreEntry::new(
+///     PackageRef::new("Author-Mod", Version::new(1, 0, 0)),
+///     None,
+/// );
+/// assert_eq!(entry.package().id().as_str(), "Author-Mod");
+/// assert!(entry.checksum().is_none());
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PackageStoreEntry {
     package: PackageRef,
@@ -25,6 +58,9 @@ pub struct PackageStoreEntry {
 }
 
 impl PackageStore {
+    /// Open (or create) a package store at the given directory path.
+    ///
+    /// If the directory does not exist it will be created.
     pub fn open(base_path: impl Into<Arc<Path>>) -> Result<Self> {
         let base_path = base_path.into();
         if !base_path.is_dir() {
@@ -36,23 +72,32 @@ impl PackageStore {
         })
     }
 
+    /// Configure the store to copy files instead of creating symlinks when
+    /// installing into a profile.
     pub fn without_links(mut self) -> Self {
         self.no_links = true;
         self
     }
 
+    /// Borrow the base directory of the package store.
     pub fn base_path(&self) -> &Path {
         &self.base_path
     }
 
+    /// Compute the on-disk path for a store entry within this store's base.
     pub fn path_of(&self, entry: &PackageStoreEntry) -> PathBuf {
         self.base_path.join(entry.path())
     }
 
+    /// Check whether the on-disk directory for a store entry already exists.
     pub fn contains(&self, entry: &PackageStoreEntry) -> bool {
         self.path_of(entry).exists()
     }
 
+    /// Reserve the directory for a store entry, creating it if it does not
+    /// exist yet.
+    ///
+    /// Returns an error if the directory already exists.
     pub fn reserve(&self, entry: &PackageStoreEntry) -> Result<PathBuf> {
         let path = self.path_of(entry);
         if path.exists() {
@@ -63,6 +108,10 @@ impl PackageStore {
         Ok(path)
     }
 
+    /// Install a store entry into the given profile directory.
+    ///
+    /// Returns the installed package metadata together with the list of files
+    /// that were overwritten from other packages.
     pub fn install(
         &self,
         entry: PackageStoreEntry,
@@ -83,6 +132,8 @@ impl PackageStore {
         Ok((install, overriden_files))
     }
 
+    /// Remove a store entry's on-disk directory and any empty parent
+    /// directories.
     pub fn remove(&self, entry: &PackageStoreEntry) -> Result<()> {
         let path = self.path_of(entry);
         std::fs::remove_dir_all(&path)?;
@@ -90,6 +141,10 @@ impl PackageStore {
         Ok(())
     }
 
+    /// Parse a [`PackageStoreEntry`] from an absolute or relative path within
+    /// this store's base directory.
+    ///
+    /// Returns an error if the path is not a valid entry path under the store.
     pub fn entry_from_path(&self, path: impl AsRef<Path>) -> Result<PackageStoreEntry> {
         let path = path.as_ref();
         let relative_path = path
@@ -99,6 +154,11 @@ impl PackageStore {
         PackageStoreEntry::try_from_path(relative_path)
     }
 
+    /// Iterate over all store entries that are not referenced by any
+    /// [`ProfileState`](crate::ProfileState).
+    ///
+    /// This is useful for garbage-collecting the store after profiles have
+    /// been updated.
     pub fn unused_entries(&self) -> impl Iterator<Item = Result<PackageStoreEntry>> + '_ {
         self.entries().filter(|entry| match entry {
             Ok(entry) => self.is_unused(entry),
@@ -106,6 +166,7 @@ impl PackageStore {
         })
     }
 
+    /// Iterate over every entry currently present in the store directory tree.
     pub fn entries(&self) -> impl Iterator<Item = Result<PackageStoreEntry>> + '_ {
         WalkDir::new(&self.base_path)
             .follow_links(false)
@@ -124,6 +185,10 @@ impl PackageStore {
             })
     }
 
+    /// Check whether a store entry is unused (its files have no remaining
+    /// hard links).
+    ///
+    /// On non-Unix platforms this always returns `false`.
     fn is_unused(&self, entry: &PackageStoreEntry) -> bool {
         WalkDir::new(self.path_of(entry))
             .into_iter()
@@ -150,6 +215,24 @@ impl PackageStore {
 }
 
 impl PackageStoreEntry {
+    /// Create a new store entry from a package reference and an optional
+    /// checksum.
+    ///
+    /// When a checksum is provided it becomes part of the on-disk path,
+    /// allowing multiple revisions of the same version to coexist.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use loadsmith_core::{PackageRef, Version};
+    /// use loadsmith_manifest::PackageStoreEntry;
+    ///
+    /// let entry = PackageStoreEntry::new(
+    ///     PackageRef::new("Author-Mod", Version::new(1, 0, 0)),
+    ///     None,
+    /// );
+    /// assert_eq!(entry.package().id().as_str(), "Author-Mod");
+    /// ```
     pub fn new(package: impl Into<PackageRef>, checksum: Option<Checksum>) -> Self {
         Self {
             package: package.into(),
@@ -157,10 +240,12 @@ impl PackageStoreEntry {
         }
     }
 
+    /// Borrow the package reference (name + version) of this entry.
     pub fn package(&self) -> &PackageRef {
         &self.package
     }
 
+    /// Borrow the optional checksum that disambiguates this entry.
     pub fn checksum(&self) -> Option<&Checksum> {
         self.checksum.as_ref()
     }
@@ -257,6 +342,21 @@ impl PackageStoreEntry {
 }
 
 impl Display for PackageStoreEntry {
+    /// Formats the entry as `<package>+<checksum>` (or just `<package>` when
+    /// no checksum is present).
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use loadsmith_core::{PackageRef, Version};
+    /// use loadsmith_manifest::PackageStoreEntry;
+    ///
+    /// let entry = PackageStoreEntry::new(
+    ///     PackageRef::new("Author-Mod", Version::new(1, 0, 0)),
+    ///     None,
+    /// );
+    /// assert_eq!(entry.to_string(), "Author-Mod@1.0.0");
+    /// ```
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(checksum) = &self.checksum {
             write!(f, "{}+{}", self.package, checksum)

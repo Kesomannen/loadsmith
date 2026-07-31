@@ -6,10 +6,25 @@ use loadsmith_install::{GlobRule, InstallRule, InstallRuleset};
 
 use crate::{LaunchArgs, LaunchContext, Loader, Result, glob_rule};
 
+/// Loader implementation for [GDWeave](https://github.com/NotNet-GDWeave/GDWeave),
+/// a mod loader for the game WEBFISHING.
+///
+/// GDWeave uses a `GDWeave/mods` directory for packages and a `winmm.dll`
+/// proxy DLL for injection.
+///
+/// # Examples
+///
+/// ```rust
+/// use loadsmith_loader::{GDWeave, Loader};
+///
+/// let loader = GDWeave::new();
+/// assert_eq!(loader.id(), "GDWeave");
+/// ```
 #[derive(Debug, Clone)]
 pub struct GDWeave;
 
 impl GDWeave {
+    /// Creates a new `GDWeave` loader.
     pub fn new() -> Self {
         Self
     }

@@ -1,8 +1,21 @@
-//! Core types, traits, and errors for the loadsmith mod-manager library.
+﻿//! Core types, traits, and errors for the loadsmith mod-manager library.
 //!
 //! This is an internal crate of the [`loadsmith`] workspace. Most consumers
 //! should depend on the `loadsmith` facade crate instead of using this
 //! crate directly.
+//!
+//! # Examples
+//!
+//! ```rust
+//! # use loadsmith_core::*;
+//! let pkg = PackageRef::new("denikson-BepInExPack_Valheim", Version::new(5, 4, 2202));
+//! assert_eq!(pkg.to_string(), "denikson-BepInExPack_Valheim@5.4.2202");
+//!
+//! let parsed: PackageRef = "x753-More_Suits@1.4.0".parse()?;
+//! assert_eq!(parsed.id().as_str(), "x753-More_Suits");
+//! assert_eq!(parsed.version().to_string(), "1.4.0");
+//! # Ok::<_, loadsmith_core::Error>(())
+//! ```
 
 use std::{fmt::Display, str::FromStr};
 
@@ -12,25 +25,36 @@ use serde::{Deserialize, Serialize};
 
 mod checksum;
 mod error;
-mod source;
+mod url;
 
 pub use checksum::{Checksum, ChecksumAlgorithm};
 pub use error::{Error, Result};
+/// Re-export of [`semver::Version`] for convenience.
+///
+/// Consumers can use this directly instead of adding `semver` to their own
+/// `Cargo.toml`.
 pub use semver::{Version, VersionReq};
-pub use source::FileUrl;
+pub use url::FileUrl;
 
+/// A unique identifier for a package (e.g. `"denikson-BepInExPack_Valheim"`).
+///
+/// This is a plain string wrapper that does not include a version.
+/// Pair it with [`PackageRef`] when you need both.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, PartialOrd, Ord)]
 pub struct PackageId(String);
 
 impl PackageId {
+    /// Create a new `PackageId` from anything that can become a `String`.
     pub fn new(id: impl Into<String>) -> Self {
         Self(id.into())
     }
 
+    /// Borrow the inner identifier as a `&str`.
     pub fn as_str(&self) -> &str {
         &self.0
     }
 
+    /// Consume the `PackageId` and return the inner `String`.
     pub fn into_string(self) -> String {
         self.0
     }
@@ -60,6 +84,25 @@ impl Display for PackageId {
     }
 }
 
+/// A reference to a specific version of a package, formatted as `"<id>@<version>"`.
+///
+/// ```rust
+/// # use loadsmith_core::{PackageRef, Version};
+/// let pkg = PackageRef::new("denikson-BepInExPack_Valheim", Version::new(5, 4, 2202));
+/// assert_eq!(pkg.to_string(), "denikson-BepInExPack_Valheim@5.4.2202");
+/// assert_eq!(pkg.id().as_str(), "denikson-BepInExPack_Valheim");
+///
+/// assert_eq!(pkg.version().major, 5);
+/// assert_eq!(pkg.version().minor, 4);
+/// assert_eq!(pkg.version().patch, 2202);
+///
+/// let (id, ver) = pkg.into_split();
+/// assert_eq!(id.as_str(), "denikson-BepInExPack_Valheim");
+///
+/// let parsed: PackageRef = "Team17-Valheim@0.220.3".parse().unwrap();
+/// assert_eq!(parsed.id().as_str(), "Team17-Valheim");
+/// assert_eq!(parsed.version().to_string(), "0.220.3");
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, PartialOrd, Ord)]
 #[serde(into = "String", try_from = "&str")]
 pub struct PackageRef {
@@ -68,6 +111,7 @@ pub struct PackageRef {
 }
 
 impl PackageRef {
+    /// Create a new reference from a package identifier and version.
     pub fn new(id: impl Into<PackageId>, version: impl Into<Version>) -> Self {
         Self {
             id: id.into(),
@@ -75,22 +119,27 @@ impl PackageRef {
         }
     }
 
+    /// Borrow the package identifier.
     pub fn id(&self) -> &PackageId {
         &self.id
     }
 
+    /// Borrow the package version.
     pub fn version(&self) -> &Version {
         &self.version
     }
 
+    /// Consume the reference and return the identifier.
     pub fn into_id(self) -> PackageId {
         self.id
     }
 
+    /// Consume the reference and return the version.
     pub fn into_version(self) -> Version {
         self.version
     }
 
+    /// Consume the reference and return both parts as a tuple.
     pub fn into_split(self) -> (PackageId, Version) {
         (self.id, self.version)
     }
@@ -136,6 +185,21 @@ impl TryFrom<&str> for PackageRef {
     }
 }
 
+/// A record of a package installation at a specific point in time.
+///
+/// Tracks the package reference, install date, file inventory, and an
+/// optional checksum for integrity verification.
+///
+/// ```rust
+/// # use loadsmith_core::*;
+/// let pkg = PackageRef::new("denikson-BepInExPack_Valheim", Version::new(5, 4, 2202));
+/// let file = InstalledFile::new("BepInEx/plugins/MyMod.dll", true);
+///
+/// let record = InstalledPackage::now(pkg, vec![file], None);
+/// assert_eq!(record.ref_().id().as_str(), "denikson-BepInExPack_Valheim");
+/// assert_eq!(record.files().len(), 1);
+/// assert!(record.checksum().is_none());
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InstalledPackage {
     #[serde(rename = "package")]
@@ -146,6 +210,7 @@ pub struct InstalledPackage {
     files: Vec<InstalledFile>,
 }
 
+/// A single file belonging to an installed package.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InstalledFile {
     relative_path: Utf8PathBuf,
@@ -153,6 +218,18 @@ pub struct InstalledFile {
 }
 
 impl InstalledPackage {
+    /// Create a new install record with the current timestamp.
+    ///
+    /// ```rust
+    /// # use loadsmith_core::*;
+    /// let record = InstalledPackage::now(
+    ///     PackageRef::new("x753-More_Suits", Version::new(1, 4, 0)),
+    ///     vec![InstalledFile::new("BepInEx/plugins/More_Suits.dll", false)],
+    ///     None,
+    /// );
+    /// assert_eq!(record.ref_().id().as_str(), "x753-More_Suits");
+    /// assert!(record.date() <= &chrono::Utc::now());
+    /// ```
     pub fn now(ref_: PackageRef, files: Vec<InstalledFile>, checksum: Option<Checksum>) -> Self {
         Self {
             ref_,
@@ -162,28 +239,36 @@ impl InstalledPackage {
         }
     }
 
+    /// Borrow the package reference.
     pub fn ref_(&self) -> &PackageRef {
         &self.ref_
     }
 
+    /// Borrow the list of installed files.
     pub fn files(&self) -> &[InstalledFile] {
         &self.files
     }
 
+    /// Mutate the list of installed files.
     pub fn files_mut(&mut self) -> &mut Vec<InstalledFile> {
         &mut self.files
     }
 
+    /// Borrow the installation timestamp.
     pub fn date(&self) -> &DateTime<Utc> {
         &self.date
     }
 
+    /// Borrow the optional checksum.
     pub fn checksum(&self) -> Option<&Checksum> {
         self.checksum.as_ref()
     }
 }
 
 impl InstalledFile {
+    /// Create a new installed file entry.
+    ///
+    /// `relative_path` is expected to be relative to the package install root.
     pub fn new(relative_path: impl Into<Utf8PathBuf>, linked: bool) -> Self {
         Self {
             relative_path: relative_path.into(),
@@ -191,15 +276,33 @@ impl InstalledFile {
         }
     }
 
+    /// Borrow the relative path of the file.
     pub fn relative_path(&self) -> &Utf8PathBuf {
         &self.relative_path
     }
 
+    /// Whether this file is a symlink rather than a copy.
     pub fn linked(&self) -> bool {
         self.linked
     }
 }
 
+/// A declared dependency on another package.
+///
+/// ```rust
+/// # use loadsmith_core::{Dependency, VersionReq};
+/// let dep = Dependency::new(
+///     "x753-More_Suits",
+///     VersionReq::parse(">=1.0").unwrap(),
+///     "thunderstore",
+/// );
+/// assert_eq!(dep.id.as_str(), "x753-More_Suits");
+///
+/// let dep = dep.with_registry_metadata(
+///     serde_json::json!({"website_url": "https://thunderstore.io/c/valheim/"}),
+/// );
+/// assert!(dep.registry_metadata.is_some());
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Dependency {
     pub id: PackageId,
@@ -210,6 +313,8 @@ pub struct Dependency {
 }
 
 impl Dependency {
+    /// Create a new dependency with the given identifier, version
+    /// requirement, and source string.
     pub fn new(
         id: impl Into<PackageId>,
         version_req: impl Into<VersionReq>,
@@ -223,6 +328,14 @@ impl Dependency {
         }
     }
 
+    /// Attach registry-specific metadata to this dependency.
+    ///
+    /// ```rust
+    /// # use loadsmith_core::{Dependency, VersionReq};
+    /// let dep = Dependency::new("denikson-BepInExPack_Valheim", VersionReq::STAR, "thunderstore")
+    ///     .with_registry_metadata(serde_json::json!({"key": "val"}));
+    /// assert_eq!(dep.registry_metadata.unwrap()["key"], "val");
+    /// ```
     pub fn with_registry_metadata(mut self, metadata: impl Into<serde_json::Value>) -> Self {
         self.registry_metadata = Some(metadata.into());
         self

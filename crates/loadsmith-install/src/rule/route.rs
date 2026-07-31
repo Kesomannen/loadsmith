@@ -6,6 +6,30 @@ use serde::{Deserialize, Serialize};
 
 use crate::ConflictStrategy;
 
+/// A route-based install rule that maps files by directory name and file extension.
+///
+/// A `RouteRule` looks for a named directory component in the input path and maps
+/// the remaining suffix into the target directory. File extensions can be used as
+/// an additional matching criterion.
+///
+/// # Examples
+///
+/// ```rust
+/// use camino::Utf8PathBuf;
+/// use loadsmith_core::{PackageRef, PackageId, Version};
+/// use loadsmith_install::RouteRule;
+///
+/// let rule = RouteRule::new_static("BepInEx\\plugins")
+///     .with_file_extension("dll");
+/// let pkg = PackageRef::new(PackageId::new("x753-More_Suits"), Version::new(1, 0, 3));
+///
+/// assert!(rule.matches("MyPlugin.dll"));
+/// assert!(rule.matches_path("BepInEx\\plugins\\MyPlugin.dll"));
+/// assert_eq!(
+///     rule.map_file("plugins\\MyPlugin.dll", &pkg),
+///     Some(Utf8PathBuf::from("BepInEx\\plugins\\x753-More_Suits\\MyPlugin.dll"))
+/// );
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RouteRule {
     name: Cow<'static, str>,
@@ -17,10 +41,14 @@ pub struct RouteRule {
 }
 
 impl RouteRule {
+    /// Creates a route rule from a static path string. The rule name is derived
+    /// from the last path component.
     pub fn new_static(path: &'static str) -> Self {
         Self::new(Cow::Borrowed(Utf8Path::new(path)))
     }
 
+    /// Creates a route rule from any path. The rule name is derived from the
+    /// last path component.
     pub fn new(path: impl Into<Cow<'static, Utf8Path>>) -> Self {
         let path = path.into();
 
@@ -33,6 +61,10 @@ impl RouteRule {
         Self::new_with_target(name, path)
     }
 
+    /// Creates a route rule with an explicit name and target path.
+    ///
+    /// The `name` is the directory component that triggers a match; `target` is
+    /// the directory where matched files are installed.
     pub fn new_with_target(
         name: impl Into<Cow<'static, str>>,
         target: impl Into<Cow<'static, Utf8Path>>,
@@ -47,36 +79,44 @@ impl RouteRule {
         }
     }
 
+    /// Adds a file extension to the matching set.
     pub fn with_file_extension(mut self, extension: impl Into<Cow<'static, str>>) -> Self {
         self.file_extensions.push(extension.into());
         self
     }
 
+    /// Replaces the entire set of matching file extensions.
     pub fn with_file_extensions(mut self, extensions: Vec<Cow<'static, str>>) -> Self {
         self.file_extensions = extensions;
         self
     }
 
+    /// Sets whether to flatten the mapped path (remove intermediate directories).
     pub fn with_flatten(mut self, flatten: bool) -> Self {
         self.flatten = flatten;
         self
     }
 
+    /// Sets whether to create a subdirectory named after the package ID inside
+    /// the target directory.
     pub fn with_subdir(mut self, subdir: bool) -> Self {
         self.subdir = subdir;
         self
     }
 
+    /// Sets whether the rule allows mutable (user-modifiable) files.
     pub fn with_mutable(mut self, mutable: bool) -> Self {
         self.mutable = mutable;
         self
     }
 
+    /// Returns `true` if the path matches by extension or by route name.
     pub fn matches(&self, path: impl AsRef<Utf8Path>) -> bool {
         let path = path.as_ref();
         self.matches_extension(path) || self.matches_path(path)
     }
 
+    /// Returns `true` if the file name has one of the rule's registered extensions.
     pub fn matches_extension(&self, path: impl AsRef<Utf8Path>) -> bool {
         // check the whole extension, that is everything after the first dot in the file name
         path.as_ref()
@@ -86,6 +126,7 @@ impl RouteRule {
             .unwrap_or(false)
     }
 
+    /// Returns `true` if the path contains the route's name as a path component.
     pub fn matches_path(&self, path: impl AsRef<Utf8Path>) -> bool {
         self.split_path(path.as_ref()).is_some()
     }
@@ -106,6 +147,12 @@ impl RouteRule {
         Some((prefix, suffix))
     }
 
+    /// Maps a file path to its install destination under the rule's target directory.
+    ///
+    /// If the path contains the route name, the part before the route name becomes
+    /// the prefix; otherwise the parent directory becomes the prefix. When `subdir`
+    /// is enabled the package ID is inserted as an intermediate directory. When
+    /// `flatten` is disabled the prefix is preserved in the output.
     pub fn map_file(
         &self,
         path: impl AsRef<Utf8Path>,
@@ -138,10 +185,16 @@ impl RouteRule {
         Some(target_path)
     }
 
+    /// Returns `true` if the rule prefers hard links over file copies.
+    ///
+    /// Links are used when the rule is not marked as mutable.
     pub fn use_links(&self) -> bool {
         !self.mutable
     }
 
+    /// Returns the conflict strategy for this route rule (always [`Skip`](ConflictStrategy::Skip)).
+    ///
+    /// Route rules never overwrite existing files and never error; they silently skip.
     pub fn conflict_strategy(&self) -> ConflictStrategy {
         ConflictStrategy::Skip
     }

@@ -3,6 +3,23 @@ use thunderstore::{PackageIdent, VersionIdent};
 
 use crate::{Error, Result};
 
+/// Conversion between [`PackageId`] and [`PackageIdent`].
+///
+/// # Examples
+///
+/// ```
+/// use loadsmith_core::PackageId;
+/// use loadsmith_thunderstore::PackageIdExt;
+/// use thunderstore::PackageIdent;
+///
+/// let id = PackageId::new("Author-Package");
+/// let ident = id.into_ts_ident().unwrap();
+/// assert_eq!(ident.namespace(), "Author");
+/// assert_eq!(ident.name(), "Package");
+///
+/// let back = PackageId::from_ts_ident(ident);
+/// assert_eq!(back.as_str(), "Author-Package");
+/// ```
 pub trait PackageIdExt {
     fn into_ts_ident(self) -> Result<PackageIdent>;
     fn from_ts_ident(ident: PackageIdent) -> Self;
@@ -18,6 +35,26 @@ impl PackageIdExt for PackageId {
     }
 }
 
+/// Conversion between [`PackageRef`](loadsmith_core::PackageRef) and [`VersionIdent`].
+///
+/// # Examples
+///
+/// ```
+/// use loadsmith_core::{PackageId, PackageRef, Version};
+/// use loadsmith_thunderstore::{PackageIdExt, PackageRefExt};
+/// use thunderstore::VersionIdent;
+///
+/// let package_ref = PackageRef::new(
+///     PackageId::new("Author-Package"),
+///     Version::new(1, 2, 3),
+/// );
+///
+/// let ident = package_ref.into_ts_ident().unwrap();
+/// assert_eq!(ident.to_string(), "Author-Package-1.2.3");
+///
+/// let back = PackageRef::from_ts_ident(ident);
+/// assert_eq!(back.to_string(), "Author-Package@1.2.3");
+/// ```
 pub trait PackageRefExt {
     fn into_ts_ident(self) -> Result<VersionIdent>;
     fn from_ts_ident(ident: VersionIdent) -> Self;

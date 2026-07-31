@@ -4,6 +4,15 @@
 //! This is an internal crate of the [`loadsmith`] workspace. Most consumers
 //! should depend on the `loadsmith` facade crate instead of using this
 //! crate directly.
+//!
+//! # Examples
+//!
+//! ```rust
+//! use loadsmith_loader::{BepInEx, Loader};
+//!
+//! let loader = BepInEx::with_default_rules();
+//! assert_eq!(loader.id(), "BepInEx");
+//! ```
 
 use std::{fmt::Debug, path::PathBuf, sync::LazyLock};
 
@@ -14,7 +23,7 @@ use loadsmith_install::InstallRuleset;
 
 mod args;
 mod context;
-mod doorstop;
+pub mod doorstop;
 mod error;
 mod loaders;
 
@@ -23,12 +32,39 @@ pub use context::LaunchContext;
 pub use error::{Error, Result};
 pub use loaders::*;
 
+/// A mod loader definition that knows how to install packages and generate
+/// launch arguments for a target game.
+///
+/// Each loader implementation describes:
+///
+/// * How its own loader-pack files are placed (`loader_install_rules`).
+/// * How mod packages are placed (`package_install_rules`).
+/// * What CLI arguments / environment variables are needed at launch
+///   (`generate_launch_args`).
+///
+/// By default [`prepare_launch`](Loader::prepare_launch) copies all top-level
+/// `*.dll` files from the profile into the game directory.
+///
+/// # Examples
+///
+/// ```rust
+/// use loadsmith_loader::{BepInEx, Loader};
+///
+/// let loader = BepInEx::with_default_rules();
+/// assert_eq!(loader.id(), "BepInEx");
+/// ```
 pub trait Loader: Debug + Send + Sync {
+    /// A unique, human-readable identifier for this loader (e.g. `"BepInEx"`).
     fn id(&self) -> &'static str;
 
+    /// Returns the install rules for the loader's own files (the "loader pack").
     fn package_install_rules(&self) -> InstallRuleset<'_>;
+    /// Returns the install rules for end-user mod packages.
     fn loader_install_rules(&self) -> InstallRuleset<'_>;
 
+    /// Prepares the game directory by copying files from the profile.
+    ///
+    /// The default implementation copies every top-level `*.dll` file.
     fn prepare_launch(&self, ctx: &LaunchContext) -> Result<()> {
         static GLOB_SET: LazyLock<GlobSet> = LazyLock::new(|| {
             GlobSet::builder()
@@ -40,8 +76,11 @@ pub trait Loader: Debug + Send + Sync {
         ctx.copy_glob_to_game(&GLOB_SET)
     }
 
+    /// Builds the command-line arguments and environment variables needed to
+    /// launch the game with this loader.
     fn generate_launch_args(&self, ctx: &LaunchContext) -> Result<LaunchArgs>;
 
+    /// Returns the directory where a package's files are placed, if any.
     fn package_dir(&self, package: &PackageRef) -> Option<PathBuf> {
         self.package_install_rules()
             .default_rule()
@@ -49,12 +88,15 @@ pub trait Loader: Debug + Send + Sync {
             .map(Utf8PathBuf::into_std_path_buf)
     }
 
+    /// Directories that contain mutable per-package configuration.
     fn package_config_dirs(&self) -> Vec<PathBuf> {
         Vec::new()
     }
+    /// Path to the loader's log file, relative to the game directory.
     fn log_file(&self) -> Option<PathBuf> {
         None
     }
+    /// Filename of the proxy DLL used by this loader, if any.
     fn proxy_dll(&self) -> Option<PathBuf> {
         None
     }

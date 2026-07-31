@@ -6,6 +6,37 @@ use crate::{Error, LaunchContext, Result};
 
 const FALLBACK_VERSION: u32 = 3;
 
+/// Returns the Doorstop argument flag names for the given major version.
+///
+/// When `version_override` is `Some`, that version is used directly.
+/// Otherwise the version is read from a `.doorstop_version` file in the
+/// profile directory. If that file is missing, version 3 is assumed.
+///
+/// Returns a tuple of `(enable_flag, target_flag)`.
+///
+/// # Errors
+///
+/// Returns [`Error::InvalidDoorstopVersionFormat`] when the version file
+/// cannot be parsed, or [`Error::UnsupportedDoorstopVersion`] for versions
+/// other than 3 or 4.
+///
+/// # Examples
+///
+/// ```rust
+/// use loadsmith_loader::LaunchContext;
+/// use loadsmith_loader::doorstop;
+/// use camino::Utf8Path;
+///
+/// let ctx = LaunchContext::new(
+///     Utf8Path::new("/tmp/profile"),
+///     Utf8Path::new("/tmp/game"),
+///     false,
+/// );
+///
+/// let (enable, target) = doorstop::args(Some(4), &ctx).unwrap();
+/// assert_eq!(enable, "--doorstop-enabled");
+/// assert_eq!(target, "--doorstop-target-assembly");
+/// ```
 pub fn args(
     version_override: Option<u32>,
     ctx: &LaunchContext,

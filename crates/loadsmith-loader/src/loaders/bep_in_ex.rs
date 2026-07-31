@@ -6,18 +6,42 @@ use loadsmith_install::{InstallRule, InstallRuleset, OwnedInstallRuleset, RouteR
 
 use crate::{Error, LaunchArgs, LaunchContext, Loader, Result, doorstop, glob, glob_rule};
 
+/// Loader implementation for [BepInEx](https://docs.bepinex.dev/), a
+/// general-purpose Unity mod loader.
+///
+/// BepInEx uses Doorstop to inject into the game process and supports several
+/// sub-directories for plugins, patchers, monomod assemblies, and config.
+///
+/// # Examples
+///
+/// ```rust
+/// use loadsmith_loader::{BepInEx, Loader};
+///
+/// let loader = BepInEx::with_default_rules();
+/// assert_eq!(loader.id(), "BepInEx");
+/// ```
 #[derive(Debug, Clone)]
 pub struct BepInEx {
     package_install_ruleset: OwnedInstallRuleset,
 }
 
 impl BepInEx {
+    /// Creates a `BepInEx` loader with a custom install ruleset.
     pub fn with_rules(package_install_ruleset: OwnedInstallRuleset) -> Self {
         Self {
             package_install_ruleset,
         }
     }
 
+    /// Creates a `BepInEx` loader with the default install rules.
+    ///
+    /// Default routes:
+    ///
+    /// * `BepInEx/config` (mutable, flat)
+    /// * `BepInEx/patchers`
+    /// * `BepInEx/core`
+    /// * `BepInEx/monomod` (files with `.mm.dll` extension)
+    /// * `BepInEx/plugins` (files with `.dll` extension) — **default rule**
     pub fn with_default_rules() -> Self {
         OwnedInstallRuleset::from_rule_iter(
             vec![
@@ -35,10 +59,12 @@ impl BepInEx {
         .expect("rules are not empty so there should always be a valid default rule index")
     }
 
+    /// Adds an install rule to the end of the ruleset.
     pub fn add_install_rule(&mut self, rule: impl Into<InstallRule>) {
         self.package_install_ruleset.add_rule(rule.into());
     }
 
+    /// Inserts an install rule at the given index.
     pub fn insert_install_rule(&mut self, index: usize, rule: impl Into<InstallRule>) {
         self.package_install_ruleset.insert_rule(index, rule.into());
     }

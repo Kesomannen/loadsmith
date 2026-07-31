@@ -4,18 +4,42 @@ use loadsmith_install::{InstallRule, InstallRuleset, OwnedInstallRuleset, RouteR
 
 use crate::{LaunchArgs, LaunchContext, Loader, Result, glob_rule};
 
+/// Loader implementation for [Unreal Shimloader](https://thunderstore.io/c/holocure/p/Thunderstore/unreal_shimloader/),
+/// a UE4SS-based mod loader for games like HoloCure.
+///
+/// Routes packages into `shimloader/mod`, `shimloader/pak` (`.pak` files
+/// only), `shimloader/cfg` (mutable, flat), and `shimloader/overlay`. The
+/// loader uses `dwmapi.dll` as its proxy DLL.
+///
+/// # Examples
+///
+/// ```rust
+/// use loadsmith_loader::{Shimloader, Loader};
+///
+/// let loader = Shimloader::with_default_rules();
+/// assert_eq!(loader.id(), "Shimloader");
+/// ```
 #[derive(Debug, Clone)]
 pub struct Shimloader {
     package_install_ruleset: OwnedInstallRuleset,
 }
 
 impl Shimloader {
+    /// Creates a `Shimloader` with a custom install ruleset.
     pub fn with_rules(package_install_ruleset: OwnedInstallRuleset) -> Self {
         Self {
             package_install_ruleset,
         }
     }
 
+    /// Creates a `Shimloader` with the default rules.
+    ///
+    /// Default routes:
+    ///
+    /// * `shimloader/mod` — default rule
+    /// * `shimloader/pak` (files with `.pak` extension)
+    /// * `shimloader/cfg` (mutable, flat)
+    /// * `shimloader/overlay`
     pub fn with_default_rules() -> Self {
         OwnedInstallRuleset::from_rule_iter(
             [

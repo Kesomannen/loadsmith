@@ -8,6 +8,24 @@ use tracing::debug;
 
 use crate::{Error, Registry, ResolvedVersion, Result, VersionInfo};
 
+/// A registry that reads package data from the local filesystem.
+///
+/// `LocalRegistry` expects metadata containing a `"path"` field pointing to a
+/// local file or directory. Supported sources are:
+///
+/// * `.zip` archives containing a Thunderstore-style `manifest.json`
+/// * Unpacked directories with a Thunderstore `manifest.json`
+/// * `.dll` files (version extracted from metadata or filename)
+/// * Other files (version extracted from metadata or filename)
+///
+/// # Examples
+///
+/// ```rust
+/// use loadsmith_registry::LocalRegistry;
+///
+/// let registry = LocalRegistry::new();
+/// assert!(format!("{registry:?}").contains("LocalRegistry"));
+/// ```
 #[derive(Debug)]
 pub struct LocalRegistry;
 
@@ -18,8 +36,20 @@ impl Default for LocalRegistry {
 }
 
 impl LocalRegistry {
+    /// Create a new `LocalRegistry`.
     pub fn new() -> Self {
         Self
+    }
+
+    pub fn read(&self, metadata: Metadata) -> Result<(Option<PackageId>, VersionInfo)> {
+        let source = Source::read(metadata)?;
+
+        Ok((
+            source.package_id(),
+            VersionInfo {
+                version: source.version().clone(),
+            },
+        ))
     }
 }
 
@@ -31,7 +61,9 @@ impl Registry for LocalRegistry {
     ) -> Pin<Box<dyn Future<Output = Result<Vec<VersionInfo>>> + 'a>> {
         Box::pin(async move {
             let metadata = crate::read_metadata(metadata)?;
-            let source = Source::read(id, metadata)?;
+            let source = Source::read(metadata)?;
+
+            source.check_package_id(id)?;
 
             Ok(vec![VersionInfo {
                 version: source.version().clone(),
@@ -46,8 +78,8 @@ impl Registry for LocalRegistry {
     ) -> Pin<Box<dyn Future<Output = Result<ResolvedVersion>> + 'a>> {
         Box::pin(async move {
             let metadata = crate::read_metadata(metadata)?;
-
-            let source = Source::read_ref(ref_, metadata)?;
+            let source = Source::read(metadata)?;
+            source.check_package_ref(ref_)?;
 
             let full_path = source.path.canonicalize_utf8()?;
 
@@ -55,7 +87,7 @@ impl Registry for LocalRegistry {
                 url: full_path.into(),
                 size: source.size()?,
                 deps: source.dependencies()?,
-                checksum: source.checksum()?,
+                checksum: source.checksum().map(Some)?,
             })
         })
     }
@@ -66,15 +98,17 @@ impl Registry for LocalRegistry {
         metadata: Option<&'a serde_json::Value>,
     ) -> Result<Option<loadsmith_core::Checksum>> {
         let metadata = crate::read_metadata(metadata)?;
-        let source = Source::read_ref(ref_, metadata)?;
+        let source = Source::read(metadata)?;
+        source.check_package_ref(ref_)?;
+
         let checksum = source.checksum()?;
 
-        Ok(checksum)
+        Ok(Some(checksum))
     }
 }
 
 #[derive(Debug, Deserialize)]
-struct Metadata {
+pub struct Metadata {
     path: Utf8PathBuf,
     #[serde(
         default,
@@ -103,10 +137,30 @@ enum SourceKind {
     Other(Version),
 }
 
+impl Metadata {
+    pub fn new(path: impl Into<Utf8PathBuf>) -> Self {
+        Self {
+            path: path.into(),
+            dependency_registry: None,
+            source_version: None,
+        }
+    }
+
+    pub fn with_dependency_registry(mut self, registry: impl Into<String>) -> Self {
+        self.dependency_registry = Some(registry.into());
+        self
+    }
+
+    pub fn with_source_version(mut self, version: impl Into<Version>) -> Self {
+        self.source_version = Some(version.into());
+        self
+    }
+}
+
 impl Source {
     const DEFAULT_DEPENDENCY_REGISTRY: &'static str = "thunderstore";
 
-    fn read(id: &PackageId, metadata: Metadata) -> Result<Self> {
+    fn read(metadata: Metadata) -> Result<Self> {
         if !metadata.path.exists() {
             return Err(Error::FileNotFound(metadata.path));
         }
@@ -114,15 +168,6 @@ impl Source {
         let kind = match (metadata.path.is_file(), metadata.path.extension()) {
             (true, Some("zip")) => {
                 let manifest = read_zip_manifest(&metadata.path)?;
-
-                if let Some(namespace) = &manifest.namespace {
-                    let ident = format!("{}-{}", namespace, manifest.name);
-                    if ident != id.as_str() {
-                        return Err(Error::PackageNotFound);
-                    }
-                } else if manifest.name != id.as_str() {
-                    return Err(Error::PackageNotFound);
-                }
 
                 Self::warn_if_source_version_set(&manifest.version_number, &metadata);
 
@@ -173,14 +218,37 @@ impl Source {
         }
     }
 
-    fn read_ref(ref_: &PackageRef, metadata: Metadata) -> Result<Self> {
-        let source = Self::read(ref_.id(), metadata)?;
+    fn check_package_id(&self, id: &PackageId) -> Result<()> {
+        match self.package_id() {
+            Some(package_id) if package_id == *id => Ok(()),
+            Some(_) => Err(Error::PackageNotFound),
+            None => Ok(()),
+        }
+    }
 
-        if source.version() != ref_.version() {
+    fn package_id(&self) -> Option<PackageId> {
+        match &self.kind {
+            SourceKind::Zip(manifest) | SourceKind::Directory(manifest) => {
+                let package_id = if let Some(namespace) = &manifest.namespace {
+                    format!("{}-{}", namespace, manifest.name)
+                } else {
+                    manifest.name.clone()
+                };
+
+                Some(PackageId::new(package_id))
+            }
+            SourceKind::Dll(_) | SourceKind::Other(_) => None,
+        }
+    }
+
+    fn check_package_ref(&self, ref_: &PackageRef) -> Result<()> {
+        self.check_package_id(ref_.id())?;
+
+        if self.version() != ref_.version() {
             return Err(Error::VersionNotFound);
         }
 
-        Ok(source)
+        Ok(())
     }
 
     fn version(&self) -> &Version {
@@ -223,14 +291,12 @@ impl Source {
         }
     }
 
-    fn checksum(&self) -> Result<Option<loadsmith_core::Checksum>> {
-        match self.kind {
-            SourceKind::Zip(_) | SourceKind::Dll(_) | SourceKind::Other(_) => {
-                let hash = loadsmith_util::hash_file(&self.path)?;
-                Ok(Some(hash.into()))
-            }
-            SourceKind::Directory(_) => Ok(None),
-        }
+    fn checksum(&self) -> Result<loadsmith_core::Checksum> {
+        loadsmith_core::Checksum::compute_from_path(
+            &self.path,
+            loadsmith_core::ChecksumAlgorithm::Blake3,
+        )
+        .map_err(Into::into)
     }
 }
 

@@ -5,10 +5,24 @@ use loadsmith_install::{InstallRule, InstallRuleset};
 
 use crate::{LaunchArgs, LaunchContext, Loader, Result, glob_rule};
 
+/// Loader implementation for [Lovely](https://github.com/ethangreen-dev/lovely),
+/// a mod loader for the visual-novel game Doki Doki Literature Club!.
+///
+/// Lovely uses a `mods` directory for packages and a `version.dll` proxy DLL.
+///
+/// # Examples
+///
+/// ```rust
+/// use loadsmith_loader::{Lovely, Loader};
+///
+/// let loader = Lovely::new();
+/// assert_eq!(loader.id(), "Lovely");
+/// ```
 #[derive(Debug, Clone)]
 pub struct Lovely;
 
 impl Lovely {
+    /// Creates a new `Lovely` loader.
     pub fn new() -> Self {
         Self
     }

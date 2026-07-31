@@ -2,13 +2,36 @@ use std::collections::{HashSet, VecDeque};
 
 use loadsmith_core::{Dependency, PackageId, PackageRef};
 use loadsmith_registry::RegistrySet;
-use tracing::trace;
+use tracing::{instrument, trace};
 
 use crate::{
     Error, Result,
     lockfile::{LockedPackage, Lockfile},
 };
 
+/// Resolve dependencies into a [`Lockfile`] using the given registries.
+///
+/// This performs a simple breadth-first resolution. When an `existing_lockfile`
+/// is provided, locked versions that still satisfy the dependency requirements
+/// are reused. Conflicts (multiple versions of the same package with
+/// incompatible requirements) are not handled; the highest matching version
+/// is always selected.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// # async fn example() {
+/// use loadsmith_core::{Dependency, VersionReq};
+/// use loadsmith_manifest::resolve;
+/// use loadsmith_registry::RegistrySet;
+///
+/// let mut registries = RegistrySet::new();
+/// registries.add("thunderstore", loadsmith_registry::offline::OfflineRegistry::default());
+///
+/// let deps = vec![Dependency::new("Author-Mod", VersionReq::STAR, "thunderstore")];
+/// let lockfile = resolve(deps, &registries, None).await.unwrap();
+/// # }
+/// ```
 pub async fn resolve<I>(
     deps: I,
     registries: &RegistrySet,
@@ -35,14 +58,6 @@ where
         let locked = if let Some(existing) = existing {
             let mut existing = existing.clone();
             existing.transitive = transitive;
-
-            trace!(
-                id = %dep.id,
-                version = %existing.ref_.version(),
-                source = %existing.source,
-                "using locked version of package"
-            );
-
             existing
         } else {
             resolve_from_registry_set(registries, dep, transitive).await?
@@ -118,6 +133,7 @@ async fn resolve_from_registry_set(
     Ok(locked)
 }
 
+#[instrument(skip(lockfile, registries, dependency), fields(id = %dependency.id, version_req = %dependency.version_req, source = %dependency.source))]
 fn validate_locked_package<'a>(
     lockfile: Option<&'a Lockfile>,
     registries: &RegistrySet,
@@ -128,22 +144,27 @@ fn validate_locked_package<'a>(
     };
 
     let Some(package) = lockfile.package_by_id(&dependency.id) else {
+        trace!("no locked package found for dependency");
         return Ok(None);
     };
 
     if !dependency.version_req.matches(package.ref_.version()) {
+        trace!("locked package version does not satisfy dependency version requirement");
         return Ok(None);
     }
 
     if package.source != dependency.source {
+        trace!("locked package source does not match dependency source");
         return Ok(None);
     }
 
     if package.registry_metadata != dependency.registry_metadata {
+        trace!("locked package registry metadata does not match dependency registry metadata");
         return Ok(None);
     }
 
     let Some(existing_checksum) = package.checksum.as_ref() else {
+        trace!("locked package is valid and can be reused (no checksum to validate)");
         return Ok(Some(package));
     };
 
@@ -160,15 +181,10 @@ fn validate_locked_package<'a>(
         })?;
 
     if new_checksum.is_some_and(|new| new != *existing_checksum) {
-        trace!(
-            id = %package.ref_.id(),
-            version = %package.ref_.version(),
-            source = %package.source,
-            "locked package checksum mismatch, revalidating from registry"
-        );
-
+        trace!("locked package checksum does not match revalidated checksum");
         Ok(None)
     } else {
+        trace!("locked package is valid and can be reused");
         Ok(Some(package))
     }
 }

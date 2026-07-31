@@ -1,23 +1,37 @@
 use std::path::PathBuf;
 
+/// Errors that can occur during thunderstore operations.
+///
+/// Covers I/O, serialization, SQLite, zip archive, glob, and API errors,
+/// as well as domain-specific errors such as missing manifests or
+/// unsupported loaders and platforms.
+///
+/// # Examples
+///
+/// ```
+/// use loadsmith_thunderstore::Error;
+///
+/// let err = Error::IndexNotComplete;
+/// assert_eq!(err.to_string(), "index is not built");
+/// ```
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error(transparent)]
+    #[error("I/O error")]
     Io(#[from] std::io::Error),
 
-    #[error(transparent)]
+    #[error("zip error")]
     Zip(#[from] zip::result::ZipError),
 
-    #[error(transparent)]
+    #[error("YAML error")]
     Yaml(#[from] serde_yaml_ng::Error),
 
-    #[error(transparent)]
+    #[error("JSON error")]
     Json(#[from] serde_json::Error),
 
-    #[error(transparent)]
+    #[error("SQLite error")]
     Sqlite(#[from] rusqlite::Error),
 
-    #[error(transparent)]
+    #[error("glob error")]
     Glob(#[from] globset::Error),
 
     #[error("thunderstore client error")]
@@ -54,4 +68,17 @@ pub enum Error {
     UnsupportedPlatform(thunderstore::models::schema::Platform),
 }
 
+/// A specialized [`Result`] type for thunderstore operations.
+///
+/// This type alias uses [`Error`] as the error variant.
+///
+/// # Examples
+///
+/// ```
+/// use loadsmith_thunderstore::Result;
+///
+/// fn example() -> Result<()> {
+///     Ok(())
+/// }
+/// ```
 pub type Result<T> = std::result::Result<T, Error>;

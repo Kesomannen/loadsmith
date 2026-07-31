@@ -1,3 +1,9 @@
+//! Package index backends backed by thunderstore data.
+//!
+//! This module provides [`in_memory::InMemoryIndex`] and
+//! [`sqlite::SqliteIndex`] as storage backends for package indexes
+//! fetched from the thunderstore API.
+
 use loadsmith_core::{Dependency, PackageId, VersionReq};
 use thunderstore::VersionIdent;
 

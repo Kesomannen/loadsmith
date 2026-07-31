@@ -14,6 +14,35 @@ use crate::{
     error::{Error, Result},
 };
 
+/// Install a package's files into a game profile directory.
+///
+/// Walks `source` recursively, maps each file through the given `ruleset`, and
+/// copies (or hard-links) the mapped files into `profile`. Returns the
+/// [`InstalledPackage`](loadsmith_core::InstalledPackage) descriptor and a list
+/// of file paths that were overwritten.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use camino::Utf8Path;
+/// use loadsmith_core::{PackageRef, Version, PackageId};
+/// use loadsmith_install::{install, InstallRuleset, InstallRule, GlobRule};
+///
+/// let pkg = PackageRef::new(PackageId::new("denikson-BepInExPack_Valheim"), Version::new(5, 4, 22));
+/// let rule = InstallRule::Glob(
+///     GlobRule::try_from_pattern("**", Utf8Path::new("BepInEx")).unwrap()
+/// );
+/// let rules = [rule];
+/// let ruleset = InstallRuleset::new(&rules);
+/// let (installed, overwritten) = install(
+///     pkg,
+///     ruleset,
+///     "C:\\extracted\\package",
+///     "C:\\games\\Valheim\\profile",
+///     false,
+///     None,
+/// ).unwrap();
+/// ```
 pub fn install(
     package: PackageRef,
     ruleset: InstallRuleset,
@@ -117,9 +146,22 @@ fn install_file(
     Ok((Some(InstalledFile::new(mapped_relative, link)), overwrote))
 }
 
+/// Strategy for handling file conflicts during installation.
+///
+/// # Examples
+///
+/// ```rust
+/// use loadsmith_install::ConflictStrategy;
+///
+/// let strategy = ConflictStrategy::Overwrite;
+/// assert_eq!(strategy, ConflictStrategy::Overwrite);
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConflictStrategy {
+    /// Overwrite the existing file.
     Overwrite,
+    /// Skip the existing file and keep the original.
     Skip,
+    /// Return a [`FileAlreadyExists`](crate::Error::FileAlreadyExists) error.
     Error,
 }

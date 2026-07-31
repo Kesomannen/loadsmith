@@ -6,18 +6,39 @@ use loadsmith_install::{InstallRule, InstallRuleset, OwnedInstallRuleset, RouteR
 
 use crate::{LaunchArgs, LaunchContext, Loader, Result, glob_rule};
 
+/// Loader implementation for [MelonLoader](https://melonloader.net/), a
+/// mod loader for Unity games.
+///
+/// MelonLoader supports two installation schemes:
+///
+/// * **Legacy** — routes files to `UserLibs`, `Plugins`, `MelonLoader/Managed`,
+///   `MelonLoader/Libs`, `MelonLoader`, `Mods`, and `UserData/ModManager`.
+/// * **Recursive** — routes all files into `Mods` and keeps `UserData` for
+///   mutable config.
+///
+/// # Examples
+///
+/// ```rust
+/// use loadsmith_loader::{MelonLoader, Loader};
+///
+/// let loader = MelonLoader::with_default_legacy_rules();
+/// assert_eq!(loader.id(), "MelonLoader");
+/// ```
 #[derive(Debug, Clone)]
 pub struct MelonLoader {
     package_install_ruleset: OwnedInstallRuleset,
 }
 
 impl MelonLoader {
+    /// Creates a `MelonLoader` with a custom install ruleset.
     pub fn with_rules(package_install_ruleset: OwnedInstallRuleset) -> Self {
         Self {
             package_install_ruleset,
         }
     }
 
+    /// Creates a `MelonLoader` with the legacy install rules (original
+    /// per-directory routing).
     pub fn with_default_legacy_rules() -> Self {
         OwnedInstallRuleset::from_rule_iter(
             [
@@ -45,6 +66,8 @@ impl MelonLoader {
         .expect("rules are not empty so there should always be a valid default rule index")
     }
 
+    /// Creates a `MelonLoader` with the recursive install rules (all files go
+    /// into `Mods`).
     pub fn with_default_recursive_rules() -> Self {
         OwnedInstallRuleset::from_rule_iter(
             [
@@ -57,10 +80,12 @@ impl MelonLoader {
         .expect("rules are not empty so there should always be a valid default rule index")
     }
 
+    /// Sets a glob set of files to exclude from installation.
     pub fn set_exclude(&mut self, exclude: GlobSet) {
         self.package_install_ruleset.set_exclude(exclude);
     }
 
+    /// Adds an install rule to the end of the ruleset.
     pub fn add_install_rule(&mut self, rule: InstallRule) {
         self.package_install_ruleset.add_rule(rule);
     }

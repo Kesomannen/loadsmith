@@ -5,7 +5,10 @@ use std::{
 
 use anyhow::{Context, anyhow};
 use bytes::Bytes;
-use loadsmith::{InstallRuleset, InstalledPackage, PackageRef, thunderstore::PackageRefExt};
+use loadsmith::{
+    Checksum, ChecksumAlgorithm, InstallRuleset, InstalledPackage, PackageRef,
+    thunderstore::PackageRefExt,
+};
 use loadsmith_core::Version;
 use serde::{Deserialize, Serialize};
 use tempfile::TempDir;
@@ -58,13 +61,13 @@ fn extract_and_install_package(
 #[derive(Debug, Serialize, Deserialize)]
 struct ListedFile {
     file: PathBuf,
-    hash: String,
+    hash: Checksum,
 }
 
 impl ListedFile {
     fn from_path(path: PathBuf, root: &Path) -> anyhow::Result<Self> {
         let relative_path = path.strip_prefix(root)?.to_path_buf();
-        let hash = loadsmith_util::hash_file_to_string(path)?;
+        let hash = Checksum::compute_from_path(&path, ChecksumAlgorithm::Blake3)?;
 
         Ok(ListedFile {
             file: relative_path,
