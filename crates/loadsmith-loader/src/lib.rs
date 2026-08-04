@@ -19,7 +19,7 @@ use std::{fmt::Debug, path::PathBuf, sync::LazyLock};
 use camino::Utf8PathBuf;
 use globset::{Glob, GlobBuilder, GlobSet};
 use loadsmith_core::PackageRef;
-use loadsmith_install::InstallRuleset;
+use loadsmith_install::rule::InstallRuleset;
 
 mod args;
 mod context;
@@ -113,7 +113,7 @@ fn top_level_dll_glob() -> Glob {
 mod test_util {
     use camino::{Utf8Path, Utf8PathBuf};
     use loadsmith_core::PackageRef;
-    use loadsmith_install::InstallRuleset;
+    use loadsmith_install::rule::InstallRuleset;
 
     use crate::Loader;
 

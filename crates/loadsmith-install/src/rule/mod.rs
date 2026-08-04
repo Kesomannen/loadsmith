@@ -1,3 +1,103 @@
+//! Data-driven rules for package installation.
+//!
+//! The structs in this module answer the question: "Given a file in a package archive, where should it be installed on disk?".
+//!
+//! An [`InstallRule`] is a single rule that maps files from an in-archive path to an install destination.
+//! A rule can decide whether it should be used for a given path with the [`InstallRule::matches`] method.
+//! However, a rule's [`map_file`](InstallRule::map_file) method may still be called even if the rule does not match.
+//!
+//! An [`InstallRuleset`] is a collection of rules that can be used to map files from a package archive to install destinations,
+//! with an optional default rule and options to always exclude certain files.
+//! It is a borrowed view of a ruleset, whereas [`OwnedInstallRuleset`] is the owned version.
+//!
+//! The two types of rules are [`GlobRule`] and [`RouteRule`].
+//!
+//! # Examples
+//!
+//! Normal zip extraction logic with a top-level directory stripped:
+//!
+//! ```
+//! # use loadsmith_core::{PackageRef, PackageId, Version};
+//! # use loadsmith_install::rule::{InstallRule, GlobRule, RouteRule, InstallRuleset};
+//! # use camino::Utf8Path;
+//! let rules = vec![
+//!     InstallRule::Glob(
+//!         GlobRule::try_from_pattern("*", ".")
+//!             .unwrap()
+//!             .strip_top_level(true)
+//!         )
+//!     ),
+//! ];
+//!
+//! let ruleset = InstallRuleset::new(&rules);
+//!
+//! let pkg = PackageRef::new("Author-Mod", Version::new(1, 0, 0));
+//!
+//! assert_eq!(
+//!     ruleset.map_file("TopLevelFile.txt", &pkg),
+//!     None
+//! );
+//! assert_eq!(
+//!     ruleset.map_file("TopLevelDir/File.txt", &pkg),
+//!     Some("./File.txt".into())
+//! );
+//! assert_eq!(
+//!     ruleset.map_file("TopLevelDir/Subdir/File.txt", &pkg),
+//!     Some("./Subdir/File.txt".into())
+//! );
+//! ```
+//!
+//! Standard Thunderstore BepInEx plugin installation rules:
+//!
+//! ```
+//! # use loadsmith_core::{PackageRef, PackageId, Version};
+//! # use loadsmith_install::rule::{InstallRule, GlobRule, RouteRule, InstallRuleset};
+//! let rules = vec![
+//!     InstallRule::Route(RouteRule::new_static("BepInEx/plugins")),
+//!     InstallRule::Route(
+//!         RouteRule::new_static("BepInEx/monomod")
+//!             .with_file_extension("mm.dll")
+//!     ),
+//!     InstallRule::Route(RouteRule::new_static("BepInEx/patchers")),
+//!     InstallRule::Route(RouteRule::new_static("BepInEx/core")),
+//!     InstallRule::Route(
+//!         RouteRule::new_static("BepInEx/config")
+//!             .with_flatten(true)
+//!             .with_subdir(false)
+//!             .with_mutable(true)
+//!     ),
+//! ];
+//! let ruleset = InstallRuleset::new(&rules).with_default_rule(rules.first().unwrap());
+//!
+//! let pkg = PackageRef::new("Author-Mod", Version::new(1, 0, 0));
+//!
+//! assert_eq!(
+//!     ruleset.map_file("plugins/MyPlugin.dll", &pkg),
+//!     Some("BepInEx/plugins/Author-Mod/MyPlugin.dll".into())
+//! );
+//! assert_eq!(
+//!     ruleset.map_file("mymonomod.mm.dll", &pkg),
+//!     Some("BepInEx/monomod/Author-Mod/mymonomod.mm.dll".into())
+//! );
+//! assert_eq!(
+//!     ruleset.map_file("patchers/MyPatcher.dll", &pkg),
+//!     Some("BepInEx/patchers/Author-Mod/MyPatcher.dll".into())
+//! );
+//! assert_eq!(
+//!     ruleset.map_file("core/MyCore.dll", &pkg),
+//!     Some("BepInEx/core/Author-Mod/MyCore.dll".into())
+//! );
+//! assert_eq!(
+//!     ruleset.map_file("config/MyPlugin.cfg", &pkg),
+//!     Some("BepInEx/config/MyPlugin.cfg".into())
+//! );
+//! // matches no rule; falls back to default rule (plugins)
+//! assert_eq!(
+//!     ruleset.map_file("README.md", &pkg),
+//!     Some("BepInEx/plugins/Author-Mod/README.md".into())
+//! );
+//! ```
+
 use std::path::Path;
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -15,47 +115,53 @@ mod route;
 
 /// A file-mapping rule that can be either a [`GlobRule`] or a [`RouteRule`].
 ///
+/// The main method of interest is [`map_file`](InstallRule::map_file), which maps a
+/// file path to its final install destination with the context of a [`PackageRef`].
+/// The method can return `None` if the rule is configured to exclude the file.
+///
+/// [`matches`](InstallRule::matches) can be used to check if a rule should be applied
+/// to a given path, for example if a glob pattern matches, but it is not required to call `map_file`.
+///
 /// # Examples
 ///
-/// ```rust
-/// use camino::Utf8Path;
-/// use loadsmith_install::{InstallRule, GlobRule, RouteRule};
+/// ```
+/// # use loadsmith_core::{PackageRef, PackageId, Version};
+/// # use loadsmith_install::rule::{InstallRule, GlobRule};
+/// // Simple glob rule that maps all .dll files to the "Plugins" directory.
+/// let rule = InstallRule::Glob(GlobRule::try_from_pattern("*.dll", "Plugins").unwrap());
 ///
-/// let glob: InstallRule = GlobRule::try_from_pattern("*.dll", Utf8Path::new("BepInEx/plugins")).unwrap().into();
-/// let route: InstallRule = RouteRule::new_static("plugins").into();
+/// assert!(rule.matches("MyPlugin.dll"));
+/// assert!(rule.matches("Nested/MyPlugin.dll"));
+/// assert!(!rule.matches("config.txt"));
+///
+/// let pkg = PackageRef::new("Author-Mod", Version::new(1, 0, 0));
+/// assert_eq!(
+///     rule.map_file("MyPlugin.dll", &pkg),
+///     Some("Plugins/MyPlugin.dll".into())
+/// );
+/// assert_eq!(
+///     rule.map_file("Nested/MyPlugin.dll", &pkg),
+///     Some("Plugins/Nested/MyPlugin.dll".into())
+/// );
+/// // Even files that don't match the rule can be mapped.
+/// assert_eq!(
+///     rule.map_file("config.txt", &pkg),
+///     Some("Plugins/config.txt".into())
+/// );
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum InstallRule {
-    /// Maps files using a glob pattern.
+    /// Maps files using a glob pattern. See [`GlobRule`] for more details.
     Glob(GlobRule),
-    /// Maps files by matching a route (directory name) and file extension.
+    /// Maps files by matching a route (directory name) and file extension. See [`RouteRule`] for more details.
     Route(RouteRule),
 }
 
 /// A borrowed set of install rules used to map and filter package files.
 ///
-/// `InstallRuleset` holds references to an existing rules slice, an optional
-/// exclude glob set, and an optional default rule. Use [`OwnedInstallRuleset`]
-/// when you need owned storage.
+/// This is the borrowed version of [`OwnedInstallRuleset`].
 ///
-/// # Examples
-///
-/// ```rust
-/// use camino::{Utf8Path, Utf8PathBuf};
-/// use loadsmith_core::{PackageRef, PackageId, Version};
-/// use loadsmith_install::{InstallRuleset, InstallRule, GlobRule};
-///
-/// let rules = [
-///     InstallRule::Glob(GlobRule::try_from_pattern("*.dll", Utf8Path::new("BepInEx/plugins")).unwrap()),
-/// ];
-/// let ruleset = InstallRuleset::new(&rules);
-/// let pkg = PackageRef::new(PackageId::new("x753-More_Suits"), Version::new(1, 0, 3));
-///
-/// assert_eq!(
-///     ruleset.map_file("MyPlugin.dll", &pkg),
-///     Some(Utf8PathBuf::from("BepInEx/plugins/MyPlugin.dll"))
-/// );
-/// ```
+/// See the [module-level documentation](self) for more details.
 #[derive(Debug, Clone, Copy)]
 pub struct InstallRuleset<'a> {
     exclude: Option<&'a GlobSet>,
@@ -68,19 +174,7 @@ pub struct InstallRuleset<'a> {
 /// Unlike [`InstallRuleset`], this struct owns all its data. Use
 /// [`as_ref()`](OwnedInstallRuleset::as_ref) to borrow it as an `InstallRuleset`.
 ///
-/// # Examples
-///
-/// ```rust
-/// use camino::Utf8Path;
-/// use loadsmith_install::{OwnedInstallRuleset, InstallRule, GlobRule};
-///
-/// let rules: Vec<InstallRule> = vec![
-///     GlobRule::try_from_pattern("*.dll", Utf8Path::new("BepInEx/plugins")).unwrap().into(),
-/// ];
-/// let owned = OwnedInstallRuleset::with_rules(rules, None).unwrap();
-/// let borrowed = owned.as_ref();
-/// assert_eq!(borrowed.rules().len(), 1);
-/// ```
+/// See the [module-level documentation](self) for more details.
 #[derive(Debug, Clone, Default)]
 pub struct OwnedInstallRuleset {
     exclude: Option<GlobSet>,
@@ -90,6 +184,10 @@ pub struct OwnedInstallRuleset {
 
 impl InstallRule {
     /// Returns `true` if the path matches this rule by path content or file extension.
+    ///
+    /// Even if this returns `false`, [`map_file`](InstallRule::map_file) may still be called on the rule.
+    /// Conversely, even if this returns `true`, [`map_file`](InstallRule::map_file) may still return `None`
+    /// if the rule is configured to exclude the file.
     pub fn matches(&self, path: impl AsRef<Utf8Path>) -> bool {
         let path = path.as_ref();
         self.matches_path(path) || self.matches_extension(path)
@@ -97,8 +195,8 @@ impl InstallRule {
 
     /// Returns `true` if the path matches this rule by path content.
     ///
-    /// For [`Glob`](InstallRule::Glob) rules this checks the glob pattern. For
-    /// [`Route`](InstallRule::Route) rules this looks for the route name in the path.
+    /// For [`Glob`](InstallRule::Glob) rules this checks the glob pattern.
+    /// For [`Route`](InstallRule::Route) rules this looks for the route name in the path.
     pub fn matches_path(&self, path: impl AsRef<Utf8Path>) -> bool {
         let path = path.as_ref();
         match self {
@@ -109,17 +207,21 @@ impl InstallRule {
 
     /// Returns `true` if the file extension matches this rule.
     ///
-    /// For [`Glob`](InstallRule::Glob) rules this is identical to `matches_path`.
+    /// For [`Glob`](InstallRule::Glob) rules this always returns `false`.
     /// For [`Route`](InstallRule::Route) rules this checks the registered extensions.
     pub fn matches_extension(&self, path: impl AsRef<Utf8Path>) -> bool {
         let path = path.as_ref();
         match self {
-            InstallRule::Glob(glob) => glob.matches(path),
+            InstallRule::Glob(_) => false,
             InstallRule::Route(route) => route.matches_extension(path),
         }
     }
 
-    /// Maps a file path to its install destination.
+    /// Maps a file path to its final install destination.
+    ///
+    /// If this returns `None`, the file should be excluded from installation.
+    ///
+    /// Some rules may choose to separate files by their package name, so the [`PackageRef`] is provided for context.
     pub fn map_file(
         &self,
         path: impl AsRef<Utf8Path>,
@@ -131,16 +233,10 @@ impl InstallRule {
         }
     }
 
-    /// Returns `true` if the mapped path starts with this rule's target directory.
-    pub fn matches_mapped(&self, path: impl AsRef<Utf8Path>) -> bool {
-        let path = path.as_ref();
-        match self {
-            InstallRule::Glob(glob) => path.starts_with(&*glob.target),
-            InstallRule::Route(route) => path.starts_with(&*route.target),
-        }
-    }
-
     /// Returns `true` if the rule prefers hard links over file copies.
+    ///
+    /// If this returns `false`, it usually means the rule expects files in the destination to be mutable,
+    /// but this is not guaranteed.
     pub fn use_links(&self) -> bool {
         match self {
             InstallRule::Glob(glob) => glob.use_links,
@@ -212,7 +308,42 @@ impl<'a> InstallRuleset<'a> {
     /// Finds the first rule that matches the given path, falling back to the
     /// default rule if no path or extension match is found.
     ///
-    /// Path-based matches are checked before extension-based matches.
+    /// Path-based matches are prioritized before extension-based matches.
+    /// Excludes are not considered; use [`is_excluded`](InstallRuleset::is_excluded) to check for excludes first.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use loadsmith_core::{PackageRef, PackageId, Version};
+    /// # use loadsmith_install::rule::{InstallRule, GlobRule, RouteRule, InstallRuleset};
+    /// let rules = vec![
+    ///     InstallRule::Route(RouteRule::new_static("Mods").with_file_extension("dll")),
+    ///     InstallRule::Route(RouteRule::new_static("Plugins")),
+    /// ];
+    /// let ruleset = InstallRuleset::new(&rules).with_default_rule(&rules[0]);
+    ///
+    /// let pkg = PackageRef::new("Author-Name", Version::new(1, 0, 0));
+    ///
+    /// assert_eq!(
+    ///    ruleset.find_rule_for_path("Plugins/image.png"),
+    ///     Some(&rules[1])
+    /// );
+    /// // No rule matches; the default rule is returned.
+    /// assert_eq!(
+    ///    ruleset.find_rule_for_path("OtherFile.txt"),
+    ///    Some(&rules[0])
+    /// );
+    /// // The file extension matches the "Mods" rule, so it is returned.
+    /// assert_eq!(
+    ///    ruleset.find_rule_for_path("Other.dll"),
+    ///    Some(&rules[0])
+    /// );
+    /// // Path-based match takes precedence over extension-based match, so the "Plugins" rule is returned.
+    /// assert_eq!(
+    ///     ruleset.find_rule_for_path("Plugins/Plugin.dll"),
+    ///     Some(&rules[1])
+    /// );
+    /// ```
     pub fn find_rule_for_path(&self, path: impl AsRef<Utf8Path>) -> Option<&'a InstallRule> {
         let path = path.as_ref();
         self.rules
@@ -222,15 +353,11 @@ impl<'a> InstallRuleset<'a> {
             .or(self.default_rule)
     }
 
-    /// Finds the first rule whose mapped output path starts with the given path.
-    pub fn find_rule_for_mapped_path(&self, path: impl AsRef<Utf8Path>) -> Option<&'a InstallRule> {
-        let path = path.as_ref();
-        self.rules.iter().find(|rule| rule.matches_mapped(path))
-    }
-
     /// Maps a file path through the ruleset, returning the install destination.
     ///
-    /// Returns `None` if the file is excluded or no rule matches.
+    /// This is equivalent to calling [`map_file_and_return_rule`](InstallRuleset::map_file_and_return_rule) and discarding the rule.
+    ///
+    /// Returns `None` if the file is excluded or no rule matches (and no default is configured).
     pub fn map_file(
         &self,
         path: impl AsRef<Utf8Path>,
@@ -243,7 +370,10 @@ impl<'a> InstallRuleset<'a> {
     /// Maps a file path and returns the install destination together with the
     /// matching rule.
     ///
-    /// Returns `None` if the file is excluded or no rule matches.
+    /// This is equivalent to calling [`find_rule_for_path`](InstallRuleset::find_rule_for_path) and then calling [`map_file`](InstallRule::map_file) on the rule,
+    /// wit the caveat that excluded files will return `None` instead of the default rule.
+    ///
+    /// Returns `None` if the file is excluded or no rule matches (and no default is configured).
     pub fn map_file_and_return_rule(
         &self,
         path: impl AsRef<Utf8Path>,
@@ -258,7 +388,9 @@ impl<'a> InstallRuleset<'a> {
             .and_then(|rule| rule.map_file(path, package).map(|path| (path, rule)))
     }
 
-    /// Returns `true` if the path matches the exclude glob set.
+    /// Returns `true` if the path matches the exclude glob set and should not be installed.
+    ///
+    /// This is automatically checked by [`map_file`](InstallRuleset::map_file) and [`map_file_and_return_rule`](InstallRuleset::map_file_and_return_rule).
     pub fn is_excluded(&self, path: impl AsRef<Path>) -> bool {
         self.exclude
             .as_ref()
@@ -280,7 +412,7 @@ impl OwnedInstallRuleset {
         Self::with_rules(rules, default_rule_index)
     }
 
-    /// Creates an `OwnedInstallRuleset` from a vector of rules.
+    /// Creates an [`OwnedInstallRuleset`] from a vector of rules.
     ///
     /// Returns `None` if `default_rule_index` is out of bounds.
     pub fn with_rules(rules: Vec<InstallRule>, default_rule_index: Option<usize>) -> Option<Self> {
@@ -295,7 +427,7 @@ impl OwnedInstallRuleset {
         })
     }
 
-    /// Sets an exclude glob set using builder pattern.
+    /// Sets an exclude glob set.
     pub fn with_exclude(mut self, exclude: GlobSet) -> Self {
         self.exclude = Some(exclude);
         self

@@ -4,7 +4,8 @@
 //! [`sqlite::SqliteIndex`] as storage backends for package indexes
 //! fetched from the thunderstore API.
 
-use loadsmith_core::{Dependency, PackageId, VersionReq};
+use loadsmith_core::{PackageId, VersionReq};
+use loadsmith_registry::Dependency;
 use thunderstore::VersionIdent;
 
 use crate::PackageIdExt;

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use camino::Utf8Path;
-use loadsmith_install::{InstallRuleset, OwnedInstallRuleset, RouteRule};
+use loadsmith_install::rule::{InstallRuleset, OwnedInstallRuleset, RouteRule};
 
 use crate::{BepInEx, LaunchArgs, LaunchContext, Loader, Result};
 

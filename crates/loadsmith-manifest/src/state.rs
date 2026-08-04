@@ -6,7 +6,7 @@ use std::{
 
 use camino::Utf8PathBuf;
 use loadsmith_core::{Checksum, InstalledPackage, PackageId, PackageRef};
-use loadsmith_install::InstallRuleset;
+use loadsmith_install::rule::InstallRuleset;
 use serde::{Deserialize, Serialize};
 
 use crate::{

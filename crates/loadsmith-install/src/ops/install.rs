@@ -10,8 +10,8 @@ use tracing::{debug, trace};
 use walkdir::WalkDir;
 
 use crate::{
-    InstallRule, InstallRuleset,
     error::{Error, Result},
+    rule::{InstallRule, InstallRuleset},
 };
 
 /// Install a package's files into a game profile directory.

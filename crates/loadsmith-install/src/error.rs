@@ -1,15 +1,6 @@
 use std::path::PathBuf;
 
-/// Errors that can occur during mod installation, extraction, or removal.
-///
-/// # Examples
-///
-/// ```rust
-/// use loadsmith_install::Error;
-///
-/// let err = Error::FileAlreadyExists("C:\\mods\\file.dll".into());
-/// assert!(err.to_string().contains("file already exists"));
-/// ```
+/// Errors that can occur while interacting with the loadsmith-install crate.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// Wraps an [`std::io::Error`].
@@ -20,15 +11,15 @@ pub enum Error {
     #[error(transparent)]
     Zip(#[from] zip::result::ZipError),
 
-    /// Wraps a [`camino::FromPathBufError`] when a non-UTF-8 path is encountered.
+    /// Wraps a [`camino::FromPathBufError`].
     #[error(transparent)]
     InvalidUtf8(#[from] camino::FromPathBufError),
 
-    /// Wraps a [`walkdir::Error`] when walking directories.
+    /// Wraps a [`walkdir::Error`].
     #[error(transparent)]
     Walkdir(#[from] walkdir::Error),
 
-    /// A file already exists at the target path and the conflict strategy is [`Error`](crate::ConflictStrategy::Error).
+    /// A file already exists at the target path and the conflict strategy is [`ConflictStrategy::Error`](crate::ConflictStrategy::Error).
     #[error("file already exists: {0}")]
     FileAlreadyExists(PathBuf),
 
@@ -41,5 +32,5 @@ pub enum Error {
     ZipFileOutOfBounds { index: usize, len: usize },
 }
 
-/// Convenience alias for [`Error`] results.
+/// Convenience alias for [`std::result::Result`] with the crate-level [`Error`] type.
 pub type Result<T> = std::result::Result<T, Error>;

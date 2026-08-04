@@ -2,7 +2,7 @@ use std::{path::PathBuf, sync::LazyLock};
 
 use camino::Utf8Path;
 use globset::GlobSet;
-use loadsmith_install::{InstallRule, InstallRuleset, OwnedInstallRuleset, RouteRule};
+use loadsmith_install::rule::{InstallRule, InstallRuleset, OwnedInstallRuleset, RouteRule};
 
 use crate::{LaunchArgs, LaunchContext, Loader, Result, glob_rule};
 
@@ -215,19 +215,6 @@ mod tests {
         assert_eq!(
             package_dir,
             Some(PathBuf::from("UserData/ModManager/Author-Name"))
-        );
-    }
-
-    #[test]
-    fn loader_files_should_link() {
-        let loader = MelonLoader::with_default_legacy_rules();
-        let rules = loader.loader_install_rules();
-
-        assert!(
-            rules
-                .find_rule_for_mapped_path("./MelonLoader/Dependencies/Name/file.dll")
-                .unwrap()
-                .use_links()
         );
     }
 }

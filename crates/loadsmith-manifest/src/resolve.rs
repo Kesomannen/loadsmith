@@ -1,7 +1,7 @@
 use std::collections::{HashSet, VecDeque};
 
-use loadsmith_core::{Dependency, PackageId, PackageRef};
-use loadsmith_registry::RegistrySet;
+use loadsmith_core::{PackageId, PackageRef};
+use loadsmith_registry::{Dependency, RegistrySet};
 use tracing::{instrument, trace};
 
 use crate::{
@@ -193,7 +193,7 @@ fn validate_locked_package<'a>(
 mod tests {
     use std::collections::HashMap;
 
-    use loadsmith_core::{Dependency, FileUrl, Version, VersionReq};
+    use loadsmith_core::{FileUrl, Version, VersionReq};
     use loadsmith_registry::offline::{OfflineRegistry, Package, PackageVersion};
 
     use super::*;

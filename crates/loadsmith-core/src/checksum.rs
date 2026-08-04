@@ -12,29 +12,34 @@ use walkdir::WalkDir;
 
 use crate::{Error, Result};
 
-/// A checksum value computed with a recognised algorithm (BLAKE3 or SHA-256).
+/// A checksum paired with its algorithm.
 ///
-/// ```rust
+/// This type is most commonly used to verify the integrity of downloaded files, or to detect
+/// changes in local files. It can be serialized to and from a string in the format `<algorithm>:<hex>`.
+///
+/// Currently supported algorithms are:
+/// - `blake3` via the [blake3](https://docs.rs/blake3) crate
+/// - `sha256` via the [sha2](https://docs.rs/sha2) crate
+///
+/// # Example
+///
+/// ```
 /// # use loadsmith_core::{Checksum, ChecksumAlgorithm};
 /// # use std::io::Cursor;
-/// let data = Cursor::new(b"BepInExPack_Valheim-5.4.2202.zip contents");
+/// let data = Cursor::new(b"Zip contents");
 /// let ck = Checksum::compute(data, ChecksumAlgorithm::Blake3).unwrap();
-/// assert_eq!(ck.algorithm().to_string(), "blake3");
+/// assert_eq!(ck.to_string(), "blake3:582ad7bf0b1299d3aee6da2516fb239ef7bc3f78baa0f7a05c9f3ea792d27ff8");
 ///
-/// let as_str = ck.to_string();
-/// let parsed: Checksum = as_str.parse().unwrap();
-/// assert_eq!(ck, parsed);
-///
-/// let ck = Checksum::from_value_str(
-///     "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-///     ChecksumAlgorithm::Sha256,
-/// ).unwrap();
-/// assert_eq!(ck.algorithm().to_string(), "sha256");
+/// let data = Cursor::new(b"Zip contents");
+/// let ck = Checksum::compute(data, ChecksumAlgorithm::Sha256).unwrap();
+/// assert_eq!(ck.to_string(), "sha256:04f7859a5dc37527884519dd077adfac39b34b7878c058e7a870aa09320ecd7c");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(into = "String", try_from = "String")]
 pub enum Checksum {
+    /// A Blake3 checksum, stored as a [`blake3::Hash`].
     Blake3(blake3::Hash),
+    /// A SHA256 checksum, stored as a raw 32-byte array.
     Sha256([u8; 32]),
 }
 
@@ -42,29 +47,33 @@ pub enum Checksum {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "lowercase")]
 pub enum ChecksumAlgorithm {
+    /// The [blake3] algorithm.
     Blake3,
+    /// The [SHA256](sha2) algorithm.
     Sha256,
 }
 
 impl Checksum {
-    /// Create a `Checksum::Blake3` from an already-computed `blake3::Hash`.
+    /// Create a [`Checksum::Blake3`] from an already-computed [`blake3::Hash`].
     pub fn blake3(hash: blake3::Hash) -> Self {
         Self::from(hash)
     }
 
-    /// Create a `Checksum::Sha256` from a raw 32-byte array.
+    /// Create a [`Checksum::Sha256`] from a raw 32-byte array.
     pub fn sha256(hash: [u8; 32]) -> Self {
         Self::Sha256(hash)
     }
 
     /// Compute a checksum by reading a byte stream with the chosen algorithm.
     ///
-    /// ```rust
+    /// # Example
+    ///
+    /// ```
     /// # use loadsmith_core::{Checksum, ChecksumAlgorithm};
     /// # use std::io::Cursor;
     /// let data = Cursor::new(b"some mod archive data");
     /// let ck = Checksum::compute(data, ChecksumAlgorithm::Sha256).unwrap();
-    /// assert_eq!(ck.algorithm().to_string(), "sha256");
+    /// assert_eq!(ck.to_string(), "sha256:b64e23e341e5927d2bb76de7a89835f646a76480a3884b7334bbf40aa78a8a99");
     /// ```
     pub fn compute<R>(mut reader: R, algorithm: ChecksumAlgorithm) -> std::io::Result<Self>
     where
@@ -88,6 +97,10 @@ impl Checksum {
         }
     }
 
+    /// Compute a checksum from a file or directory at the given path.
+    ///
+    /// If the path is a directory, the checksum is computed by hashing the names and contents of all
+    /// files in the directory recursively in a stable order.
     pub fn compute_from_path(
         path: impl AsRef<Path>,
         algorithm: ChecksumAlgorithm,
@@ -145,15 +158,24 @@ impl Checksum {
         }
     }
 
-    /// Return a wrapper that displays only the hex portion (no algorithm prefix).
+    /// Return a wrapper that implements [`Display`] for the hex-only portion of this checksum, without the algorithm prefix.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use loadsmith_core::{Checksum, ChecksumAlgorithm};
+    /// # use std::io::Cursor;
+    /// let data = Cursor::new(b"Zip contents");
+    /// let ck = Checksum::compute(data, ChecksumAlgorithm::Blake3).unwrap();
+    /// assert_eq!(ck.without_algorithm().to_string(), "582ad7bf0b1299d3aee6da2516fb239ef7bc3f78baa0f7a05c9f3ea792d27ff8");
+    /// ```
     pub fn without_algorithm(&self) -> WithoutAlgorithm<'_> {
         WithoutAlgorithm(self)
     }
 
     /// Parse a checksum from a raw hex string with an explicit algorithm.
     ///
-    /// Useful when the algorithm and value are stored separately, or when
-    /// you have already split `"<algo>:<hex>"` yourself.
+    /// Useful when the algorithm and value are stored separately.
     ///
     /// ```rust
     /// # use loadsmith_core::{Checksum, ChecksumAlgorithm};
@@ -236,7 +258,7 @@ impl FromStr for ChecksumAlgorithm {
     }
 }
 
-/// The hex-only portion of a [`Checksum`] (no algorithm prefix).
+/// The hex-only portion of a [`Checksum`], without the algorithm prefix.
 ///
 /// Created via [`Checksum::without_algorithm`].
 pub struct WithoutAlgorithm<'a>(&'a Checksum);

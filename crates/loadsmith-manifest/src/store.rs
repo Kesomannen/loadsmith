@@ -6,7 +6,7 @@ use std::{
 
 use camino::Utf8PathBuf;
 use loadsmith_core::{Checksum, InstalledPackage, PackageId, PackageRef, Version};
-use loadsmith_install::InstallRuleset;
+use loadsmith_install::rule::InstallRuleset;
 use walkdir::WalkDir;
 
 use crate::{Error, Result};

@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use camino::Utf8Path;
 use globset::{Glob, GlobSet};
-use loadsmith_install::{OwnedInstallRuleset, RouteRule};
+use loadsmith_install::rule::{OwnedInstallRuleset, RouteRule};
 use loadsmith_loader::{
     BepInEx, GDWeave, Lovely, MelonLoader, Northstar, ReturnOfModding, Rivet, Shimloader,
 };
@@ -157,7 +157,7 @@ fn convert_ruleset(config: &schema::R2ModmanConfig) -> Result<OwnedInstallRulese
 fn rule_to_loadsmith(
     rule: &schema::InstallRule,
     prefix: &Utf8Path,
-) -> Result<Vec<loadsmith_install::InstallRule>> {
+) -> Result<Vec<loadsmith_install::rule::InstallRule>> {
     use schema::TrackingMethod;
 
     if rule.tracking_method == TrackingMethod::PackageZip {
@@ -201,7 +201,7 @@ fn rule_to_loadsmith(
     let target = prefix.join(&rule.route);
     let new_prefix = prefix.join(&name);
 
-    let root_rule = loadsmith_install::InstallRule::Route(
+    let root_rule = loadsmith_install::rule::InstallRule::Route(
         RouteRule::new_with_target(name, target)
             .with_file_extensions(extensions)
             .with_subdir(subdir)

@@ -6,10 +6,10 @@ use std::{
 use anyhow::{Context, anyhow};
 use bytes::Bytes;
 use loadsmith::{
-    Checksum, ChecksumAlgorithm, InstallRuleset, InstalledPackage, PackageRef,
-    thunderstore::PackageRefExt,
+    Checksum, ChecksumAlgorithm, InstalledPackage, PackageRef, thunderstore::PackageRefExt,
 };
 use loadsmith_core::Version;
+use loadsmith_install::rule::InstallRuleset;
 use serde::{Deserialize, Serialize};
 use tempfile::TempDir;
 use walkdir::WalkDir;

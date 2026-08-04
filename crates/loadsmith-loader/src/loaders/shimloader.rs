@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::LazyLock, vec};
 
-use loadsmith_install::{InstallRule, InstallRuleset, OwnedInstallRuleset, RouteRule};
+use loadsmith_install::rule::{InstallRule, InstallRuleset, OwnedInstallRuleset, RouteRule};
 
 use crate::{LaunchArgs, LaunchContext, Loader, Result, glob_rule};
 

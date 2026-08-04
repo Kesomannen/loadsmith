@@ -6,30 +6,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::ConflictStrategy;
 
-/// A route-based install rule that maps files by directory name and file extension.
+/// A highly configurable route-based install rule.
 ///
-/// A `RouteRule` looks for a named directory component in the input path and maps
-/// the remaining suffix into the target directory. File extensions can be used as
-/// an additional matching criterion.
-///
-/// # Examples
-///
-/// ```rust
-/// use camino::Utf8PathBuf;
-/// use loadsmith_core::{PackageRef, PackageId, Version};
-/// use loadsmith_install::RouteRule;
-///
-/// let rule = RouteRule::new_static("BepInEx\\plugins")
-///     .with_file_extension("dll");
-/// let pkg = PackageRef::new(PackageId::new("x753-More_Suits"), Version::new(1, 0, 3));
-///
-/// assert!(rule.matches("MyPlugin.dll"));
-/// assert!(rule.matches_path("BepInEx\\plugins\\MyPlugin.dll"));
-/// assert_eq!(
-///     rule.map_file("plugins\\MyPlugin.dll", &pkg),
-///     Some(Utf8PathBuf::from("BepInEx\\plugins\\x753-More_Suits\\MyPlugin.dll"))
-/// );
-/// ```
+/// This is designed to cover
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RouteRule {
     name: Cow<'static, str>,

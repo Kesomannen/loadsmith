@@ -2,7 +2,7 @@ use std::{path::PathBuf, sync::LazyLock};
 
 use camino::Utf8Path;
 use globset::GlobBuilder;
-use loadsmith_install::{GlobRule, InstallRule, InstallRuleset};
+use loadsmith_install::rule::{GlobRule, InstallRule, InstallRuleset};
 
 use crate::{LaunchArgs, LaunchContext, Loader, Result, glob_rule};
 

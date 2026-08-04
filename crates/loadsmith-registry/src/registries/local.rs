@@ -1,12 +1,12 @@
 use std::{fs::File, io::BufReader, path::Path, pin::Pin};
 
 use camino::Utf8PathBuf;
-use loadsmith_core::{Dependency, PackageId, PackageRef, Version, VersionReq};
+use loadsmith_core::{PackageId, PackageRef, Version, VersionReq};
 use serde::Deserialize;
 use thunderstore::VersionIdent;
 use tracing::debug;
 
-use crate::{Error, Registry, ResolvedVersion, Result, VersionInfo};
+use crate::{Dependency, Error, Registry, ResolvedVersion, Result, VersionInfo};
 
 /// A registry that reads package data from the local filesystem.
 ///

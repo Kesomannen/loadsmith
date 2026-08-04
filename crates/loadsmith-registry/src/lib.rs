@@ -32,8 +32,9 @@
 
 use std::{collections::HashMap, fmt::Debug, pin::Pin};
 
-use loadsmith_core::{Checksum, Dependency, FileUrl, PackageId, PackageRef, Version};
+use loadsmith_core::{Checksum, FileUrl, PackageId, PackageRef, Version, VersionReq};
 use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 
 mod error;
 
@@ -255,4 +256,61 @@ pub fn read_metadata<T: DeserializeOwned>(metadata: Option<&serde_json::Value>) 
 
 fn read_metadata_some<T: DeserializeOwned>(metadata: &serde_json::Value) -> Result<T> {
     serde_json::from_value(metadata.clone()).map_err(Error::InvalidMetadata)
+}
+
+/// A declared dependency on another package.
+///
+/// # Example
+///
+/// ```
+/// # use loadsmith_core::{Dependency, VersionReq};
+/// let dep = Dependency::new(
+///     "x753-More_Suits",
+///     VersionReq::parse(">=1.0").unwrap(),
+///     "thunderstore",
+/// );
+/// assert_eq!(dep.id.as_str(), "x753-More_Suits");
+///
+/// let dep = dep.with_registry_metadata(
+///     serde_json::json!({"website_url": "https://thunderstore.io/c/valheim/"}),
+/// );
+/// assert!(dep.registry_metadata.is_some());
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Dependency {
+    pub id: PackageId,
+    pub version_req: VersionReq,
+    pub source: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub registry_metadata: Option<serde_json::Value>,
+}
+
+impl Dependency {
+    /// Create a new dependency with the given identifier, version
+    /// requirement, and source string.
+    pub fn new(
+        id: impl Into<PackageId>,
+        version_req: impl Into<VersionReq>,
+        source: impl Into<String>,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            version_req: version_req.into(),
+            source: source.into(),
+            registry_metadata: None,
+        }
+    }
+
+    /// Attach registry-specific metadata to this dependency.
+    ///
+    /// ```rust
+    /// # use loadsmith_core::{Dependency, VersionReq};
+    /// let dep = Dependency::new("denikson-BepInExPack_Valheim", VersionReq::STAR, "thunderstore")
+    ///     .with_registry_metadata(serde_json::json!({"key": "val"}));
+    /// assert_eq!(dep.registry_metadata.unwrap()["key"], "val");
+    /// ```
+    pub fn with_registry_metadata(mut self, metadata: impl Into<serde_json::Value>) -> Self {
+        self.registry_metadata = Some(metadata.into());
+        self
+    }
 }

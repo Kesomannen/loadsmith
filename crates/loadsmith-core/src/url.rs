@@ -8,22 +8,22 @@ use crate::{Error, Result};
 
 /// A URL or local file path that points to a package source.
 ///
-/// The parser accepts both proper URLs (`"https://..."`) and `file://`
-/// prefixed local paths.
+/// URL sources are formatted as is, whereas local file paths are prefixed with `file://`.
 ///
-/// ```rust
+/// # Example
+///
+/// ```
 /// # use loadsmith_core::FileUrl;
-/// let url = FileUrl::try_from_url(
-///     "https://thunderstore.io/package/download/denikson/BepInExPack_Valheim/5.4.2202/",
-/// ).unwrap();
-/// assert!(url.to_string().starts_with("https://"));
+/// # use std::assert_matches;
+/// let url: FileUrl = "https://thunderstore.io/package/download/x753/Mimics/0.7.0"
+///     .parse()
+///     .unwrap();
+/// assert_matches!(url, FileUrl::Url(_));
 ///
-/// let local: FileUrl = "file:///home/user/.config/loadsmith/cache/BepInExPack_Valheim-5.4.2202.zip"
-///     .parse().unwrap();
-/// assert_eq!(
-///     local.to_string(),
-///     "file:///home/user/.config/loadsmith/cache/BepInExPack_Valheim-5.4.2202.zip",
-/// );
+/// let local: FileUrl = "file:///home/user/.config/cache/x753-Mimics-0.7.0"
+///     .parse()
+///     .unwrap();
+/// assert_matches!(local, FileUrl::Path(_));
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(into = "String", try_from = "String")]
@@ -33,15 +33,17 @@ pub enum FileUrl {
 }
 
 impl FileUrl {
-    /// Parse a string as a proper URL.
+    /// Parse a remote URL string into a [`FileUrl`].
     ///
-    /// This does not recognise `file://` prefixes. To handle both forms,
-    /// use [`FromStr`](str::parse) instead.
-    ///
-    /// ```rust
+    /// ```
     /// # use loadsmith_core::FileUrl;
-    /// let url = FileUrl::try_from_url("https://thunderstore.io/api/v1/package/").unwrap();
-    /// assert!(url.to_string().starts_with("https://"));
+    /// # use std::assert_matches;
+    /// let url = FileUrl::try_from_url("https://thunderstore.io/api/v1/package/");
+    /// assert_matches!(url, Ok(FileUrl::Url(_)));
+    ///
+    /// // Does not support local file paths, use `FileUrl::from_str` instead.
+    /// let url = FileUrl::try_from_url("file://x753-Mimics-0.7.0");
+    /// assert_matches!(url, Err(_));
     /// ```
     pub fn try_from_url(s: &str) -> Result<Self> {
         let url = Url::parse(s)?;

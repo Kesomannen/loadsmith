@@ -1,9 +1,9 @@
 use std::{collections::HashMap, pin::Pin};
 
-use loadsmith_core::{Checksum, Dependency, FileUrl, PackageId, PackageRef, Version};
+use loadsmith_core::{Checksum, FileUrl, PackageId, PackageRef, Version};
 use serde::{Deserialize, Serialize};
 
-use crate::{Error, Registry, ResolvedVersion, Result, VersionInfo};
+use crate::{Dependency, Error, Registry, ResolvedVersion, Result, VersionInfo};
 
 /// A package definition used with [`OfflineRegistry`].
 ///

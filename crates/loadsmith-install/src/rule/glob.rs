@@ -55,10 +55,10 @@ impl GlobRule {
     /// Returns a [`globset::Error`] if the pattern is invalid.
     pub fn try_from_pattern(
         pattern: impl AsRef<str>,
-        target: impl Into<Cow<'static, Utf8Path>>,
+        target: impl Into<Utf8PathBuf>,
     ) -> Result<Self, globset::Error> {
         let pattern = GlobBuilder::new(pattern.as_ref()).build()?;
-        Ok(Self::new(pattern, target))
+        Ok(Self::new(pattern, Cow::Owned(target.into())))
     }
 
     /// Strips the top-level directory component from paths before mapping.

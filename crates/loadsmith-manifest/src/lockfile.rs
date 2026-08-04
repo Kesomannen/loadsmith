@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use loadsmith_core::{Checksum, Dependency, FileUrl, PackageId, PackageRef};
+use loadsmith_core::{Checksum, FileUrl, PackageId, PackageRef};
+use loadsmith_registry::Dependency;
 use serde::{Deserialize, Serialize};
 
 use crate::{Diff, Diffable, PackageStoreEntry};

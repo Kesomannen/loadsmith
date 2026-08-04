@@ -1,9 +1,19 @@
+//! Abstractions over zip files.
+//!
+//! This module contains the [`Zip`] and [`ZipFile`] traits, as well as implementations for the [zip] crate.
+//! This is mainly used to allow for mocking zip files in tests, and to allow for different zip implementations.
+//!
+//! The traits are currently sealed, meaning external crates cannot implement them.
+
 use std::io::Read;
 
 use camino::Utf8PathBuf;
 
 use crate::Result;
 
+/// An abstraction over zip archives.
+///
+/// See the [module level documentation](self) for more information.
 pub trait Zip {
     type File<'a>: ZipFile
     where
@@ -13,6 +23,9 @@ pub trait Zip {
     fn by_index<'a>(&'a mut self, index: usize, _: private::Token) -> Result<Self::File<'a>>;
 }
 
+/// An abstraction over a file in a zip archive.
+///
+/// See the [module level documentation](self) for more information.
 pub trait ZipFile: Read {
     fn is_dir(&self, _: private::Token) -> bool;
     fn path(&self, _: private::Token) -> Result<Utf8PathBuf>;
@@ -145,7 +158,7 @@ pub(crate) mod mock {
     }
 }
 
-/// Zip trait implementation for the `zip` crate
+/// [`Zip`] and [`ZipFile`] implementations for the [zip] crate.
 mod zip_crate {
     use camino::Utf8PathBuf;
     use std::io::{Read, Seek};

@@ -4,7 +4,7 @@ use std::{
 };
 
 use loadsmith_core::PackageRef;
-use loadsmith_install::InstallRuleset;
+use loadsmith_install::rule::InstallRuleset;
 use loadsmith_loader::{
     BepInEx, BepisLoader, GDWeave, Loader, Lovely, MelonLoader, Northstar, ReturnOfModding, Rivet,
     Shimloader,
