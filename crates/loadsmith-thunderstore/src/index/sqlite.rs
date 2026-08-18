@@ -8,7 +8,7 @@ use chrono::{DateTime, Utc};
 use futures::{TryStreamExt, pin_mut};
 use loadsmith_core::{PackageId, PackageRef, Version};
 use parking_lot::Mutex;
-use rusqlite::OptionalExtension;
+use rusqlite::{OptionalExtension, Transaction};
 use thunderstore::VersionIdent;
 use tracing::{debug, trace};
 
@@ -52,6 +52,7 @@ pub struct SqliteIndex {
 pub struct CommunityMetadata {
     pub community: String,
     pub last_updated: Option<DateTime<Utc>>,
+    update_version: i32,
 }
 
 impl SqliteIndex {
@@ -65,9 +66,9 @@ impl SqliteIndex {
     /// use thunderstore::Client;
     ///
     /// let db = rusqlite::Connection::open_in_memory().unwrap();
-    /// let index = SqliteIndex::connect(Client::new(), db).unwrap();
+    /// let index = SqliteIndex::open(Client::new(), db).unwrap();
     /// ```
-    pub fn connect(client: thunderstore::Client, db: rusqlite::Connection) -> Result<Self> {
+    pub fn new(client: thunderstore::Client, db: rusqlite::Connection) -> Result<Self> {
         db.execute_batch(include_str!("queries/create_schema.sql"))?;
         Ok(Self {
             client,
@@ -90,7 +91,12 @@ impl SqliteIndex {
     pub fn open(client: thunderstore::Client, db_path: impl AsRef<Path>) -> Result<Self> {
         let db = rusqlite::Connection::open(db_path)?;
         db.pragma_update(None, "journal_mode", "WAL")?;
-        Self::connect(client, db)
+        Self::new(client, db)
+    }
+
+    pub fn in_memory(client: thunderstore::Client) -> Result<Self> {
+        let db = rusqlite::Connection::open_in_memory()?;
+        Self::new(client, db)
     }
 
     /// Returns metadata about a community, including the last update time.
@@ -103,8 +109,7 @@ impl SqliteIndex {
     /// use loadsmith_thunderstore::sqlite::SqliteIndex;
     /// use thunderstore::Client;
     ///
-    /// let db = rusqlite::Connection::open_in_memory().unwrap();
-    /// let index = SqliteIndex::connect(Client::new(), db).unwrap();
+    /// let index = SqliteIndex::in_memory(Client::new()).unwrap();
     /// let meta = index.community_metadata("rounds").unwrap();
     /// assert!(meta.is_none());
     /// ```
@@ -123,10 +128,12 @@ impl SqliteIndex {
                     .map(|s| DateTime::parse_from_rfc3339(&s).map(|dt| dt.with_timezone(&Utc)))
                     .transpose()
                     .unwrap();
+                let update_version: i32 = row.get(2)?;
 
                 Ok(CommunityMetadata {
                     community,
                     last_updated,
+                    update_version,
                 })
             })
             .optional()?;
@@ -136,14 +143,16 @@ impl SqliteIndex {
 
     fn set_community_metadata(
         &self,
-        community: impl AsRef<str>,
-        last_updated: Option<DateTime<Utc>>,
+        transaction: &mut Transaction,
+        metadata: &CommunityMetadata,
     ) -> Result<()> {
-        let db = self.db.lock();
-
-        db.execute(
-            "insert or replace into community_meta (community, last_updated) values (?1, ?2)",
-            rusqlite::params![community.as_ref(), last_updated.map(|dt| dt.to_rfc3339())],
+        transaction.execute(
+            "insert or replace into community_meta (community, last_updated, update_version) values (?1, ?2, ?3)",
+            rusqlite::params![
+                metadata.community,
+                metadata.last_updated.map(|dt| dt.to_rfc3339()),
+                metadata.update_version
+            ],
         )?;
 
         Ok(())
@@ -160,8 +169,7 @@ impl SqliteIndex {
     /// use loadsmith_thunderstore::sqlite::SqliteIndex;
     /// use thunderstore::Client;
     ///
-    /// let db = rusqlite::Connection::open_in_memory().unwrap();
-    /// let index = SqliteIndex::connect(Client::new(), db).unwrap();
+    /// let index = SqliteIndex::in_memory(Client::new()).unwrap();
     /// let rt = tokio::runtime::Runtime::new().unwrap();
     /// rt.block_on(async {
     ///     index.update("lethal-company").await.unwrap();
@@ -172,29 +180,46 @@ impl SqliteIndex {
 
         debug!(community, "fetching package index from thunderstore");
 
+        let stream = self.client.stream_package_index_v1(community).await?;
+        pin_mut!(stream);
+
+        self.update_from_stream(
+            community,
+            stream.map_err(|err| crate::Error::Thunderstore(err)),
+        )
+        .await?;
+
+        Ok(())
+    }
+
+    async fn update_from_stream<S, I>(&self, community: &str, mut stream: S) -> Result<()>
+    where
+        S: futures::Stream<Item = Result<I>> + Unpin,
+        I: IntoIterator<Item = thunderstore::models::PackageV1>,
+        I::IntoIter: ExactSizeIterator,
+    {
         let mut start = Instant::now();
         let mut time_waiting = Duration::ZERO;
 
-        let stream = self.client.stream_package_index_v1(community).await?;
-        pin_mut!(stream);
+        let metadata = self.community_metadata(community)?;
+        let update_version = metadata.map(|m| m.update_version + 1).unwrap_or(1);
 
         time_waiting += start.elapsed();
         start = Instant::now();
 
         while let Some(batch) = stream.try_next().await? {
-            trace!(len = batch.len(), waited = ?start.elapsed(), "received package batch");
+            let iter = batch.into_iter();
+
+            trace!(len = iter.len(), waited = ?start.elapsed(), "received package batch");
 
             time_waiting += start.elapsed();
             start = Instant::now();
 
             let mut db = self.db.lock();
-            let tx = db.transaction()?;
+            let mut tx = db.transaction()?;
 
-            for package in batch {
-                tx.execute(
-                    "insert or replace into packages (community, package_id, package) values (?1, ?2, ?3)",
-                    rusqlite::params![community, package.ident.as_str(), serde_json::to_string(&package)?],
-                )?;
+            for package in iter {
+                self.insert_package(&mut tx, community, &package, update_version)?;
             }
 
             tx.commit()?;
@@ -207,12 +232,60 @@ impl SqliteIndex {
             start = Instant::now();
         }
 
-        self.set_community_metadata(community, Some(Utc::now()))?;
+        let mut db = self.db.lock();
+        let mut tx = db.transaction()?;
+
+        self.sweep_community(&mut tx, community, update_version)?;
+
+        self.set_community_metadata(
+            &mut tx,
+            &CommunityMetadata {
+                community: community.to_string(),
+                last_updated: Some(Utc::now()),
+                update_version,
+            },
+        )?;
+
+        tx.commit()?;
 
         debug!(
             total_time_waiting = ?time_waiting,
             "finished fetching package index from thunderstore"
         );
+
+        Ok(())
+    }
+
+    fn insert_package(
+        &self,
+        tx: &mut Transaction,
+        community: &str,
+        package: &thunderstore::models::PackageV1,
+        update_version: i32,
+    ) -> Result<()> {
+        tx.execute(
+            include_str!("queries/insert_package.sql"),
+            rusqlite::params![
+                community,
+                package.ident.as_str(),
+                serde_json::to_string(package)?,
+                update_version
+            ],
+        )?;
+
+        Ok(())
+    }
+
+    fn sweep_community(
+        &self,
+        tx: &mut Transaction,
+        community: &str,
+        update_version: i32,
+    ) -> Result<()> {
+        tx.execute(
+            "delete from packages where community = ?1 and update_version < ?2",
+            rusqlite::params![community, update_version],
+        )?;
 
         Ok(())
     }
@@ -226,8 +299,7 @@ impl SqliteIndex {
     /// use loadsmith_thunderstore::sqlite::SqliteIndex;
     /// use thunderstore::Client;
     ///
-    /// let db = rusqlite::Connection::open_in_memory().unwrap();
-    /// let index = SqliteIndex::connect(Client::new(), db).unwrap();
+    /// let index = SqliteIndex::in_memory(Client::new()).unwrap();
     /// let versions = index.version_info(&PackageId::new("Author-Pkg")).unwrap();
     /// ```
     pub fn version_info(
@@ -262,8 +334,7 @@ impl SqliteIndex {
     /// use loadsmith_thunderstore::sqlite::SqliteIndex;
     /// use thunderstore::Client;
     ///
-    /// let db = rusqlite::Connection::open_in_memory().unwrap();
-    /// let index = SqliteIndex::connect(Client::new(), db).unwrap();
+    /// let index = SqliteIndex::in_memory(Client::new()).unwrap();
     /// let resolved = index
     ///     .resolve(&PackageRef::new(
     ///         PackageId::new("Author-Pkg"),
@@ -318,8 +389,7 @@ impl SqliteIndex {
     /// use loadsmith_thunderstore::sqlite::SqliteIndex;
     /// use thunderstore::Client;
     ///
-    /// let db = rusqlite::Connection::open_in_memory().unwrap();
-    /// let index = SqliteIndex::connect(Client::new(), db).unwrap();
+    /// let index = SqliteIndex::in_memory(Client::new()).unwrap();
     /// let results = index.search_packages("BepInEx", Some("rounds")).unwrap();
     /// ```
     pub fn search_packages(&self, query: &str, community: Option<&str>) -> Result<Vec<PackageId>> {
@@ -342,16 +412,43 @@ impl SqliteIndex {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+
     use super::*;
+
+    #[tokio::test]
+    async fn update_sweeps_removed_packages() {
+        let index = SqliteIndex::in_memory(thunderstore::Client::new()).unwrap();
+
+        let package_id = PackageId::new("Kesomannen-GaleModManager");
+
+        let package_json = include_str!("../../fixtures/package-Kesomannen-GaleModManager.json");
+        let package: thunderstore::models::PackageV1 = serde_json::from_str(package_json).unwrap();
+
+        // insert a package into the index with a single batch
+        index
+            .update_from_stream("game", futures::stream::iter([Ok([package])]))
+            .await
+            .unwrap();
+
+        // the package now exists
+        assert_matches!(index.version_info(&package_id), Ok(Some(_)));
+
+        // simulate the package being removed from thunderstore by sending an empty batch
+        index
+            .update_from_stream("game", futures::stream::iter([Ok([])]))
+            .await
+            .unwrap();
+
+        assert_matches!(index.version_info(&package_id), Ok(None));
+    }
 
     #[tokio::test]
     #[ignore]
     async fn fetch_and_resolve_version() {
         const COMMUNITY: &str = "rounds";
 
-        let client = thunderstore::Client::new();
-        let db = rusqlite::Connection::open_in_memory().unwrap();
-        let index = SqliteIndex::connect(client, db).unwrap();
+        let index: SqliteIndex = SqliteIndex::in_memory(thunderstore::Client::new()).unwrap();
 
         assert!(index.community_metadata(COMMUNITY).unwrap().is_none());
 
