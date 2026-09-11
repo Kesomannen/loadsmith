@@ -4,15 +4,43 @@
 //!
 //! An [`InstallRule`] is a single rule that maps files from an in-archive path to an install destination.
 //! A rule can decide whether it should be used for a given path with the [`InstallRule::matches`] method.
-//! However, a rule's [`map_file`](InstallRule::map_file) method may still be called even if the rule does not match.
+//! Then, the [`InstallRule::map_file`] method can be used to map the file to its final install destination
+//! or, if `None` was returned, skip the file.
+//! Note that `map_file` may still be called even if the rule does not match the path, for instance if the rule
+//! is defined as the default rule for a ruleset.
 //!
 //! An [`InstallRuleset`] is a collection of rules that can be used to map files from a package archive to install destinations,
-//! with an optional default rule and options to always exclude certain files.
-//! It is a borrowed view of a ruleset, whereas [`OwnedInstallRuleset`] is the owned version.
+//! with an optional default rule and options to always exclude certain files. It is a borrowed view of a ruleset, whereas
+//! [`OwnedInstallRuleset`] is the owned version.
 //!
-//! The two types of rules are [`GlobRule`] and [`RouteRule`].
+//! Rules operate on a specialized version of file paths called [`Utf8Path`](camino::Utf8Path) and [`Utf8PathBuf`](camino::Utf8PathBuf).
+//! These are guaranteed to be valid UTF-8 and come from the [`camino`] crate.
+//!
+//! Currently, there are two types of rules: [`GlobRule`] and [`RouteRule`].
+//! You can read about their behavior on their respective documentation pages.
 //!
 //! # Examples
+//!
+//! Using a single rule:
+//!
+//! ```
+//! # use loadsmith_core::{PackageRef, PackageId, Version};
+//! # use loadsmith_install::rule::{InstallRule, GlobRule, RouteRule, InstallRuleset};
+//! # use camino::Utf8Path;
+//! // Map files with a `dll` extension to the `plugins` directory.
+//! let rule = InstallRule::Glob(GlobRule::try_from_pattern("*.dll", "plugins").unwrap());
+//!
+//! // `map_file` always requires a `PackageRef` for context, in case the rule is configured to separate files by package name.
+//! // However in this simple case, our rule doesn't care about the package name or version.
+//! let package = PackageRef::new("Author-Name", Version::new(1, 0, 0));
+//!
+//! assert!(rule.matches("MyPlugin.dll"));
+//! assert_eq!(rule.map_file("MyPlugin.dll", &package), Some("plugins/MyPlugin.dll".into()));
+//!
+//! assert!(!rule.matches("config.txt"));
+//! // Even though the rule does not match, it can still be used to map the file.
+//! assert_eq!(rule.map_file("config.txt", &package), Some("plugins/config.txt".into()));
+//! ```
 //!
 //! Normal zip extraction logic with a top-level directory stripped:
 //!
@@ -25,7 +53,6 @@
 //!         GlobRule::try_from_pattern("*", ".")
 //!             .unwrap()
 //!             .strip_top_level(true)
-//!         )
 //!     ),
 //! ];
 //!
@@ -47,7 +74,8 @@
 //! );
 //! ```
 //!
-//! Standard Thunderstore BepInEx plugin installation rules:
+//! If you are familiar with Thunderstore's BepInEx plugin installation rules,
+//! here is an example of how they're modelled with `InstallRule`s and `InstallRuleset`s:
 //!
 //! ```
 //! # use loadsmith_core::{PackageRef, PackageId, Version};
@@ -91,7 +119,7 @@
 //!     ruleset.map_file("config/MyPlugin.cfg", &pkg),
 //!     Some("BepInEx/config/MyPlugin.cfg".into())
 //! );
-//! // matches no rule; falls back to default rule (plugins)
+//! // Matches no rule; falls back to default rule (plugins).
 //! assert_eq!(
 //!     ruleset.map_file("README.md", &pkg),
 //!     Some("BepInEx/plugins/Author-Mod/README.md".into())

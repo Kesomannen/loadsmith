@@ -8,7 +8,112 @@ use crate::ConflictStrategy;
 
 /// A highly configurable route-based install rule.
 ///
-/// This is designed to cover
+/// A rule is defined by two main parameters: the route `name` and `target`. These are usually derived
+/// from the same path, but can be set independently.
+///
+/// The rule will search a given file path case-insensitively for a component matching the route name. If found, the part of
+/// the path before the route name (prelude) is optionally stripped and the remainder is appended to the target path.
+/// Additionally, a subdirectory named after the package's ID may be inserted between the target and the remainder.
+///
+/// Example decomposition of path with a route name of `plugins`:
+///
+/// ```not_rust
+/// MyFolder/BepInEx/plugins/AnotherFolder/ExtraFolder/MyPlugin.dll
+/// |----prelude----|--name-|--------remainder--------|--filename-|
+/// ```
+///
+/// With the default configuration, this path would be mapped to the following install destination:
+///
+/// ```not_rust
+/// BepInEx/plugins/Author-Name/AnotherFolder/ExtraFolder/MyPlugin.dll
+/// |----target----|--subdir--|--------remainder---------|--filename-|
+/// ```
+///
+/// However, this behavior can be heavily customized with the various configuration options available the struct.
+///
+/// ## Background
+///
+/// This struct is designed to cover the installation logic used for mods in most mod loaders/games on the Thunderstore platform.
+/// One example is the BepInEx extraction rules, which is used for a majority of games on the platform, including Lethal Company,
+/// Valheim and R.E.P.O. to name a few. These rules are described in this [r2modman wiki article].
+///
+/// The main motivation behind these rules is to prevent file conflicts between mods, while still
+/// allowing for a good amount of flexibility in how mods are structured and installed.
+///
+/// Take for instance BepInEx. A typical manual BepInEx installation may look like the following:
+///
+/// ```not_rust
+/// <profile/game folder>
+/// |-- BepInEx
+///     |-- plugins
+///     |   |-- MonoMod-Plugin.dll
+///     |   |-- SomeOtherMod.dll
+///     |-- patchers
+///     |   |-- MonoMod-Patcher.dll
+///     |-- core
+///     |   |-- <internal BepInEx files>
+///     |   |-- ModThatRequiresCore.dll
+///     |-- config
+///         |-- BepInEx.cfg
+///         |-- MonoMod.cfg
+/// ```
+///
+/// Say we want a mod manager to install mods in this configuration using standard zip extraction rules.
+/// For example, `ModThatRequiresCore.dll` may be packaged in a zip file like this:
+///
+/// ```not_rust
+/// SomeAuthor-ModThatRequiresCore.zip
+/// |-- BepInEx
+///     |-- core
+///         |-- ModThatRequiresCore.dll
+/// ```
+///
+/// But what happens if another mod also has a file named ModThatRequiresCore.dll?
+///
+/// If the mod manager simply extracts the zip file into the game folder, it will overwrite the existing file and break the already-installed mod.
+/// With route-based rules, the mod manager can instead install the file into a subdirectory named after the mod's package ID, like this:
+///
+/// ```not_rust
+/// <profile/game folder>
+/// |-- BepInEx
+///     |-- plugins
+///     |   |-- SomeAuthor-MonoMod
+///     |   |   |-- MonoMod-Plugin.dll
+///     |   |-- SomeOtherAuthor-SomeOtherMod
+///     |   |   |-- SomeOtherMod.dll
+///     |-- patchers
+///     |   |-- SomeAuthor-MonoMod
+///     |   |   |-- MonoMod-Patcher.dll
+///     |-- core
+///     |   |-- <internal BepInEx files>
+///     |   |-- SomeAuthor-ModThatRequiresCore
+///     |   |   |-- ModThatRequiresCore.dll
+///     |-- config
+///         |-- BepInEx.cfg
+///         |-- MonoMod.cfg
+/// ```
+///
+/// With route rules, we would express this with the following four rules:
+///
+/// ```
+/// # use loadsmith_install::rule::RouteRule;
+/// let plugins_rule = RouteRule::new_static("BepInEx/plugins");
+/// let patchers_rule = RouteRule::new_static("BepInEx/patchers");
+/// let core_rule = RouteRule::new_static("BepInEx/core");
+/// // By default, files are placed with a subdirectory named after the package ID.
+/// // We don't want this for `config` files, disable it specifically for that rule.
+/// let core_rule = RouteRule::new_static("BepInEx/config").with_subdir(false);
+/// ```
+///
+/// This is the basic principle of route-based rules. However, there are many more options available to capture
+/// the nuances of Thunderstore mod installation. See the following methods for more information:
+/// - [`with_file_extension`][RouteRule::with_file_extension]
+/// - [`with_file_extensions`][RouteRule::with_file_extensions]
+/// - [`with_flatten`][RouteRule::with_flatten]
+/// - [`with_subdir`][RouteRule::with_subdir]
+/// - [`with_mutable`][RouteRule::with_mutable]
+///
+/// [r2modman wiki article]: https://github.com/ebkr/r2modmanPlus/wiki/Structuring-your-Thunderstore-package
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RouteRule {
     name: Cow<'static, str>,
@@ -22,12 +127,40 @@ pub struct RouteRule {
 impl RouteRule {
     /// Creates a route rule from a static path string. The rule name is derived
     /// from the last path component.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// # use loadsmith_install::rule::RouteRule;
+    /// let rule = RouteRule::new_static("BepInEx/plugins");
+    /// assert_eq!(rule.name(), "plugins");
+    /// assert_eq!(rule.target(), "BepInEx/plugins");
+    ///
+    /// let rule = RouteRule::new_static("MelonLoader");
+    /// assert_eq!(rule.name(), "MelonLoader");
+    /// assert_eq!(rule.target(), "MelonLoader");
+    /// ```
     pub fn new_static(path: &'static str) -> Self {
         Self::new(Cow::Borrowed(Utf8Path::new(path)))
     }
 
-    /// Creates a route rule from any path. The rule name is derived from the
+    /// Creates a route rule from any 'static or allocated path. The rule name is derived from the
     /// last path component.
+    ///
+    /// If you simply want to create a rule from a static string, use [`new_static`](RouteRule::new_static) instead.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// # use loadsmith_install::rule::RouteRule;
+    /// let mut path = camino::Utf8PathBuf::new();
+    /// path.push("BepInEx");
+    /// path.push("plugins");
+    ///
+    /// let rule = RouteRule::new(path);
+    /// assert_eq!(rule.name(), "plugins");
+    /// assert_eq!(rule.target(), "BepInEx/plugins");
+    /// ```
     pub fn new(path: impl Into<Cow<'static, Utf8Path>>) -> Self {
         let path = path.into();
 
@@ -58,32 +191,155 @@ impl RouteRule {
         }
     }
 
-    /// Adds a file extension to the matching set.
+    /// Returns the route name that triggers a match.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Returns the target path where matched files are installed.
+    pub fn target(&self) -> &Utf8Path {
+        &self.target
+    }
+
+    /// Specify a file extension that will match the rule, in addition to the route name.
+    ///
+    /// This _does not_ change the behaviour of `map_file`, only which paths are said to match the rule.
+    /// This is notable for [`InstallRuleset`](super::InstallRuleset), as it uses this method to determine which rule to apply for a
+    /// given file.
+    ///
+    /// Note that this also _does not_ use `std`s definition of a file extension. [`Path::extension`](std::path::Path::extension)
+    /// and similar methods only return the part after the last dot. `RouteRule`, on the other hand, considers the entire part after
+    /// the first dot in the file name to be the extension.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// # use loadsmith_install::rule::RouteRule;
+    /// // This rule will use `BepInEx/plugins` as the target directory and `plugins` as the route name.
+    /// let rule = RouteRule::new_static("BepInEx/plugins").with_file_extension("dll");
+    ///
+    /// assert!(rule.matches("plugins/MyPlugin.dll"));
+    /// assert!(rule.matches("MyPlugin.dll"));
+    /// // `RouteRule` considers the entire part after the first dot to be the extension.
+    /// assert!(!rule.matches("MyPlugin.mm.dll"));
+    /// assert!(!rule.matches("other.txt"));
     pub fn with_file_extension(mut self, extension: impl Into<Cow<'static, str>>) -> Self {
         self.file_extensions.push(extension.into());
         self
     }
 
-    /// Replaces the entire set of matching file extensions.
+    /// Replaces the list of file extensions that will match the rule.
+    ///
+    /// See [`with_file_extension`](RouteRule::with_file_extension) for more details on extension matching.
     pub fn with_file_extensions(mut self, extensions: Vec<Cow<'static, str>>) -> Self {
         self.file_extensions = extensions;
         self
     }
 
-    /// Sets whether to flatten the mapped path (remove intermediate directories).
+    /// Controls whether the prelude (the part of the path before the route name) is preserved in the output path.
+    ///
+    /// This option is enabled by default.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// # use loadsmith_core::{PackageRef, Version};
+    /// # use loadsmith_install::rule::RouteRule;
+    /// // Flattening is enabled by default.
+    /// let flattening_rule = RouteRule::new_static("BepInEx/plugins");
+    /// let non_flattening_rule = RouteRule::new_static("BepInEx/plugins").with_flatten(false);
+    ///
+    /// let package = PackageRef::new("Author-Name", Version::new(1, 0, 0));
+    ///
+    /// // The `Nested` folder is removed from the output path when flattening is enabled...
+    /// assert_eq!(
+    ///     flattening_rule.map_file("Nested/plugins/MyPlugin.dll", &package),
+    ///     Some("BepInEx/plugins/Author-Name/MyPlugin.dll".into())
+    /// );
+    ///
+    /// // ... but preserved when flattening is disabled.
+    /// assert_eq!(
+    ///     non_flattening_rule.map_file("Nested/plugins/MyPlugin.dll", &package),
+    ///     Some("BepInEx/plugins/Author-Name/Nested/MyPlugin.dll".into())
+    /// );
+    ///
+    /// // The same goes even if the route name is not present in the path.
+    /// assert_eq!(
+    ///     flattening_rule.map_file("not-plugins/MyPlugin.dll", &package),
+    ///     Some("BepInEx/plugins/Author-Name/MyPlugin.dll".into())
+    /// );
+    ///
+    /// assert_eq!(
+    ///     non_flattening_rule.map_file("not-plugins/MyPlugin.dll", &package),
+    ///     Some("BepInEx/plugins/Author-Name/not-plugins/MyPlugin.dll".into())
+    /// );
+    ///
+    /// // Intermediate directories after the route name (the remainder) are preserved even when flattening is enabled.
+    /// assert_eq!(
+    ///     flattening_rule.map_file("plugins/Nested/MyPlugin.dll", &package),
+    ///     Some("BepInEx/plugins/Author-Name/Nested/MyPlugin.dll".into())
+    /// );
+    /// ```
     pub fn with_flatten(mut self, flatten: bool) -> Self {
         self.flatten = flatten;
         self
     }
 
-    /// Sets whether to create a subdirectory named after the package ID inside
-    /// the target directory.
+    /// Controls whether a subdirectory named after the package ID is inserted between the target and the remainder of the path.
+    ///
+    /// This option is enabled by default.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// # use loadsmith_core::{PackageRef, Version};
+    /// # use loadsmith_install::rule::RouteRule;
+    /// // Subdirectory insertion is enabled by default.
+    /// let subdir_rule = RouteRule::new_static("BepInEx/plugins");
+    /// let no_subdir_rule = RouteRule::new_static("BepInEx/plugins").with_subdir(false);
+    ///
+    /// let package = PackageRef::new("Author-Name", Version::new(1, 0, 0));
+    ///
+    /// // An `Author-Name` directory is inserted with subdirectory insertion enabled...
+    /// assert_eq!(
+    ///   subdir_rule.map_file("plugins/MyPlugin.dll", &package),
+    ///   Some("BepInEx/plugins/Author-Name/MyPlugin.dll".into())
+    /// );
+    ///
+    /// // ... with it disabled, files (and directories) are installed directly into the target directory.
+    /// assert_eq!(
+    ///   no_subdir_rule.map_file("plugins/MyPlugin.dll", &package),
+    ///   Some("BepInEx/plugins/MyPlugin.dll".into())
+    /// );
+    /// assert_eq!(
+    ///   no_subdir_rule.map_file("plugins/Nested/MyPlugin.dll", &package),
+    ///   Some("BepInEx/plugins/Nested/MyPlugin.dll".into())
+    /// );
+    /// ```
     pub fn with_subdir(mut self, subdir: bool) -> Self {
         self.subdir = subdir;
         self
     }
 
-    /// Sets whether the rule allows mutable (user-modifiable) files.
+    /// Sets whether the rule excepts files to be mutable (i.e. config files or other user-editable files)
+    /// or immutable (i.e. binaries, libraries, etc.).
+    ///
+    /// This is used to determine whether the rule prefers hard links over file copies. Immutable files are linked,
+    /// while mutable files are copied. Note that the actual behavior depends on the implementation of the install operation;
+    /// this is just a hint to the installer.
+    ///
+    /// This option is disabled by default.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// # use loadsmith_install::rule::RouteRule;
+    /// let mutable_rule = RouteRule::new_static("BepInEx/config").with_mutable(true);
+    /// let immutable_rule = RouteRule::new_static("BepInEx/plugins").with_mutable(false);
+    ///
+    /// assert!(!mutable_rule.use_links());
+    /// assert!(immutable_rule.use_links());
+    /// ```
     pub fn with_mutable(mut self, mutable: bool) -> Self {
         self.mutable = mutable;
         self
@@ -96,6 +352,12 @@ impl RouteRule {
     }
 
     /// Returns `true` if the file name has one of the rule's registered extensions.
+    ///
+    /// Contrary to [`Path::extension`](std::path::Path::extension), this method considers the
+    /// entire part after the first dot in the file name to be the extension.
+    ///
+    /// Extensions can be registered using [`with_file_extension`](RouteRule::with_file_extension) or
+    /// [`with_file_extensions`](RouteRule::with_file_extensions).
     pub fn matches_extension(&self, path: impl AsRef<Utf8Path>) -> bool {
         // check the whole extension, that is everything after the first dot in the file name
         path.as_ref()
@@ -126,12 +388,9 @@ impl RouteRule {
         Some((prefix, suffix))
     }
 
-    /// Maps a file path to its install destination under the rule's target directory.
+    /// Maps a file path to its final install destination.
     ///
-    /// If the path contains the route name, the part before the route name becomes
-    /// the prefix; otherwise the parent directory becomes the prefix. When `subdir`
-    /// is enabled the package ID is inserted as an intermediate directory. When
-    /// `flatten` is disabled the prefix is preserved in the output.
+    /// See the [struct-level documentation](RouteRule) for more information on how the mapping works.
     pub fn map_file(
         &self,
         path: impl AsRef<Utf8Path>,

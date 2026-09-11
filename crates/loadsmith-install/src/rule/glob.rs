@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 /// use camino::{Utf8Path, Utf8PathBuf};
 /// use globset::Glob;
 /// use loadsmith_core::{PackageRef, PackageId, Version};
-/// use loadsmith_install::GlobRule;
+/// use loadsmith_install::rule::GlobRule;
 ///
 /// let rule = GlobRule::try_from_pattern("*.dll", Utf8Path::new("BepInEx/plugins")).unwrap();
 /// let pkg = PackageRef::new(PackageId::new("x753-More_Suits"), Version::new(1, 0, 3));

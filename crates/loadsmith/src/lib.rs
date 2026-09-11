@@ -74,7 +74,7 @@ pub mod registry {
 /// - [`InMemoryIndex`](thunderstore::in_memory::InMemoryIndex) and [`SqliteIndex`](thunderstore::sqlite::SqliteIndex)
 ///   for caching and indexing Thunderstore packages, used by the registry.
 /// - Methods and traits for converting Thunderstore metadata into `loadsmith` types.
-/// - Tools to convert to and from Thunderstore's r2z profile format
+/// - Tools to convert to and from Thunderstore's r2z profile format.
 ///
 /// Re-exported from `loadsmith-thunderstore`. Also includes the [`Error`](thunderstore::Error) and [`Result`](thunderstore::Result) types from the same crate.
 pub mod thunderstore {

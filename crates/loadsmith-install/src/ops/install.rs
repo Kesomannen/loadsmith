@@ -23,10 +23,10 @@ use crate::{
 ///
 /// # Examples
 ///
-/// ```rust,no_run
+/// ```no_run
 /// use camino::Utf8Path;
 /// use loadsmith_core::{PackageRef, Version, PackageId};
-/// use loadsmith_install::{install, InstallRuleset, InstallRule, GlobRule};
+/// use loadsmith_install::{install, rule::{InstallRuleset, InstallRule, GlobRule}};
 ///
 /// let pkg = PackageRef::new(PackageId::new("denikson-BepInExPack_Valheim"), Version::new(5, 4, 22));
 /// let rule = InstallRule::Glob(
