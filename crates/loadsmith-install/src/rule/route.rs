@@ -11,15 +11,15 @@ use crate::ConflictStrategy;
 /// A rule is defined by two main parameters: the route `name` and `target`. These are usually derived
 /// from the same path, but can be set independently.
 ///
-/// The rule will search a given file path case-insensitively for a component matching the route name. If found, the part of
-/// the path before the route name (prelude) is optionally stripped and the remainder is appended to the target path.
-/// Additionally, a subdirectory named after the package's ID may be inserted between the target and the remainder.
+/// The rule will search a given file path case-insensitively for a component matching the route `name`. If found, the part of
+/// the path before the route name (the "prelude") is optionally stripped and the _remainder_ is appended to the target path.
+/// Additionally, a subdirectory named after the package's ID may be inserted between the target and the _remainder_.
 ///
-/// Example decomposition of path with a route name of `plugins`:
+/// Example decomposition of path with a route name of `plugins` and target `BepInEx/plugins`:
 ///
 /// ```not_rust
-/// MyFolder/BepInEx/plugins/AnotherFolder/ExtraFolder/MyPlugin.dll
-/// |----prelude----|--name-|--------remainder--------|--filename-|
+/// MyFolder/MyFolder2/Plugins/AnotherFolder/ExtraFolder/MyPlugin.dll
+/// |-----prelude-----|--name-|--------remainder--------|--filename-|
 /// ```
 ///
 /// With the default configuration, this path would be mapped to the following install destination:
@@ -29,7 +29,7 @@ use crate::ConflictStrategy;
 /// |----target----|--subdir--|--------remainder---------|--filename-|
 /// ```
 ///
-/// However, this behavior can be heavily customized with the various configuration options available the struct.
+/// However, this behavior can be heavily customized with the various options available the struct.
 ///
 /// ## Background
 ///
@@ -59,7 +59,7 @@ use crate::ConflictStrategy;
 /// ```
 ///
 /// Say we want a mod manager to install mods in this configuration using standard zip extraction rules.
-/// For example, `ModThatRequiresCore.dll` may be packaged in a zip file like this:
+/// For example, the mod `ModThatRequiresCore` may be packaged in a zip file like this:
 ///
 /// ```not_rust
 /// SomeAuthor-ModThatRequiresCore.zip
@@ -68,7 +68,7 @@ use crate::ConflictStrategy;
 ///         |-- ModThatRequiresCore.dll
 /// ```
 ///
-/// But what happens if another mod also has a file named ModThatRequiresCore.dll?
+/// But what happens if another mod also has a file named `ModThatRequiresCore.dll` at the same location?
 ///
 /// If the mod manager simply extracts the zip file into the game folder, it will overwrite the existing file and break the already-installed mod.
 /// With route-based rules, the mod manager can instead install the file into a subdirectory named after the mod's package ID, like this:
@@ -102,7 +102,7 @@ use crate::ConflictStrategy;
 /// let core_rule = RouteRule::new_static("BepInEx/core");
 /// // By default, files are placed with a subdirectory named after the package ID.
 /// // We don't want this for `config` files, disable it specifically for that rule.
-/// let core_rule = RouteRule::new_static("BepInEx/config").with_subdir(false);
+/// let config_rule = RouteRule::new_static("BepInEx/config").with_subdir(false);
 /// ```
 ///
 /// This is the basic principle of route-based rules. However, there are many more options available to capture

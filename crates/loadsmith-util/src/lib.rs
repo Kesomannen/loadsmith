@@ -47,7 +47,6 @@ pub fn remove_empty_parents(path: impl Into<PathBuf>) -> std::io::Result<()> {
                 warn!(path = %path.display(), "permission denied while removing empty directories");
                 break;
             }
-
             Err(err) => return Err(err.into()),
         }
     }
