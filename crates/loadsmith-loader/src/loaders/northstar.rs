@@ -87,7 +87,7 @@ impl Loader for Northstar {
             vec![
                 glob_rule!("Northstar/*" => ".")
                     .strip_top_level(true)
-                    .use_links(true)
+                    .with_links(true)
                     .into(),
             ]
         });

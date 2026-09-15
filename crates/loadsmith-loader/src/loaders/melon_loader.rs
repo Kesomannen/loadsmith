@@ -106,7 +106,7 @@ impl Loader for MelonLoader {
         static RULES: LazyLock<Vec<InstallRule>> = LazyLock::new(|| {
             vec![
                 glob_rule!("MelonLoader/{Dependencies,Documentation,net*}/*" => ".")
-                    .use_links(true)
+                    .with_links(true)
                     .into(),
                 glob_rule!("{version,dobby}.dll" => ".").into(),
             ]

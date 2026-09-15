@@ -39,18 +39,18 @@ pub fn find_executables(game_path: &Path) -> impl Iterator<Item = PathBuf> + use
         })
 }
 
-pub fn locate_game(platform: &Platform) -> Result<Option<Utf8PathBuf>> {
+pub fn locate_game(platform: &Platform) -> Result<Utf8PathBuf> {
     match platform {
         Platform::Steam { id } => locate_steam_game(*id),
         #[cfg(target_os = "windows")]
-        Platform::XboxStore { identifier } => xbox_game_dir(identifier).map(Some),
+        Platform::XboxStore { identifier } => xbox_game_dir(identifier),
         #[cfg(target_os = "windows")]
-        Platform::EpicGames { identifier } => epic_game_dir(identifier).map(Some),
-        _ => Ok(None),
+        Platform::EpicGames { identifier } => epic_game_dir(identifier),
+        _ => Err(Error::GameLocationNotSupported),
     }
 }
 
-fn locate_steam_game(id: u32) -> Result<Option<Utf8PathBuf>> {
+fn locate_steam_game(id: u32) -> Result<Utf8PathBuf> {
     let steam = steamlocate::SteamDir::locate()?;
 
     debug!(
@@ -58,7 +58,7 @@ fn locate_steam_game(id: u32) -> Result<Option<Utf8PathBuf>> {
         "found steam installation"
     );
 
-    let (app, lib) = steam.find_app(id)?.ok_or(Error::SteamAppNotFound)?;
+    let (app, lib) = steam.find_app(id)?.ok_or(Error::GameNotFound)?;
 
     debug!(
         name = app.name,
@@ -69,7 +69,7 @@ fn locate_steam_game(id: u32) -> Result<Option<Utf8PathBuf>> {
     let path = lib.resolve_app_dir(&app);
     let utf8_path = Utf8PathBuf::try_from(path)?;
 
-    Ok(Some(utf8_path))
+    Ok(utf8_path)
 }
 
 #[cfg(target_os = "windows")]
@@ -129,5 +129,20 @@ fn epic_game_dir(identifier: &str) -> Result<Utf8PathBuf> {
     list.into_iter()
         .find(|item| item.app_name == identifier)
         .map(|item| item.install_location)
-        .ok_or(Error::EpicGameNotFound)
+        .ok_or(Error::GameNotFound)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[ignore = "requires Steam to be installed locally along with Lethal Company"]
+    fn locate_steam_game_lethal_company() {
+        let platform = Platform::Steam { id: 1966720 };
+        let path = locate_game(&platform).unwrap();
+
+        assert!(path.exists());
+        println!("Lethal Company found at: {path}");
+    }
 }

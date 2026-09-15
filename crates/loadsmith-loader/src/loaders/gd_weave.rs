@@ -44,8 +44,8 @@ impl Loader for GDWeave {
     fn loader_install_rules(&self) -> InstallRuleset<'_> {
         static RULES: LazyLock<Vec<InstallRule>> = LazyLock::new(|| {
             vec![
-                glob_rule!("GDWeave/*" => ".").use_links(true).into(),
-                glob_rule!("*.dll" => ".").use_links(true).into(),
+                glob_rule!("GDWeave/*" => ".").with_links(true).into(),
+                glob_rule!("*.dll" => ".").with_links(true).into(),
             ]
         });
 
@@ -65,7 +65,7 @@ impl Loader for GDWeave {
                 )
                 .strip_levels(3)
                 .with_subdir(true)
-                .use_links(true)
+                .with_links(true)
                 .into(),
             ]
         });

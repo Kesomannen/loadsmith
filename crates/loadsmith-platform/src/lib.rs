@@ -9,14 +9,12 @@ mod launch;
 mod locate;
 
 use std::{
-    borrow::Cow,
     path::{Path, PathBuf},
     process::Command,
 };
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8PathBuf;
 pub use error::{Error, Result};
-use loadsmith_loader::LaunchContext;
 use tracing::warn;
 
 /// A game distribution platform.
@@ -47,8 +45,6 @@ pub enum Platform {
     Origin,
     /// An Xbox / Microsoft Store game, identified by its package name.
     XboxStore { identifier: String },
-    /// Any other platform that is not explicitly handled.
-    Other,
 }
 
 impl Platform {
@@ -62,7 +58,6 @@ impl Platform {
     /// assert_eq!(Platform::Oculus.name(), "Oculus");
     /// assert_eq!(Platform::Origin.name(), "Origin");
     /// assert_eq!(Platform::XboxStore { identifier: "x".into() }.name(), "Xbox Store");
-    /// assert_eq!(Platform::Other.name(), "Other");
     /// ```
     pub fn name(&self) -> &'static str {
         match self {
@@ -71,25 +66,23 @@ impl Platform {
             Platform::Oculus => "Oculus",
             Platform::Origin => "Origin",
             Platform::XboxStore { .. } => "Xbox Store",
-            Platform::Other => "Other",
         }
     }
 
     /// Locate the game directory for this platform's game, if possible.
     ///
-    /// Returns `Ok(None)` when the platform does not support automatic
-    /// detection or when the game cannot be found.
-    ///
     /// ```no_run
-    /// use loadsmith_platform::Platform;
+    /// use loadsmith_platform::{Platform, Error};
     ///
     /// let platform = Platform::Steam { id: 730 }; // CS:GO / CS2
     /// match platform.locate_game() {
-    ///     Ok(Some(path)) => println!("Game found at: {path}"),
-    ///     _ => println!("Game not found"),
+    ///     Ok(path) => println!("Game found at: {path}"),
+    ///     Err(Error::GameNotFound) => println!("Game not found"),
+    ///     Err(Error::GameLocationNotSupported) => println!("Game location is not supported for this platform and OS"),
+    ///     Err(e) => eprintln!("Unexpected error while locating game: {e}"),
     /// }
     /// ```
-    pub fn locate_game(&self) -> Result<Option<Utf8PathBuf>> {
+    pub fn locate_game(&self) -> Result<Utf8PathBuf> {
         locate::locate_game(self)
     }
 
@@ -109,37 +102,6 @@ impl Platform {
     /// ```
     pub fn create_launch_command(&self) -> Result<Option<Command>> {
         launch::create_launch_command(self)
-    }
-
-    /// Build a [`LaunchContext`] for this platform, resolving the game path
-    /// and guessing whether Proton is being used.
-    ///
-    /// If `override_game_path` is `Some`, it is used directly; otherwise the
-    /// game is located via `locate_game`.
-    ///
-    /// ```no_run
-    /// use loadsmith_platform::Platform;
-    /// use camino::Utf8PathBuf;
-    ///
-    /// let platform = Platform::Steam { id: 730 };
-    /// let ctx = platform.create_launch_context(Utf8PathBuf::from("./profiles"), None);
-    /// ```
-    pub fn create_launch_context<'a>(
-        &'a self,
-        profile_path: impl Into<Cow<'a, Utf8Path>>,
-        override_game_path: Option<Utf8PathBuf>,
-    ) -> Result<LaunchContext<'a>> {
-        let game_path = match override_game_path {
-            Some(path) => path,
-            None => match self.locate_game()? {
-                Some(path) => path,
-                None => return Err(Error::NoGamePathOverride),
-            },
-        };
-
-        let is_proton = crate::try_guess_proton(&*game_path)?;
-
-        Ok(LaunchContext::new(profile_path, game_path, is_proton))
     }
 }
 

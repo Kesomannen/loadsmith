@@ -3,8 +3,8 @@
 //! The structs in this module answer the question: "Given a file in a package archive, where should it be installed on disk?".
 //!
 //! An [`InstallRule`] is a single rule that maps files from an in-archive path to an install destination.
-//! A rule can decide whether it should be used for a given path with the [`InstallRule::matches`] method.
-//! Then, the [`InstallRule::map_file`] method can be used to map the file to its final install destination
+//! A rule can decide whether it should be used for a given path with the [`matches`](InstallRule::matches) method.
+//! Then, the [`map_file`](InstallRule::matches) method can be used to map the file to its final install destination
 //! or, if `None` was returned, skip the file.
 //! Note that `map_file` may still be called even if the rule does not match the path, for instance if the rule
 //! is defined as the default rule for a ruleset.
@@ -13,7 +13,7 @@
 //! with an optional default rule and options to always exclude certain files. It is a borrowed view of a ruleset, whereas
 //! [`OwnedInstallRuleset`] is the owned version.
 //!
-//! Rules operate on a specialized version of file paths called [`Utf8Path`](camino::Utf8Path) and [`Utf8PathBuf`](camino::Utf8PathBuf).
+//! Rules operate on a specialized version of file paths called [`Utf8Path`] and [`Utf8PathBuf`].
 //! These are guaranteed to be valid UTF-8 and come from the [`camino`] crate.
 //!
 //! Currently, there are two types of rules: [`GlobRule`] and [`RouteRule`].
@@ -178,6 +178,7 @@ mod route;
 /// );
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type")]
 pub enum InstallRule {
     /// Maps files using a glob pattern. See [`GlobRule`] for more details.
     Glob(GlobRule),
@@ -267,7 +268,7 @@ impl InstallRule {
     /// but this is not guaranteed.
     pub fn use_links(&self) -> bool {
         match self {
-            InstallRule::Glob(glob) => glob.use_links,
+            InstallRule::Glob(glob) => glob.use_links(),
             InstallRule::Route(route) => route.use_links(),
         }
     }

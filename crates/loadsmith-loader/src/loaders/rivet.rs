@@ -54,7 +54,7 @@ impl Loader for Rivet {
             vec![
                 glob_rule!("*" => "Rivet/Mods")
                     .with_subdir(true)
-                    .use_links(true)
+                    .with_links(true)
                     .into(),
             ]
         });

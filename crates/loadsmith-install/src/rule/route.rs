@@ -116,9 +116,9 @@ use crate::ConflictStrategy;
 /// [r2modman wiki article]: https://github.com/ebkr/r2modmanPlus/wiki/Structuring-your-Thunderstore-package
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RouteRule {
-    name: Cow<'static, str>,
-    pub(super) target: Cow<'static, Utf8Path>,
-    file_extensions: Vec<Cow<'static, str>>,
+    name: String,
+    pub(super) target: Utf8PathBuf,
+    file_extensions: Vec<String>,
     subdir: bool,
     flatten: bool,
     mutable: bool,
@@ -161,14 +161,13 @@ impl RouteRule {
     /// assert_eq!(rule.name(), "plugins");
     /// assert_eq!(rule.target(), "BepInEx/plugins");
     /// ```
-    pub fn new(path: impl Into<Cow<'static, Utf8Path>>) -> Self {
+    pub fn new(path: impl Into<Utf8PathBuf>) -> Self {
         let path = path.into();
 
-        let name = match path {
-            Cow::Borrowed(borrowed) => borrowed.file_name().map(Cow::Borrowed),
-            Cow::Owned(_) => path.file_name().map(|s| Cow::Owned(s.to_string())),
-        }
-        .unwrap_or_default();
+        let name = path
+            .file_name()
+            .map(ToString::to_string)
+            .unwrap_or_default();
 
         Self::new_with_target(name, path)
     }
@@ -177,10 +176,7 @@ impl RouteRule {
     ///
     /// The `name` is the directory component that triggers a match; `target` is
     /// the directory where matched files are installed.
-    pub fn new_with_target(
-        name: impl Into<Cow<'static, str>>,
-        target: impl Into<Cow<'static, Utf8Path>>,
-    ) -> Self {
+    pub fn new_with_target(name: impl Into<String>, target: impl Into<Utf8PathBuf>) -> Self {
         Self {
             name: name.into(),
             target: target.into(),
@@ -223,7 +219,7 @@ impl RouteRule {
     /// // `RouteRule` considers the entire part after the first dot to be the extension.
     /// assert!(!rule.matches("MyPlugin.mm.dll"));
     /// assert!(!rule.matches("other.txt"));
-    pub fn with_file_extension(mut self, extension: impl Into<Cow<'static, str>>) -> Self {
+    pub fn with_file_extension(mut self, extension: impl Into<String>) -> Self {
         self.file_extensions.push(extension.into());
         self
     }
@@ -231,7 +227,7 @@ impl RouteRule {
     /// Replaces the list of file extensions that will match the rule.
     ///
     /// See [`with_file_extension`](RouteRule::with_file_extension) for more details on extension matching.
-    pub fn with_file_extensions(mut self, extensions: Vec<Cow<'static, str>>) -> Self {
+    pub fn with_file_extensions(mut self, extensions: Vec<String>) -> Self {
         self.file_extensions = extensions;
         self
     }
@@ -408,7 +404,7 @@ impl RouteRule {
             (prefix, Utf8PathBuf::from(file_name))
         });
 
-        let mut target_path = Utf8PathBuf::from(self.target.as_ref());
+        let mut target_path = self.target.clone();
 
         if self.subdir {
             target_path.push(package.id().as_str());

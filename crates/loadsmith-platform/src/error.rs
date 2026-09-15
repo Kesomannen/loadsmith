@@ -19,10 +19,6 @@ pub enum Error {
     #[error("steamlocate error")]
     SteamLocate(#[from] steamlocate::Error),
 
-    /// The requested app ID was not found in any Steam library.
-    #[error("could not find app in steam library")]
-    SteamAppNotFound,
-
     /// The Steam executable could not be located.
     #[error("could not find steam executable")]
     SteamExecutableNotFound,
@@ -39,13 +35,11 @@ pub enum Error {
         source: std::string::FromUtf8Error,
     },
 
-    /// The game was not found in the Epic Games Launcher installations.
-    #[error("game not found in Epic Games Launcher installations")]
-    EpicGameNotFound,
+    #[error("the game could not be found with the given platform and identifier")]
+    GameNotFound,
 
-    /// The game path could not be determined and no override was provided.
-    #[error("game path could not be determined and no override was provided")]
-    NoGamePathOverride,
+    #[error("game detection is not supported for this platform and/or OS")]
+    GameLocationNotSupported,
 }
 
 /// Alias for `Result<T, Error>` in the loadsmith-platform crate.

@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use camino::Utf8Path;
 use globset::{Glob, GlobSet};
 use loadsmith_install::rule::{OwnedInstallRuleset, RouteRule};
@@ -180,7 +178,6 @@ fn rule_to_loadsmith(
                 ext.clone()
             }
         })
-        .map(Cow::Owned)
         .collect();
 
     let subdir = matches!(
@@ -255,7 +252,6 @@ pub fn distribution_into_platform(distribution: Distribution) -> Result<Loadsmit
         schema::Platform::XboxGamePass => {
             identifier.map(|identifier| LoadsmithPlatform::XboxStore { identifier })
         }
-        schema::Platform::Other => Ok(LoadsmithPlatform::Other),
         schema::Platform::OculusStore => Ok(LoadsmithPlatform::Oculus),
         schema::Platform::Origin => Ok(LoadsmithPlatform::Origin),
         platform => return Err(Error::UnsupportedPlatform(platform)),

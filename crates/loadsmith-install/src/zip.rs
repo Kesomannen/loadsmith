@@ -124,10 +124,7 @@ pub(crate) mod mock {
 
         fn by_index<'b>(&'b mut self, index: usize, _: private::Token) -> Result<Self::File<'b>> {
             let Some(file) = self.files.get(index) else {
-                return Err(Error::ZipFileOutOfBounds {
-                    index,
-                    len: self.files.len(),
-                });
+                return Err(Error::Zip(zip::result::ZipError::FileNotFound));
             };
 
             Ok(MockZipFileReader { file, position: 0 })

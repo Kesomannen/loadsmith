@@ -89,7 +89,7 @@ impl Loader for BepInEx {
                     .into(),
                 glob_rule!("*/*" => ".")
                     .strip_top_level(true)
-                    .use_links(true)
+                    .with_links(true)
                     .into(),
             ]
         });

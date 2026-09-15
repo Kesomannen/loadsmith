@@ -42,7 +42,7 @@ impl Loader for Lovely {
     fn loader_install_rules(&self) -> InstallRuleset<'_> {
         static RULES: LazyLock<Vec<InstallRule>> = LazyLock::new(|| {
             vec![
-                glob_rule!("*.dll" => ".").use_links(true).into(),
+                glob_rule!("*.dll" => ".").with_links(true).into(),
                 glob_rule!("lovely/*" => "mods/lovely")
                     .strip_top_level(true)
                     .into(),
@@ -57,7 +57,7 @@ impl Loader for Lovely {
             vec![
                 glob_rule!("*" => "mods")
                     .with_subdir(true)
-                    .use_links(true)
+                    .with_links(true)
                     .into(),
             ]
         });

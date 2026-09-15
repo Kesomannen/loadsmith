@@ -72,18 +72,18 @@ impl Loader for Shimloader {
         static RULES: LazyLock<Vec<InstallRule>> = LazyLock::new(|| {
             vec![
                 glob_rule!("UE4SS/Mods/*" => "shimloader/mod")
-                    .use_links(true)
+                    .with_links(true)
                     .strip_levels(2)
                     .into(),
                 glob_rule!("UE4SS/UE4SS.dll" => ".")
-                    .use_links(true)
+                    .with_links(true)
                     .strip_levels(1)
                     .into(),
                 glob_rule!("UE4SS/UE4SS-settings.ini" => ".")
-                    .use_links(true)
+                    .with_links(true)
                     .strip_levels(1)
                     .into(),
-                glob_rule!("dwmapi.dll" => ".").use_links(true).into(),
+                glob_rule!("dwmapi.dll" => ".").with_links(true).into(),
             ]
         });
 
