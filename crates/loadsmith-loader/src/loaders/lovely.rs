@@ -5,19 +5,13 @@ use loadsmith_install::rule::{InstallRule, InstallRuleset};
 
 use crate::{LaunchArgs, LaunchContext, Loader, Result, glob_rule};
 
-/// Loader implementation for [Lovely](https://github.com/ethangreen-dev/lovely),
-/// a mod loader for the visual-novel game Doki Doki Literature Club!.
+/// Loader implementation for [Lovely](https://github.com/ethangreen-dev/lovely-injector),
+/// a runtime Lua injector for LÖVE games such as Balatro.
 ///
-/// Lovely uses a `mods` directory for packages and a `version.dll` proxy DLL.
-///
-/// # Examples
-///
-/// ```rust
-/// use loadsmith_loader::{Lovely, Loader};
-///
-/// let loader = Lovely::new();
-/// assert_eq!(loader.id(), "Lovely");
-/// ```
+/// Lovely is injected into the game process through a `version.dll` proxy DLL and reads its
+/// patches from a `mods` directory, which the loader points the game to with the `--mod-dir`
+/// launch argument. Each package gets its own subdirectory under `mods`, while Lovely's own
+/// files live in `mods/lovely`.
 #[derive(Debug, Clone)]
 pub struct Lovely;
 

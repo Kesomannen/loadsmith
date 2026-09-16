@@ -5,20 +5,18 @@ use loadsmith_install::rule::{InstallRuleset, OwnedInstallRuleset, RouteRule};
 
 use crate::{BepInEx, LaunchArgs, LaunchContext, Loader, Result};
 
-/// Loader implementation for BepisLoader, a mod loader for Honey Select /
-/// Koikatsu that wraps BepInEx with a renderer-specific plugin directory.
+/// Loader implementation for [BepisLoader](https://github.com/ResoniteModding/BepisLoader),
+/// a mod loader that allows using BepInEx with Resonite.
 ///
-/// BepisLoader adds a `renderer` route pointing at `Renderer/BepInEx/plugins`
+/// BepisLoader hooks into the .NET runtime through `hostfxr.dll`, which is enabled with the
+/// `--hookfxr-enable` launch argument, and loads BepInEx from the directory passed with
+/// `--bepinex-target`. Resonite's renderer process uses its own BepInEx installation under
+/// `Renderer`, so the loader adds a `renderer` route pointing at `Renderer/BepInEx/plugins`
 /// on top of the standard BepInEx rules. It also forces Doorstop version 4.
 ///
-/// # Examples
-///
-/// ```rust
-/// use loadsmith_loader::{BepisLoader, Loader};
-///
-/// let loader = BepisLoader::with_default_rules();
-/// assert_eq!(loader.id(), "BepisLoader");
-/// ```
+/// The package installation rules for BepisLoader are configurable, with default rules based
+/// on the BepInEx defaults plus the Resonite-specific `renderer` route. You'll find a list of
+/// the rules in the documentation for [`with_default_rules`](BepisLoader::with_default_rules).
 #[derive(Debug, Clone)]
 pub struct BepisLoader {
     inner: BepInEx,
@@ -29,13 +27,24 @@ impl BepisLoader {
         Self { inner }
     }
 
-    /// Creates a `BepisLoader` with a custom install ruleset.
+    /// Creates a `BepisLoader` loader with a custom install ruleset.
     pub fn with_rules(package_install_ruleset: OwnedInstallRuleset) -> Self {
         Self::new(BepInEx::with_rules(package_install_ruleset))
     }
 
-    /// Creates a `BepisLoader` with the default rules (BepInEx defaults plus a
-    /// `renderer` route).
+    /// Creates a `BepisLoader` loader with the default install rules.
+    ///
+    /// |                          | Subdir | Flattened | Mutable | Extension | Default |
+    /// |--------------------------|--------|-----------|---------|-----------|---------|
+    /// | Renderer/BepInEx/plugins | `X`    | `X`       | `-`     | `-`       | `-`     |
+    /// | BepInEx/config           | `-`    | `X`       | `X`     | `-`       | `-`     |
+    /// | BepInEx/patchers         | `X`    | `X`       | `-`     | `-`       | `-`     |
+    /// | BepInEx/core             | `X`    | `X`       | `-`     | `-`       | `-`     |
+    /// | BepInEx/monomod          | `X`    | `X`       | `-`     | `mm.dll`  | `-`     |
+    /// | BepInEx/plugins          | `X`    | `X`       | `-`     | `dll`     | `X`     |
+    ///
+    /// Read more about how rules work in the documentation of the
+    /// [`InstallRule`](loadsmith_install::rule::InstallRule) struct.
     pub fn with_default_rules() -> Self {
         let mut inner = BepInEx::with_default_rules();
         inner.insert_install_rule(

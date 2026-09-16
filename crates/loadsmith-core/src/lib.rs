@@ -7,7 +7,6 @@
 use std::{fmt::Display, str::FromStr};
 
 use camino::Utf8PathBuf;
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 mod checksum;
@@ -240,89 +239,11 @@ impl TryFrom<&str> for PackageRef {
     }
 }
 
-/// A record of a package installation at a specific point in time.
-///
-/// Tracks the package reference (a [`PackageRef`]), install date, file inventory, and an
-/// optional [`Checksum`] for integrity verification.
-///
-/// # Example
-///
-/// ```
-/// # use loadsmith_core::*;
-/// let pkg = PackageRef::new("MyMod", Version::new(5, 4, 2202));
-/// let file = InstalledFile::new("BepInEx/plugins/MyMod.dll", true);
-///
-/// let record = InstalledPackage::now(pkg, vec![file], None);
-/// assert_eq!(record.ref_().id().as_str(), "MyMod");
-/// assert_eq!(record.files().len(), 1);
-/// assert!(record.checksum().is_none());
-/// ```
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct InstalledPackage {
-    #[serde(rename = "package")]
-    ref_: PackageRef,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    checksum: Option<Checksum>,
-    date: DateTime<Utc>,
-    files: Vec<InstalledFile>,
-}
-
 /// A single file belonging to an installed package.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InstalledFile {
     relative_path: Utf8PathBuf,
     linked: bool,
-}
-
-impl InstalledPackage {
-    /// Create a new install record with the given timestamp.
-    pub fn new(
-        ref_: impl Into<PackageRef>,
-        files: Vec<InstalledFile>,
-        checksum: Option<Checksum>,
-        date: DateTime<Utc>,
-    ) -> Self {
-        Self {
-            ref_: ref_.into(),
-            files,
-            checksum,
-            date,
-        }
-    }
-
-    /// Create a new install record with the current timestamp.
-    pub fn now(
-        ref_: impl Into<PackageRef>,
-        files: Vec<InstalledFile>,
-        checksum: Option<Checksum>,
-    ) -> Self {
-        Self::new(ref_, files, checksum, Utc::now())
-    }
-
-    /// Borrows the package reference.
-    pub fn ref_(&self) -> &PackageRef {
-        &self.ref_
-    }
-
-    /// Borrows the list of installed files belonging to this package.
-    pub fn files(&self) -> &[InstalledFile] {
-        &self.files
-    }
-
-    /// Mutate the list of installed files.
-    pub fn files_mut(&mut self) -> &mut Vec<InstalledFile> {
-        &mut self.files
-    }
-
-    /// Borrows the installation timestamp.
-    pub fn date(&self) -> &DateTime<Utc> {
-        &self.date
-    }
-
-    /// Borrows the optional checksum.
-    pub fn checksum(&self) -> Option<&Checksum> {
-        self.checksum.as_ref()
-    }
 }
 
 impl InstalledFile {

@@ -20,14 +20,14 @@ macro_rules! glob {
     };
 }
 
-/// Creates a [`loadsmith_install::GlobRule`] from a pattern and destination
+/// Creates a [`GlobRule`](loadsmith_install::rule::GlobRule) from a pattern and destination
 /// path literal, panicking if the pattern is invalid.
 ///
 /// # Examples
 ///
 /// ```rust
 /// use loadsmith_loader::glob_rule;
-/// use loadsmith_install::GlobRule;
+/// use loadsmith_install::rule::GlobRule;
 ///
 /// let rule: GlobRule = glob_rule!("*.dll" => "plugins");
 /// assert!(rule.matches("mod.dll"));

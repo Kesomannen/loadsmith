@@ -1,9 +1,10 @@
 use std::{
     fs::File,
     io::{self, Read, Seek},
-    path::{Path, PathBuf},
+    path::Path,
 };
 
+use camino::Utf8PathBuf;
 use tracing::{trace, warn};
 
 use crate::{
@@ -13,27 +14,22 @@ use crate::{
 
 /// Extract all files from a zip archive into a target directory.
 ///
+/// Returns a list of the relative paths of the extracted files.
+///
 /// Directories inside the archive are skipped; parent directories are created as
-/// needed. Files that already exist at the target path are skipped with a warning.
+/// needed (including the target directory itself). Files that already exist at the
+/// target path are skipped. Invalid paths or paths that escape the target directory
+/// cause an error to be returned.
 ///
 /// On Unix, file permissions from the zip entry are applied after extraction.
 ///
-/// # Examples
-///
-/// ```rust,no_run
-/// use std::fs::File;
-/// use loadsmith_install::extract;
-///
-/// let file = File::open("C:\\mods\\package.zip").unwrap();
-/// let files = extract(file, "C:\\output").unwrap();
-/// println!("extracted {} files", files.len());
-/// ```
-pub fn extract<R: Read + Seek>(reader: R, target: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
+/// The current `zip` implementation is the [zip] crate, but this is not guaranteed to be the case in the future.
+pub fn extract<R: Read + Seek>(reader: R, target: impl AsRef<Path>) -> Result<Vec<Utf8PathBuf>> {
     let mut zip = zip::ZipArchive::new(reader)?;
     extract_zip(&mut zip, target.as_ref())
 }
 
-fn extract_zip<Z: Zip>(zip: &mut Z, target: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
+fn extract_zip<Z: Zip>(zip: &mut Z, target: impl AsRef<Path>) -> Result<Vec<Utf8PathBuf>> {
     let t = crate::zip::private::Token;
 
     let target = target.as_ref();
@@ -66,7 +62,7 @@ fn extract_zip<Z: Zip>(zip: &mut Z, target: impl AsRef<Path>) -> Result<Vec<Path
         #[cfg(unix)]
         set_unix_mode(&source_file, &target_path)?;
 
-        files.push(target_path);
+        files.push(relative_path);
     }
 
     Ok(files)

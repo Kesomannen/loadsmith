@@ -56,5 +56,5 @@ pub use download::download_and_extract;
 pub use error::{Error, Result};
 pub use lockfile::{LockedPackage, Lockfile};
 pub use resolve::resolve;
-pub use state::{ProfileState, ProfileStateData};
+pub use state::{InstalledPackage, ProfileState, ProfileStateData};
 pub use store::{PackageStore, PackageStoreEntry};

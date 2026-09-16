@@ -5,8 +5,7 @@
 //! sub-crate so that consumers can depend on a single crate instead of many.
 
 pub use loadsmith_core::{
-    Checksum, ChecksumAlgorithm, InstalledFile, InstalledPackage, PackageId, PackageRef, Version,
-    VersionReq,
+    Checksum, ChecksumAlgorithm, InstalledFile, PackageId, PackageRef, Version, VersionReq,
 };
 
 /// [`Error`](core::Error) and [`Result`](core::Result) types re-exported from `loadsmith-core`.
@@ -43,7 +42,9 @@ pub use loadsmith_manifest::{
 ///
 /// Re-exported from `loadsmith-manifest`. Also includes the [`Error`](manifest::Error) and [`Result`](manifest::Result) types from the same crate.
 pub mod manifest {
-    pub use loadsmith_manifest::{Diff, Diffable, Error, LockedPackage, Lockfile, Result, resolve};
+    pub use loadsmith_manifest::{
+        Diff, Diffable, Error, InstalledPackage, LockedPackage, Lockfile, Result, resolve,
+    };
 }
 
 pub use loadsmith_platform::Platform;
@@ -55,7 +56,7 @@ pub mod platform {
     pub use loadsmith_platform::{Error, Result, find_executables, guess_proton, try_guess_proton};
 }
 
-pub use loadsmith_registry::{Dependency, Registry, RegistrySet};
+pub use loadsmith_registry::{Registry, RegistrySet};
 
 /// Platform-independent registry implementations and registry-related types.
 ///
@@ -63,7 +64,7 @@ pub use loadsmith_registry::{Dependency, Registry, RegistrySet};
 pub mod registry {
     pub use loadsmith_registry::{
         Error, LocalRegistry, ResolvedVersion, Result, VersionInfo, local, offline,
-        offline::OfflineRegistry,
+        offline::OfflineRegistry, Dependency
     };
 }
 

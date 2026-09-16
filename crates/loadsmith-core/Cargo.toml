@@ -9,7 +9,6 @@ documentation = "https://docs.rs/loadsmith-core"
 
 [dependencies]
 serde = { workspace = true }
-chrono = { workspace = true }
 camino = { workspace = true }
 url = { workspace = true }
 thiserror = { workspace = true }

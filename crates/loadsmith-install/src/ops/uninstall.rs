@@ -1,14 +1,14 @@
 use std::{fs, path::Path};
 
-use loadsmith_core::InstalledPackage;
+use loadsmith_core::InstalledFile;
 use tracing::{debug, trace};
 
 use crate::Result;
 
 /// Remove all files that belong to an installed package from a profile directory.
 ///
-/// Removes each file recorded in `package.files()` from the `profile` directory
-/// and cleans up any empty parent directories along the way.
+/// Removes each file in `files` from the `profile` directory. If a file does not exist, it is skipped.
+/// Whenever a file is successfully removed, its parent directories are also removed if they are empty.
 ///
 /// # Examples
 ///
@@ -20,10 +20,13 @@ use crate::Result;
 /// # let package: InstalledPackage = unimplemented!();
 /// uninstall(&package, "C:\\games\\Valheim\\profile").unwrap();
 /// ```
-pub fn uninstall(package: &InstalledPackage, profile: impl AsRef<Path>) -> Result<()> {
+pub fn uninstall<'a, I>(files: I, profile: impl AsRef<Path>) -> Result<()>
+where
+    I: IntoIterator<Item = &'a InstalledFile>,
+{
     let profile = profile.as_ref();
 
-    for file in package.files() {
+    for file in files {
         let target_path = profile.join(file.relative_path());
 
         if target_path.exists() {

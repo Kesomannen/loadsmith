@@ -5,13 +5,12 @@ use std::{
 };
 
 use camino::Utf8PathBuf;
-use loadsmith_core::{Checksum, InstalledPackage, PackageId, PackageRef};
+use chrono::{DateTime, Utc};
+use loadsmith_core::{Checksum, InstalledFile, PackageId, PackageRef};
 use loadsmith_install::rule::InstallRuleset;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    Diff, Diffable, Error, LockedPackage, Lockfile, PackageStore, PackageStoreEntry, Result,
-};
+use crate::{Diff, Diffable, Error, LockedPackage, Lockfile, Result};
 
 /// Tracks the installation state of packages for a single profile directory.
 ///
@@ -44,6 +43,33 @@ pub struct ProfileState {
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct ProfileStateData {
     packages: BTreeMap<PackageId, InstalledPackage>,
+}
+
+/// A record of a package installation at a specific point in time.
+///
+/// Tracks the package reference (a [`PackageRef`]), install date, file inventory, and an
+/// optional [`Checksum`] for integrity verification.
+///
+/// # Example
+///
+/// ```
+/// # use loadsmith_core::*;
+/// let pkg = PackageRef::new("MyMod", Version::new(5, 4, 2202));
+/// let file = InstalledFile::new("BepInEx/plugins/MyMod.dll", true);
+///
+/// let record = InstalledPackage::now(pkg, vec![file], None);
+/// assert_eq!(record.ref_().id().as_str(), "MyMod");
+/// assert_eq!(record.files().len(), 1);
+/// assert!(record.checksum().is_none());
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InstalledPackage {
+    #[serde(rename = "package")]
+    ref_: PackageRef,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    checksum: Option<Checksum>,
+    date: DateTime<Utc>,
+    files: Vec<InstalledFile>,
 }
 
 impl Diffable for InstalledPackage {
@@ -162,26 +188,13 @@ impl ProfileState {
     ) -> Result<()> {
         self.check_already_installed(&package)?;
 
-        let (install, overwritten_files) =
-            loadsmith_install::install(package, ruleset, source, &self.path, no_links, checksum)?;
-        self.add(install, overwritten_files);
-        Ok(())
-    }
+        let (installed_files, overwritten_files) =
+            loadsmith_install::install(&package, ruleset, source, &self.path, no_links)?;
 
-    /// Install a package from the central [`PackageStore`](crate::PackageStore)
-    /// into this profile.
-    ///
-    /// Returns an error if the package is already installed.
-    pub fn install_from_store(
-        &mut self,
-        entry: PackageStoreEntry,
-        ruleset: InstallRuleset,
-        store: &PackageStore,
-    ) -> Result<()> {
-        self.check_already_installed(entry.package())?;
+        let installed_package = InstalledPackage::now(package, installed_files, checksum);
 
-        let (install, overwritten_files) = store.install(entry, ruleset, &self.path)?;
-        self.add(install, overwritten_files);
+        self.add(installed_package, overwritten_files);
+
         Ok(())
     }
 
@@ -195,7 +208,7 @@ impl ProfileState {
             .remove(package)
             .ok_or(Error::PackageNotInstalled)?;
 
-        if let Err(err) = loadsmith_install::uninstall(&install, &self.path) {
+        if let Err(err) = loadsmith_install::uninstall(&install.files, &self.path) {
             self.packages_mut().insert(package.clone(), install);
 
             Err(err.into())
@@ -223,6 +236,57 @@ impl ProfileStateData {
     /// state and then use [`ProfileState::install`] to populate it.
     pub fn new(packages: BTreeMap<PackageId, InstalledPackage>) -> Self {
         Self { packages }
+    }
+}
+
+impl InstalledPackage {
+    /// Create a new install record with the given timestamp.
+    pub fn new(
+        ref_: impl Into<PackageRef>,
+        files: Vec<InstalledFile>,
+        checksum: Option<Checksum>,
+        date: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            ref_: ref_.into(),
+            files,
+            checksum,
+            date,
+        }
+    }
+
+    /// Create a new install record with the current timestamp.
+    pub fn now(
+        ref_: impl Into<PackageRef>,
+        files: Vec<InstalledFile>,
+        checksum: Option<Checksum>,
+    ) -> Self {
+        Self::new(ref_, files, checksum, Utc::now())
+    }
+
+    /// Borrows the package reference.
+    pub fn ref_(&self) -> &PackageRef {
+        &self.ref_
+    }
+
+    /// Borrows the list of installed files belonging to this package.
+    pub fn files(&self) -> &[InstalledFile] {
+        &self.files
+    }
+
+    /// Mutate the list of installed files.
+    pub fn files_mut(&mut self) -> &mut Vec<InstalledFile> {
+        &mut self.files
+    }
+
+    /// Borrows the installation timestamp.
+    pub fn date(&self) -> &DateTime<Utc> {
+        &self.date
+    }
+
+    /// Borrows the optional checksum.
+    pub fn checksum(&self) -> Option<&Checksum> {
+        self.checksum.as_ref()
     }
 }
 

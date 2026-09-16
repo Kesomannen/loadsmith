@@ -1543,7 +1543,6 @@ version = "0.3.1"
 dependencies = [
  "blake3",
  "camino",
- "chrono",
  "digest-io",
  "hex",
  "semver",
@@ -1632,6 +1631,7 @@ version = "0.3.1"
 dependencies = [
  "blake3",
  "camino",
+ "chrono",
  "insta",
  "loadsmith-core",
  "loadsmith-install",

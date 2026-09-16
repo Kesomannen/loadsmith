@@ -4,9 +4,7 @@ use std::{
     sync::Arc,
 };
 
-use camino::Utf8PathBuf;
-use loadsmith_core::{Checksum, InstalledPackage, PackageId, PackageRef, Version};
-use loadsmith_install::rule::InstallRuleset;
+use loadsmith_core::{Checksum, PackageId, PackageRef, Version};
 use walkdir::WalkDir;
 
 use crate::{Error, Result};
@@ -30,7 +28,6 @@ use crate::{Error, Result};
 #[derive(Debug, Clone)]
 pub struct PackageStore {
     base_path: Arc<Path>,
-    no_links: bool,
 }
 
 /// A reference to a specific package version in the [`PackageStore`].
@@ -66,17 +63,7 @@ impl PackageStore {
         if !base_path.is_dir() {
             std::fs::create_dir_all(&base_path)?;
         }
-        Ok(Self {
-            base_path,
-            no_links: false,
-        })
-    }
-
-    /// Configure the store to copy files instead of creating symlinks when
-    /// installing into a profile.
-    pub fn without_links(mut self) -> Self {
-        self.no_links = true;
-        self
+        Ok(Self { base_path })
     }
 
     /// Borrow the base directory of the package store.
@@ -106,30 +93,6 @@ impl PackageStore {
 
         std::fs::create_dir_all(&path)?;
         Ok(path)
-    }
-
-    /// Install a store entry into the given profile directory.
-    ///
-    /// Returns the installed package metadata together with the list of files
-    /// that were overwritten from other packages.
-    pub fn install(
-        &self,
-        entry: PackageStoreEntry,
-        ruleset: InstallRuleset,
-        profile: impl AsRef<Path>,
-    ) -> Result<(InstalledPackage, Vec<Utf8PathBuf>)> {
-        let source = self.path_of(&entry);
-
-        let (install, overriden_files) = loadsmith_install::install(
-            entry.package,
-            ruleset,
-            source,
-            profile,
-            self.no_links,
-            entry.checksum,
-        )?;
-
-        Ok((install, overriden_files))
     }
 
     /// Remove a store entry's on-disk directory and any empty parent

@@ -6,10 +6,9 @@ use std::{
 use anyhow::{Context, anyhow};
 use bytes::Bytes;
 use loadsmith::{
-    Checksum, ChecksumAlgorithm, InstalledPackage, PackageRef, thunderstore::PackageRefExt,
+    Checksum, ChecksumAlgorithm, PackageRef, Version, install::rule::InstallRuleset,
+    manifest::InstalledPackage, thunderstore::PackageRefExt,
 };
-use loadsmith_core::Version;
-use loadsmith_install::rule::InstallRuleset;
 use serde::{Deserialize, Serialize};
 use tempfile::TempDir;
 use walkdir::WalkDir;
@@ -52,10 +51,12 @@ fn extract_and_install_package(
     loadsmith::extract(Cursor::new(bytes), &extract_dir)?;
 
     let install_dir = tempfile::tempdir()?;
-    let (install_manifest, _overwritten_files) =
-        loadsmith::install(package, ruleset, &extract_dir, &install_dir, false, None)?;
+    let (installed_files, _overwritten_files) =
+        loadsmith::install(&package, ruleset, &extract_dir, &install_dir, false)?;
 
-    Ok((install_dir, install_manifest))
+    let installed_package = InstalledPackage::now(package, installed_files, None);
+
+    Ok((install_dir, installed_package))
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -126,7 +127,8 @@ async fn test_install_flow(
 
     insta::assert_yaml_snapshot!(install_manifest.ref_().to_string(), files);
 
-    loadsmith::uninstall(&install_manifest, &profile).context("failed to uninstall package")?;
+    loadsmith::uninstall(install_manifest.files(), &profile)
+        .context("failed to uninstall package")?;
 
     let files = list_files(&profile).context("failed to list files after uninstall")?;
 

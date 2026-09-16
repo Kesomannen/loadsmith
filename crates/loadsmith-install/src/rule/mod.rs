@@ -148,7 +148,8 @@ mod route;
 /// The method can return `None` if the rule is configured to exclude the file.
 ///
 /// [`matches`](InstallRule::matches) can be used to check if a rule should be applied
-/// to a given path, for example if a glob pattern matches, but it is not required to call `map_file`.
+/// to a given path, for example if a glob pattern matches, but it is not required in order
+/// to call `map_file`.
 ///
 /// # Examples
 ///

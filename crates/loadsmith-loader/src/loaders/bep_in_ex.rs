@@ -12,14 +12,9 @@ use crate::{Error, LaunchArgs, LaunchContext, Loader, Result, doorstop, glob, gl
 /// BepInEx uses Doorstop to inject into the game process and supports several
 /// sub-directories for plugins, patchers, monomod assemblies, and config.
 ///
-/// # Examples
-///
-/// ```rust
-/// use loadsmith_loader::{BepInEx, Loader};
-///
-/// let loader = BepInEx::with_default_rules();
-/// assert_eq!(loader.id(), "BepInEx");
-/// ```
+/// The package installation rules for BepInEx are configurable, with default rules
+/// based on the most common Thunderstore standard for BepInEx games. You'll find a
+/// list of the rules in the documentation for [`with_default_rules`](BepInEx::with_default_rules).
 #[derive(Debug, Clone)]
 pub struct BepInEx {
     package_install_ruleset: OwnedInstallRuleset,
@@ -35,13 +30,15 @@ impl BepInEx {
 
     /// Creates a `BepInEx` loader with the default install rules.
     ///
-    /// Default routes:
+    /// |                  | Subdir | Flattened | Mutable | Extension | Default |
+    /// |------------------|--------|-----------|---------|-----------|---------|
+    /// | BepInEx/config   | `-`    | `X`       | `X`     | `-`       | `-`     |
+    /// | BepInEx/patchers | `X`    | `X`       | `-`     | `-`       | `-`     |
+    /// | BepInEx/core     | `X`    | `X`       | `-`     | `-`       | `-`     |
+    /// | BepInEx/monomod  | `X`    | `X`       | `-`     | `mm.dll`  | `-`     |
+    /// | BepInEx/plugins  | `X`    | `X`       | `-`     | `dll`     | `X`     |
     ///
-    /// * `BepInEx/config` (mutable, flat)
-    /// * `BepInEx/patchers`
-    /// * `BepInEx/core`
-    /// * `BepInEx/monomod` (files with `.mm.dll` extension)
-    /// * `BepInEx/plugins` (files with `.dll` extension) — **default rule**
+    /// Read more about how rules work in the documentation of the [`InstallRule`] struct.
     pub fn with_default_rules() -> Self {
         OwnedInstallRuleset::from_rule_iter(
             vec![
@@ -59,12 +56,12 @@ impl BepInEx {
         .expect("rules are not empty so there should always be a valid default rule index")
     }
 
-    /// Adds an install rule to the end of the ruleset.
+    /// Adds a rule to the end of the package install ruleset.
     pub fn add_install_rule(&mut self, rule: impl Into<InstallRule>) {
         self.package_install_ruleset.add_rule(rule.into());
     }
 
-    /// Inserts an install rule at the given index.
+    /// Inserts a rule at the given index of the package install ruleset.
     pub fn insert_install_rule(&mut self, index: usize, rule: impl Into<InstallRule>) {
         self.package_install_ruleset.insert_rule(index, rule.into());
     }
@@ -139,7 +136,7 @@ impl Loader for BepInEx {
     }
 
     fn log_file(&self) -> Option<PathBuf> {
-        Some("BepInEx/BepInEx.log".into())
+        Some("BepInEx/LogOutput.log".into())
     }
 
     fn proxy_dll(&self) -> Option<PathBuf> {

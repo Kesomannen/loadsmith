@@ -4,42 +4,42 @@ use loadsmith_install::rule::{InstallRule, InstallRuleset, OwnedInstallRuleset, 
 
 use crate::{LaunchArgs, LaunchContext, Loader, Result, glob_rule};
 
-/// Loader implementation for [Unreal Shimloader](https://thunderstore.io/c/holocure/p/Thunderstore/unreal_shimloader/),
-/// a UE4SS-based mod loader for games like HoloCure.
+/// Loader implementation for [Unreal Shimloader](https://github.com/thunderstore-io/unreal-shimloader),
+/// a mod loader based on [UE4SS](https://github.com/UE4SS-RE/RE-UE4SS) for Unreal Engine games
+/// such as Palworld, Voices of the Void, and Astroneer.
 ///
-/// Routes packages into `shimloader/mod`, `shimloader/pak` (`.pak` files
-/// only), `shimloader/cfg` (mutable, flat), and `shimloader/overlay`. The
-/// loader uses `dwmapi.dll` as its proxy DLL.
+/// The loader installs UE4SS (`UE4SS.dll`, `UE4SS-settings.ini`, and the `dwmapi.dll` proxy)
+/// into the game directory, and routes packages into `shimloader/mod`, `shimloader/pak`
+/// (`.pak` files only), `shimloader/cfg` (mutable, flat), and `shimloader/overlay`. The launch
+/// arguments `--mod-dir`, `--pak-dir`, and `--cfg-dir` point the loader at the respective
+/// profile directories.
 ///
-/// # Examples
-///
-/// ```rust
-/// use loadsmith_loader::{Shimloader, Loader};
-///
-/// let loader = Shimloader::with_default_rules();
-/// assert_eq!(loader.id(), "Shimloader");
-/// ```
+/// The package installation rules for Shimloader are configurable, with default rules matching
+/// the Thunderstore package format for UE4SS mods. You'll find a list of the rules in the
+/// documentation for [`with_default_rules`](Shimloader::with_default_rules).
 #[derive(Debug, Clone)]
 pub struct Shimloader {
     package_install_ruleset: OwnedInstallRuleset,
 }
 
 impl Shimloader {
-    /// Creates a `Shimloader` with a custom install ruleset.
+    /// Creates a `Shimloader` loader with a custom install ruleset.
     pub fn with_rules(package_install_ruleset: OwnedInstallRuleset) -> Self {
         Self {
             package_install_ruleset,
         }
     }
 
-    /// Creates a `Shimloader` with the default rules.
+    /// Creates a `Shimloader` loader with the default install rules.
     ///
-    /// Default routes:
+    /// |                    | Subdir | Flattened | Mutable | Extension | Default |
+    /// |--------------------|--------|-----------|---------|-----------|---------|
+    /// | shimloader/mod     | `X`    | `X`       | `-`     | `-`       | `X`     |
+    /// | shimloader/pak     | `X`    | `X`       | `-`     | `pak`     | `-`     |
+    /// | shimloader/cfg     | `-`    | `X`       | `X`     | `-`       | `-`     |
+    /// | shimloader/overlay | `X`    | `X`       | `-`     | `-`       | `-`     |
     ///
-    /// * `shimloader/mod` — default rule
-    /// * `shimloader/pak` (files with `.pak` extension)
-    /// * `shimloader/cfg` (mutable, flat)
-    /// * `shimloader/overlay`
+    /// Read more about how rules work in the documentation of the [`InstallRule`] struct.
     pub fn with_default_rules() -> Self {
         OwnedInstallRuleset::from_rule_iter(
             [

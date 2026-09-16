@@ -1,19 +1,23 @@
-use std::{collections::HashMap, ffi::OsString, fmt::Debug, path::Path, path::PathBuf};
+use std::{
+    collections::HashMap,
+    ffi::OsString,
+    fmt::Debug,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 /// Arguments, environment variables, and an optional wrapper binary to use
-/// when launching a game with a mod loader.
+/// when launching a mod loader.
 ///
 /// Build one using the builder methods ([`arg`](LaunchArgs::arg),
 /// [`env`](LaunchArgs::env), [`wrapper`](LaunchArgs::wrapper)), then call
-/// [`apply`](LaunchArgs::apply) to configure a
-/// [`std::process::Command`].
+/// [`apply`](LaunchArgs::apply) to configure a [`Command`].
 ///
 /// # Examples
 ///
 /// ```rust
-/// use loadsmith_loader::LaunchArgs;
-/// use std::process::Command;
-///
+/// # use loadsmith_loader::LaunchArgs;
+/// # use std::process::Command;
 /// let args = LaunchArgs::new()
 ///     .arg("--doorstop-enable")
 ///     .arg("true")
@@ -51,6 +55,30 @@ impl LaunchArgs {
 
     /// Sets a wrapper binary (e.g. `wine` or `proton`) that the command
     /// should be launched through.
+    ///
+    /// Only one wrapper can be set; calling this method multiple times will overwrite
+    /// the previous value.
+    ///
+    /// When this is applied to a [`Command`], the original command's
+    /// program is passed as the first argument to the wrapper, followed by the original
+    /// command's arguments.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// # use loadsmith_loader::LaunchArgs;
+    /// # use std::process::Command;
+    /// let args = LaunchArgs::new()
+    ///     .arg("--doorstop-enable")
+    ///     .arg("true")
+    ///     .wrapper("wine");
+    ///
+    /// let mut cmd = Command::new("game.exe");
+    /// args.apply(&mut cmd);
+    ///
+    /// assert_eq!(cmd.get_program(), "wine");
+    /// assert_eq!(cmd.get_args().collect::<Vec<_>>(), ["game.exe", "--doorstop-enable", "true"]);
+    /// ```
     pub fn wrapper(mut self, wrapper: impl Into<PathBuf>) -> Self {
         self.wrapper = Some(wrapper.into());
         self
@@ -71,14 +99,13 @@ impl LaunchArgs {
         self.wrapper.as_deref()
     }
 
-    /// Applies these arguments, environment, and optional wrapper to a
-    /// [`std::process::Command`].
+    /// Applies these arguments, environment, and optional wrapper to a [`Command`].
     ///
-    /// When a wrapper is set the original command's program and arguments
-    /// become sub-arguments of the wrapper.
-    pub fn apply(self, command: &mut std::process::Command) {
+    /// If a wrapper is set, the original command's program is passed as the first argument
+    /// to the wrapper, followed by the original command's arguments.
+    pub fn apply(self, command: &mut Command) {
         if let Some(wrapper) = self.wrapper {
-            let mut new_command = std::process::Command::new(wrapper);
+            let mut new_command = Command::new(wrapper);
             new_command
                 .arg(command.get_program())
                 .args(command.get_args());

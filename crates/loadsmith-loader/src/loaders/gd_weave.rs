@@ -6,20 +6,16 @@ use loadsmith_install::rule::{GlobRule, InstallRule, InstallRuleset};
 
 use crate::{LaunchArgs, LaunchContext, Loader, Result, glob_rule};
 
-/// Loader implementation for [GDWeave](https://github.com/NotNet-GDWeave/GDWeave),
-/// a mod loader for the game WEBFISHING.
+/// Loader implementation for [GDWeave](https://github.com/NotNite/GDWeave), a mod loader and
+/// runtime script patcher for the Godot engine, used to mod the game WEBFISHING.
 ///
-/// GDWeave uses a `GDWeave/mods` directory for packages and a `winmm.dll`
-/// proxy DLL for injection.
+/// GDWeave is injected into the game process through a `winmm.dll` proxy DLL and reads its
+/// packages from a `GDWeave` directory, which the loader points the game to with the
+/// `--gdweave-folder-override` launch argument. Each package gets its own subdirectory
+/// under `GDWeave/mods`.
 ///
-/// # Examples
-///
-/// ```rust
-/// use loadsmith_loader::{GDWeave, Loader};
-///
-/// let loader = GDWeave::new();
-/// assert_eq!(loader.id(), "GDWeave");
-/// ```
+/// Note that GDWeave is no longer maintained; for other Godot games, see
+/// [GDPatch](https://github.com/GDPatch/GDPatch) (not yet supported by loadsmith).
 #[derive(Debug, Clone)]
 pub struct GDWeave;
 

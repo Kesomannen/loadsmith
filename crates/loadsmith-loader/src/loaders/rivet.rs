@@ -5,20 +5,13 @@ use loadsmith_install::rule::{InstallRule, InstallRuleset};
 
 use crate::{LaunchArgs, LaunchContext, Loader, Result, glob_rule};
 
-/// Loader implementation for [Rivet](https://thunderstore.io/c/lethal-company/p/ReDoIngMods/Rivet/),
-/// a mod loader for Lethal Company.
+/// Loader implementation for [Rivet](https://github.com/ReDoIngMods/Rivet), a native mod loader
+/// for Scrap Mechanic.
 ///
-/// Rivet places mods into `Rivet/Mods` and uses a `version.dll` proxy DLL.
-/// Launch arguments include `-rivetEnable`, `-rivetTarget`, and `-rivetDirectory`.
-///
-/// # Examples
-///
-/// ```rust
-/// use loadsmith_loader::{Rivet, Loader};
-///
-/// let loader = Rivet::new();
-/// assert_eq!(loader.id(), "Rivet");
-/// ```
+/// Rivet injects its loader into the game process through a `version.dll` proxy DLL and
+/// discovers packages in `Rivet/Mods`, where each package gets its own subdirectory. At
+/// launch, the loader passes `-rivetEnable`, `-rivetTarget`, and `-rivetDirectory` to the
+/// game.
 #[derive(Debug, Clone)]
 pub struct Rivet;
 

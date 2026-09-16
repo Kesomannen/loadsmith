@@ -5,21 +5,16 @@ use loadsmith_install::rule::{InstallRule, InstallRuleset, OwnedInstallRuleset, 
 
 use crate::{LaunchArgs, LaunchContext, Loader, Result, glob, glob_rule};
 
-/// Loader implementation for [Northstar](https://northstar.thunderstore.io/),
-/// a mod loader for Titanfall 2.
+/// Loader implementation for [Northstar](https://northstar.tf/), a mod loader and custom server
+/// framework for Titanfall 2.
 ///
-/// Northstar places packages into `R2Northstar/mods` and launches with
-/// `-northstar -profile=<path>`. It excludes common metadata files
-/// (`manifest.json`, `README.md`, `icon.png`, `LICENSE`) from installation.
+/// Northstar packages are installed into `R2Northstar/mods`, and the game is launched with the
+/// `-northstar` and `-profile=<path>` arguments. Files that are only relevant to Thunderstore
+/// (`manifest.json`, `README.md`, `icon.png`, and `LICENSE`) are excluded from installation.
 ///
-/// # Examples
-///
-/// ```rust
-/// use loadsmith_loader::{Northstar, Loader};
-///
-/// let loader = Northstar::with_default_rules();
-/// assert_eq!(loader.id(), "Northstar");
-/// ```
+/// The package installation rules for Northstar are configurable, with default rules matching
+/// the Thunderstore package format for Northstar mods. You'll find a list of the rules in the
+/// documentation for [`with_default_rules`](Northstar::with_default_rules).
 #[derive(Debug, Clone)]
 pub struct Northstar {
     package_install_ruleset: OwnedInstallRuleset,
@@ -33,10 +28,17 @@ impl Northstar {
         }
     }
 
-    /// Creates a `Northstar` loader with the default rules.
+    /// Creates a `Northstar` loader with the default install rules.
     ///
-    /// Files are routed into `R2Northstar/mods`. Metadata files
-    /// (`manifest.json`, `README.md`, `icon.png`, `LICENSE`) are excluded.
+    /// |                  | Subdir | Flattened | Mutable | Extension | Default |
+    /// |------------------|--------|-----------|---------|-----------|---------|
+    /// | R2Northstar/mods | `-`    | `-`       | `-`     | `-`       | `-`     |
+    ///
+    /// The files `manifest.json`, `README.md`, `icon.png`, and `LICENSE` are always excluded,
+    /// and no rule is configured as the default, meaning that files that do not match any rule
+    /// are not installed.
+    ///
+    /// Read more about how rules work in the documentation of the [`InstallRule`] struct.
     pub fn with_default_rules() -> Self {
         let exclude = GlobSet::builder()
             .add(glob!("manifest.json"))
@@ -60,12 +62,12 @@ impl Northstar {
         Self::with_rules(ruleset)
     }
 
-    /// Adds an install rule to the end of the ruleset.
+    /// Adds a rule to the end of the package install ruleset.
     pub fn add_install_rule(&mut self, rule: impl Into<InstallRule>) {
         self.package_install_ruleset.add_rule(rule.into());
     }
 
-    /// Inserts an install rule at the given index.
+    /// Inserts a rule at the given index of the package install ruleset.
     pub fn insert_install_rule(&mut self, index: usize, rule: impl Into<InstallRule>) {
         self.package_install_ruleset.insert_rule(index, rule.into());
     }

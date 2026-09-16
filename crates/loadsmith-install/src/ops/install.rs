@@ -5,7 +5,7 @@ use std::{
 };
 
 use camino::Utf8PathBuf;
-use loadsmith_core::{Checksum, InstalledFile, InstalledPackage, PackageRef};
+use loadsmith_core::{InstalledFile, PackageRef};
 use tracing::{debug, trace};
 use walkdir::WalkDir;
 
@@ -17,40 +17,20 @@ use crate::{
 /// Install a package's files into a game profile directory.
 ///
 /// Walks `source` recursively, maps each file through the given `ruleset`, and
-/// copies (or hard-links) the mapped files into `profile`. Returns the
-/// [`InstalledPackage`](loadsmith_core::InstalledPackage) descriptor and a list
-/// of file paths that were overwritten.
+/// copies or hard-links the mapped files into `profile`.
 ///
-/// # Examples
-///
-/// ```no_run
-/// use camino::Utf8Path;
-/// use loadsmith_core::{PackageRef, Version, PackageId};
-/// use loadsmith_install::{install, rule::{InstallRuleset, InstallRule, GlobRule}};
-///
-/// let pkg = PackageRef::new(PackageId::new("denikson-BepInExPack_Valheim"), Version::new(5, 4, 22));
-/// let rule = InstallRule::Glob(
-///     GlobRule::try_from_pattern("**", Utf8Path::new("BepInEx")).unwrap()
-/// );
-/// let rules = [rule];
-/// let ruleset = InstallRuleset::new(&rules);
-/// let (installed, overwritten) = install(
-///     pkg,
-///     ruleset,
-///     "C:\\extracted\\package",
-///     "C:\\games\\Valheim\\profile",
-///     false,
-///     None,
-/// ).unwrap();
-/// ```
+/// Returns a list of the installed files and a list of any files that were overwritten.
+/// The conflict strategy for each file is determined by the corresponding [`InstallRule`]
+/// in the `ruleset`. The same goes for hard-links, the [`InstallRule::use_links`]
+/// method determines whether to hard-link or copy the file. Hard-links can also be forcefully
+/// disabled for all files by setting `no_links` to `true`.
 pub fn install(
-    package: PackageRef,
+    package: &PackageRef,
     ruleset: InstallRuleset,
     source: impl AsRef<Path>,
     profile: impl AsRef<Path>,
     no_links: bool,
-    checksum: Option<Checksum>,
-) -> Result<(InstalledPackage, Vec<Utf8PathBuf>)> {
+) -> Result<(Vec<InstalledFile>, Vec<Utf8PathBuf>)> {
     let source = source.as_ref();
     let profile = profile.as_ref();
 
@@ -97,10 +77,7 @@ pub fn install(
         }
     }
 
-    Ok((
-        InstalledPackage::now(package, installed_files, checksum),
-        overriden_files,
-    ))
+    Ok((installed_files, overriden_files))
 }
 
 fn install_file(
@@ -148,20 +125,15 @@ fn install_file(
 
 /// Strategy for handling file conflicts during installation.
 ///
-/// # Examples
-///
-/// ```rust
-/// use loadsmith_install::ConflictStrategy;
-///
-/// let strategy = ConflictStrategy::Overwrite;
-/// assert_eq!(strategy, ConflictStrategy::Overwrite);
-/// ```
+/// These are provided by the [`InstallRule::conflict_strategy`] method and used by [`install`]
+/// (or any other install implementation) to determine how to handle files that already exist in
+/// the target directory.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConflictStrategy {
     /// Overwrite the existing file.
     Overwrite,
     /// Skip the existing file and keep the original.
     Skip,
-    /// Return a [`FileAlreadyExists`](crate::Error::FileAlreadyExists) error.
+    /// Return an error (usually [`FileAlreadyExists`](crate::Error::FileAlreadyExists)) and exit.
     Error,
 }

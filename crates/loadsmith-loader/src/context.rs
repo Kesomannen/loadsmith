@@ -8,28 +8,40 @@ use walkdir::WalkDir;
 
 use crate::Result;
 
-/// Information about the game and profile directories used when launching a
-/// loader.
+/// Information about the game and profile directories used when launching a mod loader.
 ///
 /// A `LaunchContext` holds the paths to the profile directory (where mod files
 /// are staged) and the game directory (where the game executable lives),
-/// together with a flag indicating whether the game runs under Proton.
+/// together with a flag indicating whether the game is running under Proton.
+///
+/// The Proton flag is used to determine whether paths should be formatted for use with
+/// Proton (e.g. prepending `Z:` to paths accessed from within the Proton environment).
 ///
 /// # Examples
 ///
-/// ```rust
-/// use loadsmith_loader::LaunchContext;
+/// ```no_run
+/// # use loadsmith_loader::{BepInEx, LaunchContext, Loader};
 /// use camino::Utf8Path;
 ///
 /// let ctx = LaunchContext::new(
 ///     Utf8Path::new("/tmp/profile"),
 ///     Utf8Path::new("/tmp/game"),
-///     false,
+///     false, // proton flag
 /// );
 ///
-/// assert_eq!(ctx.profile_path(), Utf8Path::new("/tmp/profile"));
-/// assert_eq!(ctx.game_path(), Utf8Path::new("/tmp/game"));
-/// assert!(!ctx.is_proton());
+/// let loader = BepInEx::with_default_rules();
+///
+/// let launch_args = loader.generate_launch_args(&ctx).unwrap();
+///
+/// assert_eq!(
+///     launch_args.get_args().iter().collect::<Vec<_>>(),
+///     vec![
+///         "--doorstop-enable",
+///         "true",
+///         "--doorstop-target",
+///         "/tmp/profile/BepInEx/core/BepInEx.Preloader.dll"
+///     ]
+/// );
 /// ```
 #[derive(Debug, Clone)]
 pub struct LaunchContext<'a> {
@@ -43,8 +55,7 @@ impl<'a> LaunchContext<'a> {
     ///
     /// * `profile_path` - directory where mod and loader files are staged.
     /// * `game_path` - directory containing the game executable.
-    /// * `is_proton` - whether the game runs via Proton (used for path
-    ///   translation).
+    /// * `is_proton` - whether the game is running under Proton or a similar translation layer.
     pub fn new(
         profile_path: impl Into<Cow<'a, Utf8Path>>,
         game_path: impl Into<Cow<'a, Utf8Path>>,
@@ -67,7 +78,7 @@ impl<'a> LaunchContext<'a> {
         &self.game_path
     }
 
-    /// Returns `true` when the game runs under Proton.
+    /// Returns `true` if the game is running under Proton.
     pub fn is_proton(&self) -> bool {
         self.is_proton
     }
@@ -87,7 +98,7 @@ impl<'a> LaunchContext<'a> {
         Ok(Self::new(profile, game, is_proton))
     }
 
-    /// Formats a path for use with Proton, prepending `Z:` when
+    /// Formats a path for use within Proton, prepending `Z:` when
     /// [`is_proton`](LaunchContext::is_proton) is `true`.
     pub fn format_proton_path(&self, path: impl Into<Utf8PathBuf>) -> Utf8PathBuf {
         if self.is_proton {
@@ -102,6 +113,8 @@ impl<'a> LaunchContext<'a> {
     ///
     /// Skips the copy when the destination already exists and has the same
     /// content (determined by hash).
+    ///
+    /// Creates any parent directories for the target file as needed.
     pub fn copy_file_to_game(
         &self,
         relative_source: impl AsRef<Path>,
@@ -142,12 +155,16 @@ impl<'a> LaunchContext<'a> {
 
     /// Copies all files in the profile matching a glob set to the game
     /// directory, preserving relative paths.
+    ///
+    /// See [`copy_files_to_game`](LaunchContext::copy_files_to_game) for more details.
     pub fn copy_glob_to_game(&self, patterns: &GlobSet) -> Result<()> {
         self.copy_files_to_game(|path| patterns.is_match(path))
     }
 
-    /// Copies all files in the profile for which `filter` returns `true` to
-    /// the game directory, preserving relative paths.
+    /// Scans the profile directory recursively and copies all files that match the given
+    /// filter to the game directory, preserving relative paths.
+    ///
+    /// See [`copy_file_to_game`](LaunchContext::copy_file_to_game) for more details.
     pub fn copy_files_to_game<F>(&self, filter: F) -> Result<()>
     where
         F: Fn(&Path) -> bool,

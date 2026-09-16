@@ -24,6 +24,7 @@ tracing = { workspace = true }
 walkdir = { workspace = true }
 semver = { workspace = true }
 url = { workspace = true }
+chrono = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full"] }

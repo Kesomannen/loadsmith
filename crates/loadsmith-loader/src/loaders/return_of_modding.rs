@@ -4,21 +4,17 @@ use loadsmith_install::rule::{InstallRule, InstallRuleset, OwnedInstallRuleset, 
 
 use crate::{LaunchArgs, LaunchContext, Loader, Result, glob_rule};
 
-/// Loader implementation for Return of Modding (ROM), a mod loader for the
-/// game Hellsmith.
+/// Loader implementation for [Return of Modding](https://github.com/return-of-modding/ReturnOfModding),
+/// a Lua mod loader for Risk of Rain Returns and Hades 2.
 ///
-/// Routes packages into `ReturnOfModding/plugins`, `ReturnOfModding/plugins_data`,
-/// and `ReturnOfModding/config` (mutable). The loader passes
-/// `--rom_modding_root_folder` as the launch argument.
+/// Packages are routed into `ReturnOfModding/plugins`, `ReturnOfModding/plugins_data`, and
+/// `ReturnOfModding/config` (mutable), and the profile directory is passed to the game as the
+/// `--rom_modding_root_folder` launch argument.
 ///
-/// # Examples
-///
-/// ```rust
-/// use loadsmith_loader::{ReturnOfModding, Loader};
-///
-/// let loader = ReturnOfModding::with_default_rules();
-/// assert_eq!(loader.id(), "Shimloader");
-/// ```
+/// The package installation rules for Return of Modding are configurable, with default rules
+/// matching the Thunderstore package format for Return of Modding mods. You'll find a list of
+/// the rules in the documentation for
+/// [`with_default_rules`](ReturnOfModding::with_default_rules).
 #[derive(Debug, Clone)]
 pub struct ReturnOfModding {
     package_install_ruleset: OwnedInstallRuleset,
@@ -32,13 +28,15 @@ impl ReturnOfModding {
         }
     }
 
-    /// Creates a `ReturnOfModding` loader with the default rules.
+    /// Creates a `ReturnOfModding` loader with the default install rules.
     ///
-    /// Default routes:
+    /// |                              | Subdir | Flattened | Mutable | Extension | Default |
+    /// |------------------------------|--------|-----------|---------|-----------|---------|
+    /// | ReturnOfModding/plugins      | `X`    | `-`       | `-`     | `-`       | `X`     |
+    /// | ReturnOfModding/plugins_data | `X`    | `-`       | `-`     | `-`       | `-`     |
+    /// | ReturnOfModding/config       | `X`    | `-`       | `X`     | `-`       | `-`     |
     ///
-    /// * `ReturnOfModding/plugins` — default rule
-    /// * `ReturnOfModding/plugins_data`
-    /// * `ReturnOfModding/config` (mutable)
+    /// Read more about how rules work in the documentation of the [`InstallRule`] struct.
     pub fn with_default_rules() -> Self {
         OwnedInstallRuleset::from_rule_iter(
             [
@@ -57,7 +55,7 @@ impl ReturnOfModding {
 
 impl Loader for ReturnOfModding {
     fn id(&self) -> &'static str {
-        "Shimloader"
+        "Return Of Modding"
     }
 
     fn loader_install_rules(&self) -> InstallRuleset<'_> {
