@@ -47,13 +47,16 @@ pub mod manifest {
     };
 }
 
-pub use loadsmith_platform::Platform;
+pub use loadsmith_platform::GameDistribution;
 
 /// Game and platform detection.
 ///
 /// Re-exported from `loadsmith-platform`. Also includes the [`Error`](platform::Error) and [`Result`](platform::Result) types from the same crate.
 pub mod platform {
-    pub use loadsmith_platform::{Error, Result, find_executables, guess_proton, try_guess_proton};
+    pub use loadsmith_platform::{
+        EpicGamesGame, Error, Result, SteamGame, SteamInstallation, SteamInstallationKind,
+        XboxStoreGame, find_executables, guess_proton, try_guess_proton,
+    };
 }
 
 pub use loadsmith_registry::{Registry, RegistrySet};
@@ -63,8 +66,8 @@ pub use loadsmith_registry::{Registry, RegistrySet};
 /// Re-exported from `loadsmith-registry`. Also includes the [`Error`](registry::Error) and [`Result`](registry::Result) types from the same crate.
 pub mod registry {
     pub use loadsmith_registry::{
-        Error, LocalRegistry, ResolvedVersion, Result, VersionInfo, local, offline,
-        offline::OfflineRegistry, Dependency
+        Dependency, Error, LocalRegistry, ResolvedVersion, Result, VersionInfo, local, offline,
+        offline::OfflineRegistry,
     };
 }
 
@@ -80,8 +83,7 @@ pub mod registry {
 /// Re-exported from `loadsmith-thunderstore`. Also includes the [`Error`](thunderstore::Error) and [`Result`](thunderstore::Result) types from the same crate.
 pub mod thunderstore {
     pub use loadsmith_thunderstore::{
-        Error, PackageIdExt, PackageRefExt, Result, ThunderstoreRegistry,
-        distribution_into_platform,
+        Error, PackageIdExt, PackageRefExt, Result, ThunderstoreRegistry, convert_distribution,
         in_memory::{self, InMemoryIndex},
         r2_config_to_loader, r2z,
         sqlite::{self, SqliteIndex},

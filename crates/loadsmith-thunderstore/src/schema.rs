@@ -4,7 +4,7 @@ use loadsmith_install::rule::{OwnedInstallRuleset, RouteRule};
 use loadsmith_loader::{
     BepInEx, GDWeave, Lovely, MelonLoader, Northstar, ReturnOfModding, Rivet, Shimloader,
 };
-use loadsmith_platform::Platform as LoadsmithPlatform;
+use loadsmith_platform::GameDistribution as LoadsmithDistribution;
 use thunderstore::models::schema::{self, Distribution};
 use tracing::warn;
 
@@ -227,37 +227,37 @@ fn rule_to_loadsmith(
 /// # Examples
 ///
 /// ```
-/// use loadsmith_thunderstore::distribution_into_platform;
+/// use loadsmith_thunderstore::convert_distribution;
 /// use thunderstore::models::schema::Distribution;
 ///
 /// let json = r#"{"platform": "steam", "identifier": "12345"}"#;
 /// let dist: Distribution = serde_json::from_str(json).unwrap();
-/// let platform = distribution_into_platform(dist).unwrap();
+/// let platform = convert_distribution(dist).unwrap();
 /// assert!(matches!(platform, loadsmith_platform::Platform::Steam { id: 12345 }));
 /// ```
-pub fn distribution_into_platform(distribution: Distribution) -> Result<LoadsmithPlatform> {
+pub fn convert_distribution(distribution: Distribution) -> Result<LoadsmithDistribution> {
     let identifier = distribution
         .identifier
         .ok_or_else(|| Error::DistributionIsMissingIdentifier);
 
-    let platform = match distribution.platform {
+    let distribution = match distribution.platform {
         schema::Platform::Steam => {
             let id = identifier?.parse::<u32>().map_err(Error::InvalidSteamId)?;
 
-            Ok(LoadsmithPlatform::Steam { id })
+            Ok(LoadsmithDistribution::Steam(
+                loadsmith_platform::SteamGame::new(id),
+            ))
         }
-        schema::Platform::EpicGamesStore => {
-            identifier.map(|identifier| LoadsmithPlatform::EpicGames { identifier })
-        }
-        schema::Platform::XboxGamePass => {
-            identifier.map(|identifier| LoadsmithPlatform::XboxStore { identifier })
-        }
-        schema::Platform::OculusStore => Ok(LoadsmithPlatform::Oculus),
-        schema::Platform::Origin => Ok(LoadsmithPlatform::Origin),
+        schema::Platform::EpicGamesStore => identifier.map(|identifier| {
+            LoadsmithDistribution::EpicGames(loadsmith_platform::EpicGamesGame::new(identifier))
+        }),
+        schema::Platform::XboxGamePass => identifier.map(|identifier| {
+            LoadsmithDistribution::XboxStore(loadsmith_platform::XboxStoreGame::new(identifier))
+        }),
         platform => return Err(Error::UnsupportedPlatform(platform)),
     }?;
 
-    Ok(platform)
+    Ok(distribution)
 }
 
 #[cfg(test)]

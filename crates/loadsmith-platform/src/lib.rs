@@ -4,9 +4,10 @@
 //! should depend on the `loadsmith` facade crate instead of using this
 //! crate directly.
 
+mod epic_games;
 mod error;
-mod launch;
-mod locate;
+mod steam;
+mod xbox_store;
 
 use std::{
     path::{Path, PathBuf},
@@ -14,125 +15,89 @@ use std::{
 };
 
 use camino::Utf8PathBuf;
-pub use error::{Error, Result};
 use tracing::warn;
+use walkdir::WalkDir;
 
-/// A game distribution platform.
+pub use epic_games::EpicGamesGame;
+pub use error::{Error, Result};
+pub use steam::{SteamGame, SteamInstallation, SteamInstallationKind};
+pub use xbox_store::XboxStoreGame;
+
+/// A game distribution on a specific storefront.
 ///
-/// Each variant identifies a specific storefront or launcher. The
-/// [`Platform`] type is used to locate game installations and create launch
-/// commands on the host system.
+/// This enum handles two main use cases:
 ///
-/// This enum is `#[non_exhaustive]`; new platforms may be added without a
-/// breaking change.
+/// - Locating the game's directory in the storefront's local library.
+/// - Creating a launch command for the game via the storefront.
 ///
-/// ```
-/// use loadsmith_platform::Platform;
-///
-/// let steam = Platform::Steam { id: 230230 };
-/// assert_eq!(steam.name(), "Steam");
-/// ```
+/// This is a wrapper around the platform-specific game types, such as [`SteamGame`], [`EpicGamesGame`], and [`XboxStoreGame`],
+/// and is intended to give a unified interface with sane defaults for locating and launching games across different platforms.
+/// If you seek more control over the platform-specific behavior, use those types directly.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
-pub enum Platform {
-    /// A Steam game, identified by its Steam App ID.
-    Steam { id: u32 },
-    /// An Epic Games Store game, identified by its launcher identifier.
-    EpicGames { identifier: String },
-    /// An Oculus / Meta Store game.
-    Oculus,
-    /// An Origin (EA App) game.
-    Origin,
-    /// An Xbox / Microsoft Store game, identified by its package name.
-    XboxStore { identifier: String },
+pub enum GameDistribution {
+    /// A Steam game. See [`SteamGame`] for more details.
+    Steam(steam::SteamGame),
+    /// An Epic Games Store game. See [`EpicGamesGame`] for more details.
+    EpicGames(epic_games::EpicGamesGame),
+    /// An Xbox / Microsoft Store game. See [`XboxStoreGame`] for more details.
+    XboxStore(xbox_store::XboxStoreGame),
 }
 
-impl Platform {
-    /// Return the human-readable display name for this platform.
+impl GameDistribution {
+    /// Returns a human-readable name for the storefront associated with this game distribution.
+    ///
+    /// # Example
     ///
     /// ```
-    /// use loadsmith_platform::Platform;
-    ///
-    /// assert_eq!(Platform::Steam { id: 1 }.name(), "Steam");
-    /// assert_eq!(Platform::EpicGames { identifier: "x".into() }.name(), "Epic Games");
-    /// assert_eq!(Platform::Oculus.name(), "Oculus");
-    /// assert_eq!(Platform::Origin.name(), "Origin");
-    /// assert_eq!(Platform::XboxStore { identifier: "x".into() }.name(), "Xbox Store");
+    /// # use loadsmith_platform::{GameDistribution, SteamGame};
+    /// let distribution = GameDistribution::Steam(SteamGame::new(730));
+    /// assert_eq!(distribution.storefront(), "Steam");
     /// ```
-    pub fn name(&self) -> &'static str {
+    pub fn storefront(&self) -> &'static str {
         match self {
-            Platform::Steam { .. } => "Steam",
-            Platform::EpicGames { .. } => "Epic Games",
-            Platform::Oculus => "Oculus",
-            Platform::Origin => "Origin",
-            Platform::XboxStore { .. } => "Xbox Store",
+            GameDistribution::Steam { .. } => "Steam",
+            GameDistribution::EpicGames { .. } => "Epic Games",
+            GameDistribution::XboxStore { .. } => "Xbox Store",
         }
     }
 
-    /// Locate the game directory for this platform's game, if possible.
+    /// Locate the install directory for this game distribution with sane defaults.
     ///
-    /// ```no_run
-    /// use loadsmith_platform::{Platform, Error};
-    ///
-    /// let platform = Platform::Steam { id: 730 }; // CS:GO / CS2
-    /// match platform.locate_game() {
-    ///     Ok(path) => println!("Game found at: {path}"),
-    ///     Err(Error::GameNotFound) => println!("Game not found"),
-    ///     Err(Error::GameLocationNotSupported) => println!("Game location is not supported for this platform and OS"),
-    ///     Err(e) => eprintln!("Unexpected error while locating game: {e}"),
-    /// }
-    /// ```
+    /// The method to accomplish this varies by storefront, see the documentation for each
+    /// platform-specific type for more details.
     pub fn locate_game(&self) -> Result<Utf8PathBuf> {
-        locate::locate_game(self)
+        match self {
+            GameDistribution::Steam(game) => steam::SteamInstallation::locate()?.locate_game(game),
+            GameDistribution::EpicGames(game) => game.locate(),
+            GameDistribution::XboxStore(game) => game.locate(),
+        }
     }
 
-    /// Create a platform-specific [`Command`] to launch the game, if
-    /// supported.
+    /// Creates a launch command for this game distribution with sane defaults.
     ///
-    /// Returns `Ok(None)` for platforms where launch-command generation is
-    /// not implemented.
-    ///
-    /// ```no_run
-    /// use loadsmith_platform::Platform;
-    ///
-    /// let platform = Platform::Steam { id: 730 };
-    /// if let Ok(Some(cmd)) = platform.create_launch_command() {
-    ///     println!("Launch command: {cmd:?}");
-    /// }
-    /// ```
+    /// The method to accomplish this varies by storefront, see the documentation for each
+    /// platform-specific type for more details.
     pub fn create_launch_command(&self) -> Result<Option<Command>> {
-        launch::create_launch_command(self)
+        match self {
+            GameDistribution::Steam(game) => steam::SteamInstallation::locate()?
+                .launch_command(game)
+                .map(Some),
+            GameDistribution::EpicGames(game) => game.launch_command(),
+            GameDistribution::XboxStore(_) => Ok(None),
+        }
     }
 }
 
-/// Walk a game directory tree and yield paths to executable files.
+/// Guess whether a game is running under Proton or a similar Windows translation layer.
 ///
-/// Filters by platform-appropriate extensions (`.exe` on Windows; `.exe`,
-/// `.sh`, `.x86_64`, `.x86` on Linux) and skips known crash-handler binaries.
+/// On Windows this always returns `false`.
 ///
-/// ```no_run
-/// use loadsmith_platform::find_executables;
+/// On Linux, it checks for a `.forceproton` marker file, or the presence
+/// of `.exe` files in the game directory.
 ///
-/// for exe in find_executables("/path/to/game").unwrap() {
-///     println!("Found executable: {}", exe.display());
-/// }
-/// ```
-pub fn find_executables(game_path: impl AsRef<Path>) -> Result<impl Iterator<Item = PathBuf>> {
-    Ok(locate::find_executables(game_path.as_ref()))
-}
-
-/// Guess whether a game is running under Proton (Linux Steam Play).
-///
-/// On Windows this always returns `false`. On Linux, it checks for a
-/// `.forceproton` marker file or the presence of `.exe` files in the game
-/// directory. Errors are silently swallowed and return `false`.
-///
-/// ```no_run
-/// use loadsmith_platform::guess_proton;
-///
-/// let is_proton = guess_proton("/path/to/game");
-/// println!("Proton: {is_proton}");
-/// ```
+/// Errors during the process cause the function to return `false`.
+/// See [`try_guess_proton`] for the fallible version.
 pub fn guess_proton(game_path: impl AsRef<Path>) -> bool {
     try_guess_proton(game_path).unwrap_or_else(|err| {
         warn!(%err, "failed to guess if game is running under Proton");
@@ -140,21 +105,14 @@ pub fn guess_proton(game_path: impl AsRef<Path>) -> bool {
     })
 }
 
-/// Guess whether a game is running under Proton (Linux Steam Play),
-/// returning errors.
+/// Guess whether a game is running under Proton or a similar Windows translation layer.
 ///
-/// This is the fallible version of [`guess_proton`]. On Windows it always
-/// returns `Ok(false)`.
+/// On Windows this always returns `false`.
 ///
-/// ```no_run
-/// use loadsmith_platform::try_guess_proton;
+/// On Linux, it checks for a `.forceproton` marker file, or the presence
+/// of `.exe` files in the game directory.
 ///
-/// match try_guess_proton("/path/to/game") {
-///     Ok(true) => println!("Likely running under Proton"),
-///     Ok(false) => println!("Native Linux or Windows"),
-///     Err(e) => eprintln!("Error checking Proton: {e}"),
-/// }
-/// ```
+/// For an infallible version that returns `false` on errors, see [`guess_proton`].
 pub fn try_guess_proton(#[allow(unused)] game_path: impl AsRef<Path>) -> Result<bool> {
     #[cfg(target_os = "windows")]
     {
@@ -190,4 +148,41 @@ pub fn try_guess_proton(#[allow(unused)] game_path: impl AsRef<Path>) -> Result<
             Ok(false)
         }
     }
+}
+
+/// Walk the given game directory and find all executable files.
+///
+/// This filters out known non-game executables like crash handlers, and only returns files
+/// with extensions that are likely to be game executables.
+pub fn find_executables(game_path: &Path) -> impl Iterator<Item = PathBuf> + use<> {
+    const IGNORED_FILES: &[&str] = &[
+        "crashpad_handler.exe",
+        "UnityCrashHandler32.exe",
+        "UnityCrashHandler64.exe",
+    ];
+
+    #[cfg(target_os = "windows")]
+    const EXTENSIONS: &[&str] = &["exe"];
+
+    #[cfg(target_os = "linux")]
+    const EXTENSIONS: &[&str] = &["x86_64", "x86", "sh", "exe"];
+
+    WalkDir::new(game_path)
+        .into_iter()
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.file_type().is_file())
+        .map(|entry| entry.into_path())
+        .filter(|path| {
+            let file_name = path
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or_default();
+
+            let extension = path
+                .extension()
+                .and_then(|s| s.to_str())
+                .unwrap_or_default();
+
+            EXTENSIONS.contains(&extension) && !IGNORED_FILES.contains(&file_name)
+        })
 }

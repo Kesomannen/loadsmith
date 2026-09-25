@@ -1,0 +1,3 @@
+- Find game directory location via platform
+- Find game executable from directory location
+- Create launch command via platform installation
